@@ -35,7 +35,7 @@ export const Contact: React.FC = () => {
           <div className="p-8 rounded-xl bg-gradient-to-br from-purple-900/20 to-blue-900/20 backdrop-blur-sm border border-white/10 hover:border-purple-400/50 transition-all duration-300 hover:scale-105 max-w-md">
             <MessageCircle className="text-purple-400 mx-auto mb-4" size={48} />
             <h3 className="text-white font-semibold mb-3 text-xl">Discord</h3>
-            <p className="text-gray-300 text-lg mb-2">@cosmic_dev</p>
+            <p className="text-gray-300 text-lg mb-2">@sogki</p>
             <p className="text-purple-300 text-sm">ディスコード</p>
             <p className="text-gray-400 text-sm mt-3">Usually online and ready to chat about projects, tech, or anything cosmic!</p>
           </div>
