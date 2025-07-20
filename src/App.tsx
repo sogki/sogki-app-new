@@ -12,13 +12,13 @@ function App() {
   return (
     <div className="relative min-h-screen overflow-x-hidden">
       {/* Background Elements */}
-      <div style={{ position: "fixed", inset: 0, zIndex: 0 }}>
+      <div style={{ position: "fixed", inset: 0, zIndex: 10 }}>
         <Galaxy
           mouseRepulsion={true}
           mouseInteraction={true}
           density={0.3}
           glowIntensity={0.5}
-          saturation={1}
+          saturation={0}
           hueShift={140}
         />
       </div>
@@ -26,30 +26,31 @@ function App() {
       {/* Navigation */}
       <Navbar />
 
-      {/* 
-        TODO: Add your custom blackhole component here!
-        Example:
-        <YourCustomBlackhole />
+      {/* TODO: Add your custom blackhole component here!
         
-        Position it with:
         - fixed positioning (fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2)
         - z-index between 10-19 (background is 0, navbar is 50, content is 20+)
         - centered or positioned as desired
         - Consider making it interactive with mouse movement
-        - Recommended size: w-96 h-96 or larger for HD effect
-        
-        Example implementation:
-        <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10">
-          <YourBlackholeComponent />
-        </div>
-      */}
+        - Recommended size: w-96 h-96 or larger for HD effect */}
+
+      {/* <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-0 w-full h-full object-cover mix-blend-screen opacity-80">
+        <video
+        style={{ mixBlendMode: 'screen' }}
+          src="https://mswrkamyldrizwmpzfgp.supabase.co/storage/v1/object/sign/previews/blackhole.webm?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV81MTk5YjNjYS03Y2EwLTRlZmItOGMxNC0xYmZjZDVhMmVmN2QiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJwcmV2aWV3cy9ibGFja2hvbGUud2VibSIsImlhdCI6MTc1MzAwODg5MywiZXhwIjo0OTA2NjA4ODkzfQ.oDmhs8tuhd4En8INKG7Cke4q5C_NAOpXjnIP7-SGEos"
+          autoPlay
+          loop
+          muted
+          playsInline
+        />
+      </div> */}
 
       {/* Main Content */}
       <div className="relative z-20">
         <section id="home">
           <Hero />
         </section>
-        <About/>
+        <About />
         <Projects />
         <TechStack />
         <Contact />
@@ -114,27 +115,42 @@ function App() {
                 </a>
               </li>
               <li>
-                <a href="https://neko-gradients.sogki.dev" className="hover:text-white transition">
+                <a
+                  href="https://neko-gradients.sogki.dev"
+                  className="hover:text-white transition"
+                >
                   NekoGradients
                 </a>
               </li>
               <li>
-                <a href="https://neko-links.sogki.dev" className="hover:text-white transition">
+                <a
+                  href="https://neko-links.sogki.dev"
+                  className="hover:text-white transition"
+                >
                   NekoLinks & Anime Tracker
                 </a>
               </li>
               <li>
-                <a href="https://neko-snippets.sogki.dev" className="hover:text-white transition">
+                <a
+                  href="https://neko-snippets.sogki.dev"
+                  className="hover:text-white transition"
+                >
                   NekoSnippets
                 </a>
               </li>
               <li>
-                <a href="https://marlowmarketing.org" className="hover:text-white transition">
+                <a
+                  href="https://marlowmarketing.org"
+                  className="hover:text-white transition"
+                >
                   Marlow Marketing
                 </a>
               </li>
               <li>
-                <a href="https://profilesafterdark.com" className="hover:text-white transition">
+                <a
+                  href="https://profilesafterdark.com"
+                  className="hover:text-white transition"
+                >
                   Profiles After Dark
                 </a>
               </li>
