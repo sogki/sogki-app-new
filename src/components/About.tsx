@@ -4,7 +4,7 @@ import ShinyText from './ShinyText';
 
 export const About: React.FC = () => {
   return (
-    <section id="about" className="relative py-20 px-6">
+    <section id="about" className="relative py-20 px-6 bg-transparent">
       <div className="max-w-3xl mx-auto">
         {/* Section Header */}
         <motion.div
@@ -44,6 +44,30 @@ export const About: React.FC = () => {
           <p>
             Let’s create something meaningful together that leaves a subtle yet impactful footprint on the digital universe.
           </p>
+        </motion.div>
+
+        {/* Starmap Button */}
+        <motion.div
+          className="mt-8 text-center"
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.4 }}
+          viewport={{ once: true }}
+        >
+          <a
+            href="https://constellation.sogki.dev" // Replace with your starmap URL
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-block px-6 py-3 bg-slate-800 text-purple-300 text-lg font-medium rounded-full hover:bg-slate-700 hover:text-purple-200 transition-colors duration-300"
+          >
+            <motion.span
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              transition={{ type: 'spring', stiffness: 300 }}
+            >
+              Explore My Starmap
+            </motion.span>
+          </a>
         </motion.div>
       </div>
     </section>

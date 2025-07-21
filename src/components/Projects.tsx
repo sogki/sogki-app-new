@@ -27,7 +27,7 @@ export const Projects: React.FC = () => {
       title: "RankTheGlobe",
       titleJp: "地球儀をランク付けする",
       description: "An online platform featuring interactive crowd-source consumer rankings and ratings in parallel with healthier forms of social networking.",
-      technologies: ["React", "TypeScript", "PostgreSQL", "NextJS", "Shadcn"],
+      technologies: ["React", "React Native", "TailwindCSS", "Nativewind", "TypeScript", "PostgreSQL", "NextJS", "Shadcn"],
       image: "https://mswrkamyldrizwmpzfgp.supabase.co/storage/v1/object/sign/previews/ranktheglobe-preview.png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV81MTk5YjNjYS03Y2EwLTRlZmItOGMxNC0xYmZjZDVhMmVmN2QiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJwcmV2aWV3cy9yYW5rdGhlZ2xvYmUtcHJldmlldy5wbmciLCJpYXQiOjE3NTI5Njk0NDAsImV4cCI6NDkwNjU2OTQ0MH0.OwysSJ8CPaU6wueY7_pVK-NTNnpHoUfHboMpSeC_WpM",
       github: "https://github.com/world-ranking-inc",
       demo: "https://ranktheglobe"
