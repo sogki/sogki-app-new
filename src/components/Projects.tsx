@@ -21,7 +21,7 @@ export const Projects: React.FC = () => {
       technologies: ["React", "TypeScript", "Framer Motion", "Reactbits.dev"],
       image: "https://mswrkamyldrizwmpzfgp.supabase.co/storage/v1/object/sign/previews/marlowmarketing-preview.png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV81MTk5YjNjYS03Y2EwLTRlZmItOGMxNC0xYmZjZDVhMmVmN2QiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJwcmV2aWV3cy9tYXJsb3dtYXJrZXRpbmctcHJldmlldy5wbmciLCJpYXQiOjE3NTI5NjkwODMsImV4cCI6NDkwNjU2OTA4M30.jna5sTQTBWUzNkNvhJyjzM1A51Non0S3CcNLXQX4nFw",
       github: "https://github.com/sogki/nekolinks",
-      demo: "https://neko-links.sogki.dev"
+      demo: "https://marlowmarketing.org"
     },
     {
       title: "RankTheGlobe",
