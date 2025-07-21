@@ -49,7 +49,7 @@ export const Contact: React.FC = () => {
           viewport={{ once: true }}
         >
           <a
-            href="https://discord.com/users/cosmic_dev"
+            href="https://discord.com/users/sogki"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full text-white font-medium hover:from-purple-700 hover:to-blue-700 transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-purple-500/25"
