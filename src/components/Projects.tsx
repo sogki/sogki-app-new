@@ -5,22 +5,28 @@ import ShinyText  from './ShinyText';
 
 export const Projects: React.FC = () => {
   const projects = [
-        {
+    {
       title: "Profiles After Dark",
       titleJp: "暗闇後のプロフィール",
       description: "An aesthetic profile database for Profile pictures, banners, emoji combos.",
       technologies: ["Next.js", "React", "PostgreSQL", "TypeScript", "JavaScript"],
-      image: "https://mswrkamyldrizwmpzfgp.supabase.co/storage/v1/object/sign/previews/profilesafterdark-preview.png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV81MTk5YjNjYS03Y2EwLTRlZmItOGMxNC0xYmZjZDVhMmVmN2QiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJwcmV2aWV3cy9wcm9maWxlc2FmdGVyZGFyay1wcmV2aWV3LnBuZyIsImlhdCI6MTc1Mjk2ODk2NywiZXhwIjo0OTA2NTY4OTY3fQ.lQUSI-zoue2Rs6u7QlpmkixrsaY7Dm87ypQMWaiKUsE",
       github: "https://github.com/sogki/profiles-after-dark",
       demo: "https://profilesafterdark.com"
+    },
+    {
+      title: "50andBad's VOD Archive",
+      titleJp: "50andBadのビデオオンデマンドアーカイブ",
+      description: "A VOD Archive for 50andBad, with advanced admin features.",
+      technologies: ["Next.js", "React", "PostgreSQL", "TypeScript", "Supabase"],
+      github: "https://github.com/sogki/50andbad-vod-archive",
+      demo: "https://50andbad.site"
     },
     {
       title: "Marlow Marketing",
       titleJp: "マーケティング",
       description: "A responsive, clean and minimalist website for a marketing agency.",
-      technologies: ["React", "TypeScript", "Framer Motion", "Reactbits.dev"],
-      image: "https://mswrkamyldrizwmpzfgp.supabase.co/storage/v1/object/sign/previews/marlowmarketing-preview.png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV81MTk5YjNjYS03Y2EwLTRlZmItOGMxNC0xYmZjZDVhMmVmN2QiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJwcmV2aWV3cy9tYXJsb3dtYXJrZXRpbmctcHJldmlldy5wbmciLCJpYXQiOjE3NTI5NjkwODMsImV4cCI6NDkwNjU2OTA4M30.jna5sTQTBWUzNkNvhJyjzM1A51Non0S3CcNLXQX4nFw",
-      github: "https://github.com/sogki/nekolinks",
+      technologies: ["React", "TypeScript", "Framer Motion"],
+      github: "https://github.com/sogki/marlow-marketing",
       demo: "https://marlowmarketing.org"
     },
     {
@@ -28,14 +34,29 @@ export const Projects: React.FC = () => {
       titleJp: "地球儀をランク付けする",
       description: "An online platform featuring interactive crowd-source consumer rankings and ratings in parallel with healthier forms of social networking.",
       technologies: ["React", "React Native", "TailwindCSS", "Nativewind", "TypeScript", "PostgreSQL", "NextJS", "Shadcn"],
-      image: "https://mswrkamyldrizwmpzfgp.supabase.co/storage/v1/object/sign/previews/ranktheglobe-preview.png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV81MTk5YjNjYS03Y2EwLTRlZmItOGMxNC0xYmZjZDVhMmVmN2QiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJwcmV2aWV3cy9yYW5rdGhlZ2xvYmUtcHJldmlldy5wbmciLCJpYXQiOjE3NTI5Njk0NDAsImV4cCI6NDkwNjU2OTQ0MH0.OwysSJ8CPaU6wueY7_pVK-NTNnpHoUfHboMpSeC_WpM",
       github: "https://github.com/world-ranking-inc",
-      demo: "https://ranktheglobe"
+      demo: "https://ranktheglobe.com"
+    },
+    {
+      title: "NekoLinks",
+      titleJp: "ネコリンクス",
+      description: "A cute, easy japanese aesthetic link and anime tracker.",
+      technologies: ["React", "Framer Motion", "TailwindCSS", "Vercel"],
+      github: "https://github.com/sogki/nekolinks",
+      demo: "https://neko-links.sogki.dev"
+    },
+    {
+      title: "NekoSnippets",
+      titleJp: "ネコスニペット",
+      description: "Japanese-inspired minimalist code snippet storage tool.",
+      technologies: ["React", "Framer Motion", "PrismJS", "Vercel"],
+      github: "https://github.com/sogki/neko-snippets",
+      demo: "https://neko-snippets.sogki.dev"
     }
   ];
 
   return (
-    <section id="projects" className="relative py-20 px-6">
+    <div className="relative py-20 px-6">
       <div className="max-w-6xl mx-auto">
         {/* Section Header */}
         <motion.div
@@ -65,6 +86,6 @@ export const Projects: React.FC = () => {
           ))}
         </div>
       </div>
-    </section>
+    </div>
   );
 };

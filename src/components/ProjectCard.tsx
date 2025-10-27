@@ -8,7 +8,6 @@ interface ProjectCardProps {
   titleJp: string;
   description: string;
   technologies: string[];
-  image: string;
   github?: string;
   demo?: string;
   delay?: number;
@@ -19,7 +18,6 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
   titleJp,
   description,
   technologies,
-  image,
   github,
   demo,
   delay = 0
@@ -36,18 +34,8 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
         <div className="absolute -inset-1 bg-gradient-to-r from-purple-600 to-blue-600 rounded-xl blur opacity-0 group-hover:opacity-75 transition duration-1000" />
         
         <div className="relative p-6 h-full flex flex-col">
-          {/* Image */}
-          <div className="relative h-48 mb-4 rounded-lg overflow-hidden">
-            <img 
-              src={image} 
-              alt={title}
-              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-          </div>
-          
           {/* Content */}
-          <div className="space-y-3 flex-1 flex flex-col">
+          <div className="space-y-4 flex-1 flex flex-col">
             <div>
               <h3 className="text-xl font-bold text-white group-hover:text-purple-300 transition-colors">
                 {title}

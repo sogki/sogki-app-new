@@ -65,7 +65,7 @@ export const TechStack: React.FC = () => {
   ];
 
   return (
-    <section id="tech-stack" className="relative py-20 px-6">
+    <div className="relative py-20 px-6">
       <div className="max-w-6xl mx-auto">
         {/* Section Header */}
         <motion.div
@@ -136,6 +136,6 @@ export const TechStack: React.FC = () => {
           ))}
         </div>
       </div>
-    </section>
+    </div>
   );
 };

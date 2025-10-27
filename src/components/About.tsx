@@ -4,7 +4,7 @@ import ShinyText from './ShinyText';
 
 export const About: React.FC = () => {
   return (
-    <section id="about" className="relative py-20 px-6 bg-transparent">
+    <div className="relative py-20 px-6 bg-transparent">
       <div className="max-w-3xl mx-auto">
         {/* Section Header */}
         <motion.div
@@ -70,7 +70,7 @@ export const About: React.FC = () => {
           </a>
         </motion.div>
       </div>
-    </section>
+    </div>
   );
 };
 

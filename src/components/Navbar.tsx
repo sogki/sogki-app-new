@@ -11,7 +11,8 @@ import {
   Github,
   Twitter,
   Menu,
-  X
+  X,
+  Share2
 } from 'lucide-react';
 
 export const Navbar: React.FC = () => {
@@ -19,7 +20,6 @@ export const Navbar: React.FC = () => {
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProjectsOpen, setIsProjectsOpen] = useState(false);
-  const [activeProjectDetails, setActiveProjectDetails] = useState<string | null>(null);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -32,7 +32,6 @@ export const Navbar: React.FC = () => {
         setActiveDropdown(null);
         setIsMobileMenuOpen(false);
         setIsProjectsOpen(false);
-        setActiveProjectDetails(null);
       }
     };
 
@@ -67,13 +66,6 @@ export const Navbar: React.FC = () => {
       description: 'Explore my technological arsenal'
     },
     { 
-      icon: <Briefcase size={18} />, 
-      label: 'Projects', 
-      labelJp: 'プロジェクト', 
-      href: '#projects',
-      description: 'Witness creations from distant galaxies'
-    },
-    { 
       icon: <MessageCircle size={18} />, 
       label: 'Contact', 
       labelJp: '連絡', 
@@ -84,28 +76,41 @@ export const Navbar: React.FC = () => {
 
   const projects = [
     { 
-      name: 'SogAPI', 
-      url: 'https://api.sogki.dev', 
-      description: 'A RESTful API (that is in development), which I use for all my projects for Full-stack apps and Discord bots',
-      tech: 'React • TypeScript • PostgreSQL • DiscordJS • Vercel'
+      name: 'Profiles After Dark', 
+      url: 'https://profilesafterdark.com', 
+      description: 'An aesthetic profile database for Profile pictures, banners, emoji combos.',
+      tech: 'Next.js • React • PostgreSQL • TypeScript'
     },
+    { 
+      name: "50andBad's VOD Archive", 
+      url: 'https://50andbad.site', 
+      description: 'A VOD Archive for 50andBad, with advanced admin features.',
+      tech: 'Next.js • React • PostgreSQL • TypeScript • Supabase'
+    },
+    { 
+      name: 'Marlow Marketing', 
+      url: 'https://marlowmarketing.org', 
+      description: 'A responsive, clean and minimalist website for a marketing agency.',
+      tech: 'React • TypeScript • Framer Motion'
+    },
+    { 
+      name: 'RankTheGlobe', 
+      url: 'https://ranktheglobe.com', 
+      description: 'Interactive crowd-source consumer rankings and ratings platform.',
+      tech: 'React • React Native • NextJS • PostgreSQL'
+    },
+
     { 
       name: 'NekoLinks', 
       url: 'https://neko-links.sogki.dev', 
       description: 'A cute, easy japanese aesthetic link and anime tracker.',
-      tech: 'Framer Motion • TailwindCSS • React • Local Storage • Vercel'
+      tech: 'React • Framer Motion • TailwindCSS • Vercel'
     },
     { 
       name: 'NekoSnippets', 
       url: 'https://neko-snippets.sogki.dev', 
-      description: 'Embracing a Japanese-inspired minimalist aesthetic, NekoSnippets is a tool to store code in an uncluttered interface.',
-      tech: 'React • Framer Motion • PrismJS • Local Storage • Vercel'
-    },
-    { 
-      name: 'Profiles After Dark', 
-      url: 'https://profilesafterdark.com', 
-      description: 'An aesthetic profile database for Profile pictures, banners, emoji combos.',
-      tech: 'React • Framer Motion • DiscordJS • Webhooks • PostgreSQL • Vercel'
+      description: 'Japanese-inspired minimalist code snippet storage tool.',
+      tech: 'React • Framer Motion • PrismJS • Vercel'
     }
   ];
 
@@ -120,7 +125,7 @@ export const Navbar: React.FC = () => {
     { 
       icon: <Twitter size={16} />, 
       label: 'Twitter', 
-      url: 'https://x.com/sogkiii',
+      url: 'https://x.com/sogkii',
       description: 'Thoughts on tech, space, and development',
       handle: '@sogkiii'
     }
@@ -134,7 +139,6 @@ export const Navbar: React.FC = () => {
     setActiveDropdown(null);
     setIsMobileMenuOpen(false);
     setIsProjectsOpen(false);
-    setActiveProjectDetails(null);
   };
 
   return (
@@ -275,35 +279,35 @@ export const Navbar: React.FC = () => {
               <AnimatePresence>
                 {activeDropdown === 'projects' && (
                   <motion.div
-                    className="absolute top-full mt-2 right-0 bg-black/95 backdrop-blur-xl border border-white/30 rounded-xl p-4 min-w-80 shadow-2xl shadow-purple-500/20"
+                    className="absolute top-full mt-2 right-0 sm:right-0 sm:left-auto left-0 bg-black/95 backdrop-blur-xl border border-white/30 rounded-xl p-3 w-72 max-w-[calc(100vw-2rem)] shadow-2xl shadow-purple-500/20 z-50"
                     initial={{ opacity: 0, y: -20, scale: 0.9, rotateX: -15 }}
                     animate={{ opacity: 1, y: 0, scale: 1, rotateX: 0 }}
                     exit={{ opacity: 0, y: -20, scale: 0.9, rotateX: -15 }}
                     transition={{ duration: 0.3, type: "spring", stiffness: 300, damping: 30 }}
                   >
-                    <div className="space-y-2">
+                    <div className="grid grid-cols-1 gap-2 max-h-96 overflow-y-auto overflow-x-hidden dropdown-scroll">
                       {projects.map((project) => (
                         <motion.a
                           key={project.name}
                           href={project.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="block p-3 rounded-lg hover:bg-white/10 transition-all duration-300 group"
-                          whileHover={{ scale: 1.02, x: 4 }}
+                          className="block p-2 rounded-lg hover:bg-white/10 transition-all duration-300 group w-full"
+                          whileHover={{ scale: 1.01, x: 1 }}
                         >
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <div className="text-white text-sm font-medium mb-1 group-hover:text-purple-300 transition-colors">
+                          <div className="flex items-start justify-between w-full">
+                            <div className="flex-1 min-w-0 pr-1 overflow-hidden">
+                              <div className="text-white text-sm font-medium mb-1 group-hover:text-purple-300 transition-colors truncate">
                                 {project.name}
                               </div>
-                              <div className="text-gray-400 text-xs leading-relaxed mb-2">
+                              <div className="text-gray-400 text-xs leading-tight mb-1 line-clamp-2 break-words">
                                 {project.description}
                               </div>
-                              <div className="text-purple-400 text-xs font-mono">
+                              <div className="text-purple-400 text-xs font-mono truncate">
                                 {project.tech}
                               </div>
                             </div>
-                            <ExternalLink size={14} className="text-gray-400 group-hover:text-purple-400 transition-colors ml-2 mt-1" />
+                            <ExternalLink size={10} className="text-gray-400 group-hover:text-purple-400 transition-colors ml-1 mt-0.5 flex-shrink-0" />
                           </div>
                         </motion.a>
                       ))}
@@ -325,6 +329,7 @@ export const Navbar: React.FC = () => {
                 aria-label="Social Links"
                 aria-expanded={activeDropdown === 'social'}
               >
+                <Share2 size={isScrolled ? 16 : 18} />
                 <span className={`hidden md:inline ${isScrolled ? 'text-xs' : 'text-sm'}`}>
                   Social
                 </span>
@@ -460,52 +465,29 @@ export const Navbar: React.FC = () => {
                       >
                         {projects.map((project) => (
                           <div key={project.name} className="pl-6">
-                            <motion.div
-                              className="flex items-center justify-between p-3 rounded-lg hover:bg-white/10 transition-all duration-300 group"
+                            <motion.a
+                              href={project.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="block p-3 rounded-lg hover:bg-white/10 transition-all duration-300 group"
                               whileHover={{ scale: 1.02, x: 4 }}
+                              aria-label={`Open ${project.name} in new tab`}
                             >
-                              <div className="flex items-center gap-2 flex-1">
-                                <a
-                                  href={project.url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="flex items-center gap-2 text-white text-sm font-medium group-hover:text-purple-300 transition-colors"
-                                  aria-label={`Open ${project.name} in new tab`}
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  {project.name}
-                                  <ExternalLink size={14} className="text-gray-400 group-hover:text-purple-400 transition-colors" />
-                                </a>
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1 min-w-0">
+                                  <div className="text-white text-sm font-medium mb-1 group-hover:text-purple-300 transition-colors">
+                                    {project.name}
+                                  </div>
+                                  <div className="text-gray-400 text-xs leading-tight mb-1 line-clamp-2">
+                                    {project.description}
+                                  </div>
+                                  <div className="text-purple-400 text-xs font-mono">
+                                    {project.tech}
+                                  </div>
+                                </div>
+                                <ExternalLink size={12} className="text-gray-400 group-hover:text-purple-400 transition-colors ml-2 mt-0.5 flex-shrink-0" />
                               </div>
-                              <motion.button
-                                onClick={() => setActiveProjectDetails(activeProjectDetails === project.name ? null : project.name)}
-                                className="text-gray-300 hover:text-white p-2"
-                                aria-label={activeProjectDetails === project.name ? `Collapse ${project.name} details` : `Expand ${project.name} details`}
-                                aria-expanded={activeProjectDetails === project.name}
-                              >
-                                <motion.div
-                                  animate={{ rotate: activeProjectDetails === project.name ? 180 : 0 }}
-                                  transition={{ duration: 0.3 }}
-                                >
-                                  <ChevronDown size={12} />
-                                </motion.div>
-                              </motion.button>
-                            </motion.div>
-
-                            <AnimatePresence>
-                              {activeProjectDetails === project.name && (
-                                <motion.div
-                                  className="pl-4 pt-2 text-gray-400 text-xs"
-                                  initial={{ height: 0, opacity: 0 }}
-                                  animate={{ height: 'auto', opacity: 1 }}
-                                  exit={{ height: 0, opacity: 0 }}
-                                  transition={{ duration: 0.3 }}
-                                >
-                                  <div className="leading-relaxed mb-2">{project.description}</div>
-                                  <div className="text-purple-400 font-mono">{project.tech}</div>
-                                </motion.div>
-                              )}
-                            </AnimatePresence>
+                            </motion.a>
                           </div>
                         ))}
                       </motion.div>

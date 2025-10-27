@@ -5,7 +5,7 @@ import { MessageCircle } from 'lucide-react';
 
 export const Contact: React.FC = () => {
   return (
-    <section id="contact" className="relative py-20 px-6">
+    <div className="relative py-20 px-6">
       <div className="max-w-4xl mx-auto text-center">
         {/* Section Header */}
         <motion.div
@@ -59,6 +59,6 @@ export const Contact: React.FC = () => {
           </a>
         </motion.div>
       </div>
-    </section>
+    </div>
   );
 };
