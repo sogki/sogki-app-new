@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -26,6 +26,12 @@ body {
   height: 100%;
   scrollbar-width: thin;
   scrollbar-color: rgba(147, 51, 234, 0.5) transparent;
+}
+
+/* JetBrains Mono for code elements */
+code, pre, .font-mono, .mono {
+  font-family: 'JetBrains Mono', monospace;
+  font-feature-settings: 'liga' 1, 'calt' 1;
 }
 
 #root {
@@ -74,11 +80,17 @@ body {
 }
 
 
-/* Smooth animations */
+/* Optimized animations - faster transitions */
 * {
-  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter, scale;
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, scale;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  transition-duration: 150ms;
+  transition-duration: 100ms;
+}
+
+/* Reduce backdrop-filter usage - only apply where needed */
+.backdrop-blur-sm {
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
 }
 
 /* Hardware acceleration for smooth animations */
@@ -101,6 +113,16 @@ canvas {
 }
 
 canvas::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hide scrollbar for horizontal scroll */
+.scrollbar-hide {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
 
@@ -178,8 +200,13 @@ canvas::-webkit-scrollbar {
   transform-style: preserve-3d;
 }
 
-/* Smooth scroll */
+/* Optimized scroll - instant for navigation, smooth for manual scrolling */
 html {
+  scroll-behavior: auto;
+}
+
+/* Smooth scroll only for manual scrolling */
+.scroll-smooth {
   scroll-behavior: smooth;
 }
 
@@ -188,6 +215,44 @@ button:focus-visible,
 a:focus-visible {
   outline: 2px solid rgba(147, 51, 234, 0.5);
   outline-offset: 2px;
+}
+
+/* Marquee Animation */
+@keyframes marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-marquee {
+  animation: marquee 30s linear infinite;
+}
+
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+
+/* Features Marquee Animation */
+@keyframes marquee-features {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(calc(-50% - 1.5rem));
+  }
+}
+
+.animate-marquee-features {
+  animation: marquee-features 40s linear infinite;
+  will-change: transform;
+  width: fit-content;
+}
+
+.animate-marquee-features:hover {
+  animation-play-state: paused;
 }
 
 /* Responsive typography */
@@ -208,6 +273,10 @@ a:focus-visible {
       animation-duration: 0.01ms !important;
       animation-iteration-count: 1 !important;
       transition-duration: 0.01ms !important;
+    }
+    
+    .animate-marquee {
+      animation: none;
     }
   }
 }

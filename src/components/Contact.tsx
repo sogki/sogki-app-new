@@ -15,7 +15,7 @@ export const Contact: React.FC = () => {
           transition={{ duration: 0.8 }}
           viewport={{ once: true }}
         >
-          <h2 className="text-5xl md:text-6xl font-bold mb-4">
+          <h2 className="text-5xl md:text-6xl font-bold mb-4 font-mono">
             <ShinyText text="Get in touch" speed={3} />
           </h2>
           <p className="text-purple-300 text-lg mb-4">連絡を取る</p>
@@ -32,9 +32,9 @@ export const Contact: React.FC = () => {
           transition={{ duration: 0.8, delay: 0.2 }}
           viewport={{ once: true }}
         >
-          <div className="p-8 rounded-xl bg-gradient-to-br from-purple-900/20 to-blue-900/20 backdrop-blur-sm border border-white/10 hover:border-purple-400/50 transition-all duration-300 hover:scale-105 max-w-md">
+          <div className="p-8 rounded-xl bg-gradient-to-br from-purple-900/20 to-blue-900/20 backdrop-blur-sm border border-white/10 hover:border-purple-400/50 transition-all duration-150 hover:scale-[1.02] max-w-md">
             <MessageCircle className="text-purple-400 mx-auto mb-4" size={48} />
-            <h3 className="text-white font-semibold mb-3 text-xl">Discord</h3>
+            <h3 className="text-white font-semibold mb-3 text-xl font-mono">Discord</h3>
             <p className="text-gray-300 text-lg mb-2">@sogki</p>
             <p className="text-purple-300 text-sm">ディスコード</p>
             <p className="text-gray-400 text-sm mt-3">Usually online and ready to chat about projects, tech, or anything cosmic!</p>
@@ -52,7 +52,7 @@ export const Contact: React.FC = () => {
             href="https://discord.com/users/sogki"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full text-white font-medium hover:from-purple-700 hover:to-blue-700 transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-purple-500/25"
+            className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full text-white font-medium hover:from-purple-700 hover:to-blue-700 transition-all duration-150 hover:scale-[1.02] hover:shadow-lg hover:shadow-purple-500/25"
           >
             <MessageCircle size={20} />
             Message on Discord

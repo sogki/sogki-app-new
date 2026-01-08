@@ -11,7 +11,9 @@ interface Section {
 const sections: Section[] = [
   { id: 'home', kanji: '家', label: 'Home', color: 'text-purple-400' },
   { id: 'about', kanji: '私', label: 'About', color: 'text-blue-400' },
+  { id: 'features', kanji: '特', label: 'Features', color: 'text-pink-400' },
   { id: 'projects', kanji: '作', label: 'Projects', color: 'text-green-400' },
+  { id: 'timeline', kanji: '時', label: 'Timeline', color: 'text-orange-400' },
   { id: 'tech-stack', kanji: '技', label: 'Tech', color: 'text-yellow-400' },
   { id: 'contact', kanji: '話', label: 'Contact', color: 'text-red-400' }
 ];
@@ -57,26 +59,28 @@ export const KanjiScrollbar: React.FC = () => {
     if (element) {
       setIsClickNavigating(true); // Prevent scroll listener from interfering
       setActiveSection(sectionId); // Immediately update active state on click
-      element.scrollIntoView({ behavior: 'smooth' });
+      element.scrollIntoView({ behavior: 'auto' });
+      // Small offset for navbar
+      window.scrollBy(0, -20);
       
-      // Re-enable scroll detection after animation completes
+      // Re-enable scroll detection quickly
       setTimeout(() => {
         setIsClickNavigating(false);
-      }, 1000);
+      }, 100);
     }
   };
 
   return (
-    <div className="fixed right-4 top-1/2 transform -translate-y-1/2 z-50 space-y-2">
+    <div className="fixed right-2 sm:right-4 top-1/2 transform -translate-y-1/2 z-[100] space-y-1.5 sm:space-y-2 hidden sm:block">
       {sections.map((section, index) => (
         <motion.button
           key={section.id}
           onClick={() => scrollToSection(section.id)}
           className={`
-            relative group block w-12 h-12 rounded-full border-2 transition-all duration-300
+            relative group block w-12 h-12 rounded-full border-2 transition-all duration-150
             ${activeSection === section.id 
-              ? 'bg-purple-500/20 border-purple-400 shadow-lg shadow-purple-500/30' 
-              : 'bg-black/20 border-white/20 hover:border-white/40 hover:bg-white/10'
+              ? 'bg-purple-500/20 border-purple-400 shadow-md shadow-purple-500/20' 
+              : 'bg-black/30 border-white/20 hover:border-white/40 hover:bg-white/10'
             }
           `}
           whileHover={{ scale: 1.1 }}
@@ -89,13 +93,13 @@ export const KanjiScrollbar: React.FC = () => {
           <div className={`
             absolute inset-0 flex items-center justify-center text-2xl font-bold
             ${activeSection === section.id ? section.color : 'text-white/70'}
-            group-hover:text-white transition-colors duration-300
+            group-hover:text-white transition-colors duration-150
           `}>
             {section.kanji}
           </div>
           
           {/* Tooltip */}
-          <div className="absolute right-full mr-3 top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+          <div className="absolute right-full mr-3 top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-150 pointer-events-none">
             <div className="bg-black/90 text-white text-sm px-3 py-1 rounded-lg whitespace-nowrap">
               {section.label}
             </div>
@@ -114,7 +118,7 @@ export const KanjiScrollbar: React.FC = () => {
               }`}
               initial={{ scale: 0, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 0.3 }}
+              transition={{ duration: 0.15 }}
             />
           )}
           
@@ -129,11 +133,11 @@ export const KanjiScrollbar: React.FC = () => {
                 section.id === 'contact' ? 'bg-red-400/20' : 'bg-purple-400/20'
               }`}
               animate={{ 
-                scale: [1, 1.2, 1],
-                opacity: [0.5, 0.8, 0.5]
+                scale: [1, 1.1, 1],
+                opacity: [0.3, 0.5, 0.3]
               }}
               transition={{ 
-                duration: 2,
+                duration: 3,
                 repeat: Infinity,
                 ease: "easeInOut"
               }}

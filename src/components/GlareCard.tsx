@@ -40,7 +40,7 @@ export const GlareCard: React.FC<GlareCardProps> = ({
     >
       {/* Glare effect */}
       <div
-        className="absolute pointer-events-none transition-opacity duration-300"
+        className="absolute pointer-events-none transition-opacity duration-150"
         style={{
           background: `radial-gradient(${glareSize}px circle at ${mousePosition.x}px ${mousePosition.y}px, ${glareColor}, transparent 40%)`,
           opacity: isHovering ? 1 : 0,

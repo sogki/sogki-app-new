@@ -1,17 +1,12 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import ShinyText  from './ShinyText';
-import { TiltedCard } from './TiltedCard';
+import ShinyText from './ShinyText';
 import { 
   Code2, 
   Database, 
-  Globe, 
-  Smartphone, 
-  Cloud, 
-  Palette,
+  Cloud,
   Coffee,
   Music,
-  Camera,
   Gamepad2,
   Book,
   Plane
@@ -20,40 +15,26 @@ import {
 export const TechStack: React.FC = () => {
   const techCategories = [
     {
-      icon: <Code2 size={28} />,
+      icon: <Code2 size={24} />,
       title: "Frontend",
       titleJp: "フロントエンド",
       technologies: ["React", "TypeScript", "Next.js", "Tailwind CSS", "Framer Motion"],
       color: "from-blue-500 to-cyan-500"
     },
     {
-      icon: <Database size={28} />,
+      icon: <Database size={24} />,
       title: "Backend",
       titleJp: "バックエンド",
       technologies: ["Node.js", "MySQL", "PostgreSQL", "REST APIs"],
       color: "from-green-500 to-emerald-500"
     },
-    // {
-    //   icon: <Smartphone size={28} />,
-    //   title: "Mobile",
-    //   titleJp: "モバイル",
-    //   technologies: ["React Native", "Flutter", "Swift", "Kotlin", "Expo"],
-    //   color: "from-purple-500 to-pink-500"
-    // },
     {
-      icon: <Cloud size={28} />,
-      title: "DevOps & Cloud",
-      titleJp: "DevOpsとクラウド",
-      technologies: ["AWS", "Docker", "Supabase", "Vercel", "GitHub"],
-      color: "from-orange-500 to-red-500"
-    },
-    // {
-    //   icon: <Palette size={28} />,
-    //   title: "Design & Tools",
-    //   titleJp: "デザインとツール",
-    //   technologies: ["Figma", "Adobe Photoshop", "Blender", "Three.js", "WebGL"],
-    //   color: "from-pink-500 to-rose-500"
-    // }
+      icon: <Cloud size={24} />,
+      title: "Tools & Platforms",
+      titleJp: "ツールとプラットフォーム",
+      technologies: ["Supabase", "Vercel", "GitHub", "PostgreSQL"],
+      color: "from-purple-500 to-indigo-500"
+    }
   ];
 
   const personalInterests = [
@@ -65,77 +46,87 @@ export const TechStack: React.FC = () => {
   ];
 
   return (
-    <div className="relative py-20 px-6">
+    <section className="relative py-20 px-6">
       <div className="max-w-6xl mx-auto">
         {/* Section Header */}
         <motion.div
           className="text-center mb-16"
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
+          transition={{ duration: 0.6 }}
           viewport={{ once: true }}
         >
-          <h2 className="text-5xl md:text-6xl font-bold mb-4">
+          <h2 className="text-5xl md:text-6xl font-bold mb-4 font-mono">
             <ShinyText text="Tech stack & Languages" speed={3} />
           </h2>
           <p className="text-purple-300 text-lg mb-6">技術スタックと言語</p>
           
           {/* Personal Interest Tags */}
-          <div className="flex flex-wrap gap-3 justify-center mb-8">
+          <div className="flex flex-wrap gap-3 justify-center">
             {personalInterests.map((interest, index) => (
               <motion.div
                 key={interest.label}
-                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500/20 to-blue-500/20 backdrop-blur-sm border border-white/10 rounded-full text-sm text-gray-300 hover:border-purple-400/50 transition-all duration-300 hover:scale-105"
-                initial={{ opacity: 0, scale: 0.8 }}
+                className="flex items-center gap-2 px-3 py-1.5 bg-black/40 border border-white/10 rounded-full text-xs text-gray-300 hover:border-purple-400/50 transition-all duration-150"
+                initial={{ opacity: 0, scale: 0.9 }}
                 whileInView={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
+                transition={{ duration: 0.3, delay: index * 0.05 }}
                 viewport={{ once: true }}
-                whileHover={{ y: -2 }}
+                whileHover={{ scale: 1.05, y: -2 }}
               >
                 <span className="text-purple-400">{interest.icon}</span>
                 <span className="hidden sm:inline">{interest.label}</span>
-                <span className="text-xs text-purple-300 hidden md:inline">• {interest.labelJp}</span>
+                <span className="text-xs text-purple-300 hidden md:inline ml-1">• {interest.labelJp}</span>
               </motion.div>
             ))}
           </div>
         </motion.div>
         
         {/* Tech Stack Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {techCategories.map((category, index) => (
-            <TiltedCard key={category.title} delay={index * 0.15}>
-              <div className="text-center h-full flex flex-col">
-                <div className={`inline-flex p-3 rounded-full bg-gradient-to-r ${category.color} mb-4 mx-auto`}>
-                  <div className="text-white">
-                    {category.icon}
+            <motion.div
+              key={category.title}
+              className="group relative overflow-hidden rounded-xl bg-gradient-to-br from-purple-900/20 to-blue-900/20 border border-white/10 h-full"
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: index * 0.1 }}
+              viewport={{ once: true }}
+              whileHover={{ y: -4 }}
+            >
+              {/* Hover glow */}
+              <div className={`absolute -inset-1 bg-gradient-to-r ${category.color} rounded-xl blur-lg opacity-0 group-hover:opacity-30 transition-opacity duration-200`} />
+              
+              <div className="relative p-6 h-full flex flex-col bg-black/40">
+                {/* Icon & Title */}
+                <div className="mb-6">
+                  <div className={`inline-flex p-3 rounded-lg bg-gradient-to-r ${category.color} mb-4`}>
+                    <div className="text-white">
+                      {category.icon}
+                    </div>
                   </div>
+                  
+                  <h3 className="text-xl font-bold text-white mb-1 font-mono group-hover:text-purple-300 transition-colors">
+                    {category.title}
+                  </h3>
+                  <p className="text-sm text-purple-300">{category.titleJp}</p>
                 </div>
                 
-                <h3 className="text-xl font-bold text-white mb-2">
-                  {category.title}
-                </h3>
-                <p className="text-purple-300 text-sm mb-4">{category.titleJp}</p>
-                
-                <div className="flex flex-wrap gap-2 justify-center flex-1">
-                  {category.technologies.map((tech, techIndex) => (
-                    <motion.span
+                {/* Technologies */}
+                <div className="flex flex-wrap gap-2">
+                  {category.technologies.map((tech) => (
+                    <span
                       key={tech}
-                      className="px-3 py-1 text-sm bg-white/10 text-gray-200 rounded-full border border-white/20 hover:border-purple-400/50 transition-all duration-300"
-                      initial={{ opacity: 0, y: 10 }}
-                      whileInView={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.3, delay: (index * 0.15) + (techIndex * 0.05) }}
-                      viewport={{ once: true }}
-                      whileHover={{ scale: 1.05, y: -2 }}
+                      className="px-3 py-1.5 text-xs bg-white/10 text-gray-200 rounded-full border border-white/20 hover:border-purple-400/50 hover:bg-white/15 transition-all duration-150 font-mono"
                     >
                       {tech}
-                    </motion.span>
+                    </span>
                   ))}
                 </div>
               </div>
-            </TiltedCard>
+            </motion.div>
           ))}
         </div>
       </div>
-    </div>
+    </section>
   );
 };
