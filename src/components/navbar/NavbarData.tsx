@@ -39,11 +39,17 @@ export const projects = [
     description: 'Next-generation developer platform for building modular backends. Features innovative DSL system, zero-config type generation, and unified design system.',
     tech: 'Next.js • TypeScript • PostgreSQL • React • Advanced DSL'
   },
-  { 
-    name: 'Binderly TCG', 
-    url: 'https://binderlytcg.com', 
-    description: 'The ultimate Pokemon card collection platform. Organize, track, and discover rare cards with real-time pricing and market insights.',
-    tech: 'React • TypeScript • PostgreSQL • Next.js • Real-time Data'
+    { 
+    name: "ArcRaiders Companion", 
+    url: 'https://arcraiders.50andbad.site', 
+    description: 'A companion app for the game Arc Raiders, featuring advanced tracking and analytics.',
+    tech: 'Next.js • React • Rust •PostgreSQL • TypeScript • Supabase'
+  },
+    { 
+    name: "50andBad's VOD Archive", 
+    url: 'https://50andbad.site', 
+    description: 'A VOD Archive for 50andBad, with advanced admin features.',
+    tech: 'Next.js • React • PostgreSQL • TypeScript • Supabase'
   },
   { 
     name: 'Profiles After Dark', 
@@ -58,17 +64,17 @@ export const projects = [
     tech: 'React • React Native • TailwindCSS • Nativewind • TypeScript • PostgreSQL • NextJS • Shadcn'
   },
   { 
-    name: "50andBad's VOD Archive", 
-    url: 'https://50andbad.site', 
-    description: 'A VOD Archive for 50andBad, with advanced admin features.',
-    tech: 'Next.js • React • PostgreSQL • TypeScript • Supabase'
-  },
-  { 
     name: 'Marlow Marketing', 
     url: 'https://marlowmarketing.org', 
     description: 'A responsive, clean and minimalist website for a marketing agency.',
     tech: 'React • TypeScript • Framer Motion'
-  }
+  },
+    { 
+    name: 'Binderly TCG', 
+    url: 'https://binderlytcg.com', 
+    description: 'The ultimate Pokemon card collection platform. Organize, track, and discover rare cards with real-time pricing and market insights.',
+    tech: 'React • TypeScript • PostgreSQL • Next.js • Real-time Data'
+  },
 ];
 
 export const socialLinks = [

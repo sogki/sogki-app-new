@@ -9,8 +9,8 @@ export const Footer: React.FC = () => {
       url: 'https://blxr.dev'
     },
     {
-      name: 'Binderly',
-      url: 'https://binderlytcg.com'
+      name: 'ArcRaiders Companion',
+      url: 'https://arcraiders.50andbad.site'
     },
     {
       name: 'Profiles After Dark',
@@ -38,8 +38,21 @@ export const Footer: React.FC = () => {
     { name: 'Contact', href: '#contact' }
   ];
 
-  const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: 'auto' });
+  const scrollToTop = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    window.scrollTo({
+      top: 0,
+      behavior: 'auto',
+    });
+    // Fallback for better compatibility
+    document.documentElement.scrollTo({
+      top: 0,
+      behavior: 'auto',
+    });
+    document.body.scrollTo({
+      top: 0,
+      behavior: 'auto',
+    });
   };
 
   return (
@@ -166,8 +179,10 @@ export const Footer: React.FC = () => {
             </p>
             <motion.button
               onClick={scrollToTop}
-              className="flex items-center gap-1 text-xs text-gray-500 hover:text-purple-400 transition-colors font-mono group"
+              type="button"
+              className="flex items-center gap-1 text-xs text-gray-500 hover:text-purple-400 transition-colors font-mono group cursor-pointer"
               whileHover={{ y: -2 }}
+              aria-label="Scroll to top"
             >
               <ArrowUpRight size={14} className="group-hover:rotate-45 transition-transform" />
               <span>Back to top</span>

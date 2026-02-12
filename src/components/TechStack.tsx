@@ -18,14 +18,14 @@ export const TechStack: React.FC = () => {
       icon: <Code2 size={24} />,
       title: "Frontend",
       titleJp: "フロントエンド",
-      technologies: ["React", "TypeScript", "Next.js", "Tailwind CSS", "Framer Motion"],
+      technologies: ["React", "React Native", "TypeScript", "Next.js", "Tailwind CSS", "Framer Motion"],
       color: "from-blue-500 to-cyan-500"
     },
     {
       icon: <Database size={24} />,
       title: "Backend",
       titleJp: "バックエンド",
-      technologies: ["Node.js", "MySQL", "PostgreSQL", "REST APIs"],
+      technologies: ["Node.js", "MySQL", "Rust", "PostgreSQL", "REST APIs"],
       color: "from-green-500 to-emerald-500"
     },
     {

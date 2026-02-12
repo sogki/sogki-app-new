@@ -9,6 +9,26 @@ export const Projects: React.FC = () => {
   const [isHovered, setIsHovered] = useState(false);
 
   const projects = [
+        {
+      title: "50andBad's VOD Archive",
+      titleJp: "50andBadのビデオオンデマンドアーカイブ",
+      description: "A VOD Archive for 50andBad, with advanced admin features.",
+      technologies: ["Next.js", "React", "PostgreSQL", "TypeScript", "Supabase"],
+      github: "https://github.com/sogki/50andbad-vod-archive",
+      demo: "https://50andbad.site",
+      featured: false,
+      color: "from-green-500 to-emerald-500"
+    },
+    {
+      title: "ArcRaiders Companion",
+      titleJp: "アークレイダーズコンパニオン",
+      description: "A companion app for the game Arc Raiders, featuring advanced tracking and analytics.",
+      technologies: ["Next.js", "React", "PostgreSQL", "TypeScript", "Supabase"],
+      github: "https://github.com/sogki/50andbad-vod-archive",
+      demo: "https://arcraiders.50andbad.site",
+      featured: true,
+      color: "from-green-500 to-emerald-500"
+    },
     {
       title: "BLXR",
       titleJp: "BLXR",
@@ -16,6 +36,16 @@ export const Projects: React.FC = () => {
       technologies: ["Next.js", "TypeScript", "PostgreSQL", "React", "Advanced DSL"],
       github: "https://github.com/sogki/blxr",
       demo: "https://blxr.dev",
+      featured: true,
+      color: "from-purple-500 to-indigo-500"
+    },
+        {
+      title: "Profiles After Dark",
+      titleJp: "暗闇後のプロフィール",
+      description: "An aesthetic profile database serving 200+ users. Built with Next.js, PostgreSQL, and modern design principles.",
+      technologies: ["Next.js", "React", "PostgreSQL", "TypeScript", "JavaScript"],
+      github: "https://github.com/sogki/profiles-after-dark",
+      demo: "https://profilesafterdark.com",
       featured: true,
       color: "from-purple-500 to-indigo-500"
     },
@@ -30,36 +60,6 @@ export const Projects: React.FC = () => {
       color: "from-purple-500 to-indigo-500"
     },
     {
-      title: "Profiles After Dark",
-      titleJp: "暗闇後のプロフィール",
-      description: "An aesthetic profile database serving 200+ users. Built with Next.js, PostgreSQL, and modern design principles.",
-      technologies: ["Next.js", "React", "PostgreSQL", "TypeScript", "JavaScript"],
-      github: "https://github.com/sogki/profiles-after-dark",
-      demo: "https://profilesafterdark.com",
-      featured: true,
-      color: "from-purple-500 to-indigo-500"
-    },
-    {
-      title: "RankTheGlobe",
-      titleJp: "地球儀をランク付けする",
-      description: "Interactive crowd-source consumer rankings and ratings platform. Built with React, React Native, Next.js, and PostgreSQL.",
-      technologies: ["React", "React Native", "TailwindCSS", "Nativewind", "TypeScript", "PostgreSQL", "NextJS", "Shadcn"],
-      github: "https://github.com/world-ranking-inc",
-      demo: "https://ranktheglobe.com",
-      featured: false,
-      color: "from-cyan-500 to-teal-500"
-    },
-    {
-      title: "50andBad's VOD Archive",
-      titleJp: "50andBadのビデオオンデマンドアーカイブ",
-      description: "A VOD Archive for 50andBad, with advanced admin features.",
-      technologies: ["Next.js", "React", "PostgreSQL", "TypeScript", "Supabase"],
-      github: "https://github.com/sogki/50andbad-vod-archive",
-      demo: "https://50andbad.site",
-      featured: false,
-      color: "from-green-500 to-emerald-500"
-    },
-    {
       title: "Marlow Marketing",
       titleJp: "マーケティング",
       description: "A responsive, clean and minimalist website for a marketing agency.",
@@ -68,6 +68,16 @@ export const Projects: React.FC = () => {
       demo: "https://marlowmarketing.org",
       featured: false,
       color: "from-yellow-500 to-orange-500"
+    },
+        {
+      title: "RankTheGlobe",
+      titleJp: "地球儀をランク付けする",
+      description: "Interactive crowd-source consumer rankings and ratings platform. Built with React, React Native, Next.js, and PostgreSQL.",
+      technologies: ["React", "React Native", "TailwindCSS", "Nativewind", "TypeScript", "PostgreSQL", "NextJS", "Shadcn"],
+      github: "https://github.com/world-ranking-inc",
+      demo: "https://ranktheglobe.com",
+      featured: false,
+      color: "from-cyan-500 to-teal-500"
     }
   ];
 
