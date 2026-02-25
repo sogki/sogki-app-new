@@ -9,25 +9,24 @@ export const Projects: React.FC = () => {
   const [isHovered, setIsHovered] = useState(false);
 
   const projects = [
-        {
-      title: "50andBad's VOD Archive",
+    {
+      title: "50andBad Platform",
       titleJp: "50andBadのビデオオンデマンドアーカイブ",
-      description: "A VOD Archive for 50andBad, with advanced admin features.",
+      description: "Production platform for creator content and VOD discovery. Built to support curation workflows, admin tooling, and long-term content growth.",
       technologies: ["Next.js", "React", "PostgreSQL", "TypeScript", "Supabase"],
       github: "https://github.com/sogki/50andbad-vod-archive",
       demo: "https://50andbad.site",
-      featured: false,
+      featured: true,
       color: "from-green-500 to-emerald-500"
     },
     {
       title: "ArcRaiders Companion",
       titleJp: "アークレイダーズコンパニオン",
-      description: "A companion app for the game Arc Raiders, featuring advanced tracking and analytics.",
+      description: "A fully featured Arc Raiders companion with live event tracking, interactive maps, item intelligence, and raid planning tools.",
       technologies: ["Next.js", "React", "PostgreSQL", "TypeScript", "Supabase"],
-      github: "https://github.com/sogki/50andbad-vod-archive",
       demo: "https://arcraiders.50andbad.site",
       featured: true,
-      color: "from-green-500 to-emerald-500"
+      color: "from-indigo-500 to-blue-500"
     },
     {
       title: "BLXR",
@@ -42,7 +41,7 @@ export const Projects: React.FC = () => {
         {
       title: "Profiles After Dark",
       titleJp: "暗闇後のプロフィール",
-      description: "An aesthetic profile database serving 200+ users. Built with Next.js, PostgreSQL, and modern design principles.",
+      description: "A community-driven aesthetic profile platform with discovery flows, curated collections, and high-retention browsing experiences.",
       technologies: ["Next.js", "React", "PostgreSQL", "TypeScript", "JavaScript"],
       github: "https://github.com/sogki/profiles-after-dark",
       demo: "https://profilesafterdark.com",
@@ -112,7 +111,7 @@ export const Projects: React.FC = () => {
           </h2>
           <p className="text-purple-300 text-base sm:text-lg mb-2">注目のプロジェクト</p>
           <p className="text-gray-400 text-sm sm:text-base max-w-2xl mx-auto px-4">
-            Innovative projects that showcase my expertise in modern web development
+            Production websites and platforms that demonstrate product depth, technical execution, and visual craft
           </p>
         </motion.div>
 

@@ -1,8 +1,7 @@
 import React from "react";
 import { motion } from "framer-motion";
 import ShinyText from "./ShinyText";
-import { SplitText } from "./SplitText";
-import { ChevronDown, Github, Mail, Linkedin } from "lucide-react";
+import { ChevronDown, Github } from "lucide-react";
 
 export const Hero: React.FC = () => {
   const scrollToProjects = () => {
@@ -15,10 +14,10 @@ export const Hero: React.FC = () => {
 
   return (
     <section className="relative min-h-screen flex items-center justify-center px-6 pt-24 overflow-hidden">
-      {/* Animated background elements */}
+      {/* Subtle background elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {[...Array(5)].map((_, i) => (
-          <motion.div
+          <div
             key={i}
             className="absolute rounded-full blur-3xl opacity-20"
             style={{
@@ -30,17 +29,6 @@ export const Hero: React.FC = () => {
               left: `${20 + i * 15}%`,
               top: `${30 + i * 10}%`,
             }}
-            animate={{
-              x: [0, 50, -50, 0],
-              y: [0, -50, 50, 0],
-              scale: [1, 1.2, 0.8, 1],
-            }}
-            transition={{
-              duration: 10 + i * 2,
-              repeat: Infinity,
-              ease: "easeInOut",
-              delay: i * 0.5,
-            }}
           />
         ))}
       </div>
@@ -49,9 +37,9 @@ export const Hero: React.FC = () => {
         {/* Japanese subtitle */}
         <motion.p
           className="text-purple-300 text-sm tracking-widest mb-4 font-light"
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.2 }}
+          transition={{ duration: 0.4, delay: 0.1 }}
         >
           ソフトウェアエンジニア・デザイナー
         </motion.p>
@@ -66,27 +54,32 @@ export const Hero: React.FC = () => {
           className="text-xl md:text-2xl text-gray-400 mb-12 font-light"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ duration: 1, delay: 0.5 }}
+          transition={{ duration: 0.5, delay: 0.3 }}
         >
-          Building the future, one pixel at a time
+          Full-stack engineer shipping production products end-to-end
         </motion.p>
 
-        {/* Description */}
-        <div className="text-xl md:text-2xl text-gray-300 mb-12 leading-relaxed">
-          <SplitText delay={0.8} className="block mb-4">
-            Crafting digital experiences with passion, precision, and a touch of Japanese & Space aesthetics.
-          </SplitText>
-          <SplitText delay={1.2} className="text-purple-300 text-lg">
-            次元を超えたデジタル体験を創造
-          </SplitText>
-        </div>
+        {/* Description - toned down entry motion */}
+        <motion.div
+          className="text-xl md:text-2xl text-gray-300 mb-12 leading-relaxed"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45, delay: 0.45 }}
+        >
+          <p className="block mb-4">
+            Crafting digital products that combine visual identity, real-world utility, and scalable architecture.
+          </p>
+          <p className="text-purple-300 text-lg">
+            Production-ready work across companion apps, creator platforms, and community experiences.
+          </p>
+        </motion.div>
 
         {/* CTA Buttons */}
         <motion.div
           className="flex flex-col sm:flex-row gap-4 justify-center mb-16"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 1.6 }}
+          transition={{ duration: 0.5, delay: 0.6 }}
         >
           <motion.button
             onClick={scrollToProjects}
@@ -119,14 +112,14 @@ export const Hero: React.FC = () => {
           className="flex gap-6 justify-center mb-12"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 1.8 }}
+          transition={{ duration: 0.5, delay: 0.7 }}
         >
           <motion.a
             href="https://github.com/sogki"
             target="_blank"
             rel="noopener noreferrer"
             className="text-gray-400 hover:text-purple-400 transition-all duration-150 transform-gpu relative group"
-            whileHover={{ scale: 1.2, rotate: 5 }}
+            whileHover={{ scale: 1.08 }}
             whileTap={{ scale: 0.9 }}
           >
             <Github size={24} />
@@ -138,10 +131,10 @@ export const Hero: React.FC = () => {
 
         {/* Scroll indicator */}
         <motion.div
-          className="animate-bounce"
+          className="opacity-90"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ duration: 0.8, delay: 2 }}
+          transition={{ duration: 0.5, delay: 0.9 }}
         >
           <ChevronDown
             className="text-purple-400 mx-auto cursor-pointer hover:text-purple-300 transition-colors"

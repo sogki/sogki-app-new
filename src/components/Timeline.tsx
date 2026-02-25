@@ -16,6 +16,26 @@ interface TimelineEvent {
 
 const events: TimelineEvent[] = [
   {
+    year: '2026',
+    title: 'ArcRaiders Companion',
+    titleJp: 'アークレイダーズコンパニオン',
+    description: 'Launched and actively evolving a production Arc Raiders companion platform with an event tracker, interactive maps, item database (480+ items), and a raid planner workflow.',
+    icon: <Rocket size={20} />,
+    color: 'from-indigo-500 to-blue-500',
+    status: 'in-progress',
+    branch: 'left'
+  },
+  {
+    year: '2025',
+    title: '50andBad Platform',
+    titleJp: '50andBadプラットフォーム',
+    description: 'Built and shipped a creator-focused ecosystem including a VOD archive and companion experiences, with scalable data models and polished frontend UX.',
+    icon: <Globe size={20} />,
+    color: 'from-emerald-500 to-teal-500',
+    status: 'completed',
+    branch: 'right'
+  },
+  {
     year: '2025',
     title: 'Binderly TCG',
     titleJp: 'Binderly TCG',
@@ -94,7 +114,7 @@ export const Timeline: React.FC = () => {
           </h2>
           <p className="text-purple-300 text-lg mb-2">旅路</p>
           <p className="text-gray-400 max-w-2xl mx-auto">
-            A timeline of milestones, projects, and growth in my development journey
+            Shipping milestones that show product thinking, full-stack execution, and measurable delivery
           </p>
         </motion.div>
 

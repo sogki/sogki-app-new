@@ -73,7 +73,7 @@ export const Footer: React.FC = () => {
                 <span className="text-purple-400">✦</span>
               </h2>
               <p className="text-gray-400 text-sm">
-                Crafting digital experiences with precision
+                Full-stack product engineering with a design-first edge
               </p>
             </motion.div>
 
@@ -175,7 +175,7 @@ export const Footer: React.FC = () => {
           {/* Copyright & Back to Top */}
           <div className="flex items-center gap-6">
             <p className="text-xs text-gray-500 font-mono">
-              © 2025 Sogki
+              © 2026 Sogki
             </p>
             <motion.button
               onClick={scrollToTop}

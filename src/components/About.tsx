@@ -16,7 +16,7 @@ interface StatItem {
 const stats: StatItem[] = [
   {
     icon: <Code2 size={24} />,
-    value: 10,
+    value: 12,
     suffix: '+',
     label: 'Projects Built',
     labelJp: '構築されたプロジェクト',
@@ -34,21 +34,21 @@ const stats: StatItem[] = [
   },
   {
     icon: <Rocket size={24} />,
-    value: 4,
+    value: 3,
     suffix: '+',
-    label: 'Years Coding',
-    labelJp: '年のコーディング',
+    label: 'Live Platforms',
+    labelJp: '本番公開プラットフォーム',
     color: 'from-purple-500 to-indigo-500',
     maxValue: 5
   },
   {
     icon: <Award size={24} />,
-    value: 100,
-    suffix: '%',
-    label: 'Client Satisfaction',
-    labelJp: 'クライアント満足度',
+    value: 480,
+    suffix: '+',
+    label: 'Arc Items Indexed',
+    labelJp: 'Arcアイテム登録数',
     color: 'from-purple-500 to-indigo-500',
-    maxValue: 100
+    maxValue: 600
   }
 ];
 
@@ -117,20 +117,16 @@ export const About: React.FC = () => {
           >
             <div className="text-gray-300 text-base sm:text-lg leading-relaxed space-y-4">
               <p>
-                I am <span className="text-white font-semibold">Sogki</span>, a software engineer dedicated to crafting
-                digital experiences that blend <span className="text-purple-300">precision</span>,
-                <span className="text-purple-300"> passion</span>, and <span className="text-purple-300">Japanese aesthetics</span>.
+                I am <span className="text-white font-semibold">Sogki</span>, a full-stack software engineer focused on
+                shipping production products that users return to.
               </p>
               <p>
-                From interactive applications to thoughtful design systems, I focus on building
-                projects that embody simplicity, intentionality, and a sense of cosmic wonder.
+                My work spans creator ecosystems, companion tools, and community platforms.
+                I build the full stack: data models, backend logic, frontend UX, and iteration loops.
               </p>
               <p>
-                I believe that <span className="italic">美しさは簡潔にあり</span> — beauty lies in simplicity,
-                and that every pixel and line of code should serve a purpose.
-              </p>
-              <p>
-                Let's create something meaningful together that leaves a subtle yet impactful footprint on the digital universe.
+                Projects like 50andBad, ArcRaiders Companion, and Profiles After Dark represent
+                my approach: strong visual direction, practical product value, and scalable engineering.
               </p>
             </div>
 
