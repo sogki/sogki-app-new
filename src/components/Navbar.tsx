@@ -39,11 +39,32 @@ export const Navbar: React.FC = () => {
     };
   }, []);
 
-  const handleNavClick = (href: string) => {
+  const navigateToPath = (path: string) => {
+    if (window.location.pathname !== path) {
+      window.history.pushState({}, '', path);
+      window.dispatchEvent(new Event('app:navigate'));
+    }
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  };
+
+  const scrollToSection = (href: string) => {
     const element = document.querySelector(href);
     if (element) {
       element.scrollIntoView({ behavior: 'auto' });
       window.scrollBy(0, -20);
+    }
+  };
+
+  const handleNavClick = (href: string) => {
+    if (href.startsWith('/')) {
+      navigateToPath(href);
+    } else if (window.location.pathname !== '/') {
+      navigateToPath('/');
+      requestAnimationFrame(() => {
+        scrollToSection(href);
+      });
+    } else {
+      scrollToSection(href);
     }
     setActiveDropdown(null);
     setIsMobileMenuOpen(false);

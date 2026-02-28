@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { ExternalLink, Github, Twitter, Heart, Coffee, ArrowUpRight } from 'lucide-react';
+import { Github, Twitter, ArrowUpRight } from 'lucide-react';
 
 export const Footer: React.FC = () => {
   const featuredProjects = [
@@ -32,10 +32,11 @@ export const Footer: React.FC = () => {
   ];
 
   const quickLinks = [
-    { name: 'About', href: '#about' },
-    { name: 'Projects', href: '#projects' },
-    { name: 'Tech Stack', href: '#tech-stack' },
-    { name: 'Contact', href: '#contact' }
+    { name: 'About', href: '/#about' },
+    { name: 'Projects', href: '/#projects' },
+    { name: 'Graphic Design', href: '/graphic-design' },
+    { name: 'Tech Stack', href: '/#tech-stack' },
+    { name: 'Contact', href: '/#contact' }
   ];
 
   const scrollToTop = (e: React.MouseEvent<HTMLButtonElement>) => {
