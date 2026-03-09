@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { fetchBlogs, type Blog } from '../lib/siteData';
+import ShinyText from '../components/ShinyText';
 import { ArrowRight, Calendar, FileText } from 'lucide-react';
 
 export function BlogListPage() {
@@ -30,16 +31,16 @@ export function BlogListPage() {
     <section className="relative py-16 sm:py-24 px-4 sm:px-6 min-h-screen">
       <div className="max-w-3xl mx-auto">
         <motion.div
-          className="mb-16"
-          initial={{ opacity: 0, y: 20 }}
+          className="text-center mb-16"
+          initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
+          transition={{ duration: 0.6 }}
         >
-          <h1 className="text-4xl sm:text-5xl font-bold text-white font-mono mb-3">
-            Blog
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-3 sm:mb-4 font-mono">
+            <ShinyText text="Blog" speed={3} />
           </h1>
-          <p className="text-purple-300 text-sm tracking-widest mb-2">ブログ</p>
-          <p className="text-gray-400">
+          <p className="text-purple-300 text-base sm:text-lg mb-2">ブログ</p>
+          <p className="text-gray-400 text-sm sm:text-base max-w-2xl mx-auto px-4">
             Thoughts on engineering, design, and building products.
           </p>
         </motion.div>
