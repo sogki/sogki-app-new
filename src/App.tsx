@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import LiquidBackground from "./components/LiquidBackground";
 import { Navbar } from "./components/Navbar";
 import { ScrollToTop } from "./components/ScrollToTop";
@@ -18,21 +19,7 @@ import { ImageViewerPage } from "./components/ImageViewerPage";
 import { GRAPHIC_DESIGN_RESTORE_KEY, GRAPHIC_DESIGN_SCROLL_KEY } from "./utils/imageLinks";
 
 function App() {
-  const [pathname, setPathname] = useState(() => window.location.pathname);
-
-  useEffect(() => {
-    const handleRouteChange = () => {
-      setPathname(window.location.pathname);
-    };
-
-    window.addEventListener('popstate', handleRouteChange);
-    window.addEventListener('app:navigate', handleRouteChange);
-
-    return () => {
-      window.removeEventListener('popstate', handleRouteChange);
-      window.removeEventListener('app:navigate', handleRouteChange);
-    };
-  }, []);
+  const { pathname } = useLocation();
 
   const isGraphicDesignPage = pathname === '/graphic-design';
   const isImageViewerPage = pathname === '/image-viewer';

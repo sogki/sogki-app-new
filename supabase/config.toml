@@ -1,0 +1,6 @@
+# Supabase project config
+# See https://supabase.com/docs/guides/functions/function-configuration
+
+# Discord OAuth callback - must be public (Discord redirects here without a JWT)
+[functions.auth-discord-callback]
+verify_jwt = false

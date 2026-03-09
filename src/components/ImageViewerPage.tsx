@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, ChevronLeft, ChevronRight, ExternalLink } from 'lucide-react';
 import {
   getMediaType,
@@ -8,6 +9,7 @@ import {
 } from '../utils/imageLinks';
 
 export const ImageViewerPage: React.FC = () => {
+  const navigate = useNavigate();
   const { imageLinks, startIndex } = useMemo(
     () => parseImageViewerPayload(window.location.search),
     []
@@ -41,8 +43,7 @@ export const ImageViewerPage: React.FC = () => {
       window.history.back();
       return;
     }
-    window.history.pushState({}, '', '/graphic-design');
-    window.dispatchEvent(new Event('app:navigate'));
+    navigate('/graphic-design');
   };
 
   useEffect(() => {
