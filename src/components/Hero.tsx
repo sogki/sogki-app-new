@@ -2,8 +2,11 @@ import React from "react";
 import { motion } from "framer-motion";
 import ShinyText from "./ShinyText";
 import { ChevronDown, Github } from "lucide-react";
+import { useSiteData } from "../context/SiteDataContext";
+import { getString } from "../lib/siteContent";
 
 export const Hero: React.FC = () => {
+  const { siteContent } = useSiteData();
   const scrollToProjects = () => {
     const element = document.getElementById("projects");
     if (element) {
@@ -41,12 +44,12 @@ export const Hero: React.FC = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.1 }}
         >
-          ソフトウェアエンジニア・デザイナー
+          {getString(siteContent, 'hero.subtitle_jp', 'ソフトウェアエンジニア・デザイナー')}
         </motion.p>
 
         {/* Main title */}
         <h1 className="text-6xl md:text-8xl font-bold mb-8 font-mono">
-          <ShinyText text="Sogki" speed={3} />
+          <ShinyText text={getString(siteContent, 'hero.title', 'Sogki')} speed={3} />
         </h1>
 
         {/* Subtitle with typing effect */}
@@ -56,7 +59,7 @@ export const Hero: React.FC = () => {
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.3 }}
         >
-          Full-stack engineer shipping production products end-to-end
+          {getString(siteContent, 'hero.subtitle', 'Full-stack engineer shipping production products end-to-end')}
         </motion.p>
 
         {/* Description - toned down entry motion */}
@@ -67,10 +70,10 @@ export const Hero: React.FC = () => {
           transition={{ duration: 0.45, delay: 0.45 }}
         >
           <p className="block mb-4">
-            Crafting digital products that combine visual identity, real-world utility, and scalable architecture.
+            {getString(siteContent, 'hero.description_1', 'Crafting digital products that combine visual identity, real-world utility, and scalable architecture.')}
           </p>
           <p className="text-purple-300 text-lg">
-            Production-ready work across companion apps, creator platforms, and community experiences.
+            {getString(siteContent, 'hero.description_2', 'Production-ready work across companion apps, creator platforms, and community experiences.')}
           </p>
         </motion.div>
 
@@ -87,7 +90,7 @@ export const Hero: React.FC = () => {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
-            <span className="relative z-10">View Projects</span>
+            <span className="relative z-10">{getString(siteContent, 'hero.cta_projects', 'View Projects')}</span>
             <motion.div
               className="absolute inset-0 bg-gradient-to-r from-blue-600 to-cyan-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
               initial={false}
@@ -99,7 +102,7 @@ export const Hero: React.FC = () => {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
-            <span className="relative z-10">Get in Touch</span>
+            <span className="relative z-10">{getString(siteContent, 'hero.cta_contact', 'Get in Touch')}</span>
             <motion.div
               className="absolute inset-0 bg-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
               initial={false}

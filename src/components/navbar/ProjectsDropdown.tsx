@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ExternalLink } from 'lucide-react';
-import { projects } from './NavbarData';
+import { useSiteData } from '../../context/SiteDataContext';
 
 interface ProjectsDropdownProps {
   isOpen: boolean;
@@ -9,6 +9,15 @@ interface ProjectsDropdownProps {
 }
 
 export const ProjectsDropdown: React.FC<ProjectsDropdownProps> = ({ isOpen, isScrolled }) => {
+  const { projects } = useSiteData();
+
+  const items = projects.map((p) => ({
+    name: p.title,
+    url: p.demo ?? p.github ?? '#',
+    description: p.description,
+    tech: (p.technologies ?? []).join(' • '),
+  }));
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -20,7 +29,7 @@ export const ProjectsDropdown: React.FC<ProjectsDropdownProps> = ({ isOpen, isSc
           transition={{ duration: 0.1 }}
         >
           <div className="grid grid-cols-1 gap-2 max-h-[450px] overflow-y-auto overflow-x-hidden dropdown-scroll pr-1">
-            {projects.map((project) => (
+            {items.map((project) => (
               <a
                 key={project.name}
                 href={project.url}

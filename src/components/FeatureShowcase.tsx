@@ -2,6 +2,8 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Code2, Zap, Palette, Rocket, Shield, Sparkles } from 'lucide-react';
 import ShinyText from './ShinyText';
+import { useSiteData } from '../context/SiteDataContext';
+import { getString } from '../lib/siteContent';
 
 interface Feature {
   id: string;
@@ -64,6 +66,7 @@ const features: Feature[] = [
 ];
 
 export const FeatureShowcase: React.FC = () => {
+  const { siteContent } = useSiteData();
   return (
     <section className="relative py-12 sm:py-16 md:py-20 px-4 sm:px-6 overflow-hidden pr-16 sm:pr-20 md:pr-24 lg:pr-28">
       <div className="max-w-7xl mx-auto">
@@ -76,9 +79,9 @@ export const FeatureShowcase: React.FC = () => {
           viewport={{ once: true }}
         >
           <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-3 sm:mb-4 font-mono">
-            <ShinyText text="What I Bring" speed={3} />
+            <ShinyText text={getString(siteContent, 'features.section_title', 'What I Bring')} speed={3} />
           </h2>
-          <p className="text-purple-300 text-base sm:text-lg mb-2">私が提供するもの</p>
+          <p className="text-purple-300 text-base sm:text-lg mb-2">{getString(siteContent, 'features.section_title_jp', '私が提供するもの')}</p>
           <p className="text-gray-400 text-sm sm:text-base max-w-2xl mx-auto px-4">
             A comprehensive approach to building digital products that matter
           </p>

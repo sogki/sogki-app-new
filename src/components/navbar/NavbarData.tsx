@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, User, Code, MessageCircle, Palette, Github, Twitter } from 'lucide-react';
+import { Home, User, Code, MessageCircle, Palette, Github, Twitter, FileText } from 'lucide-react';
 
 export const navItems = [
   { 
@@ -29,6 +29,13 @@ export const navItems = [
     labelJp: 'デザイン',
     href: '/graphic-design',
     description: 'Browse client design collections and assets'
+  },
+  {
+    icon: <FileText size={18} />,
+    label: 'Blog',
+    labelJp: 'ブログ',
+    href: '/blog',
+    description: 'Read posts on engineering and design'
   },
   { 
     icon: <MessageCircle size={18} />, 

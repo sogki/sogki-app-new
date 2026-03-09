@@ -1,5 +1,7 @@
-import { useEffect, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useEffect } from "react";
+import { useLocation, Routes, Route } from "react-router-dom";
+import { useSiteData } from "./context/SiteDataContext";
+import { getBool } from "./lib/siteContent";
 import LiquidBackground from "./components/LiquidBackground";
 import { Navbar } from "./components/Navbar";
 import { ScrollToTop } from "./components/ScrollToTop";
@@ -16,14 +18,18 @@ import { KanjiScrollbar } from "./components/KanjiScrollbar";
 import { GraphicDesignPortfolio } from "./components/GraphicDesignPortfolio";
 import { GraphicDesignKanjiNav } from "./components/GraphicDesignKanjiNav";
 import { ImageViewerPage } from "./components/ImageViewerPage";
+import { BlogListPage } from "./pages/BlogListPage";
+import { BlogPostPage } from "./pages/BlogPostPage";
 import { GRAPHIC_DESIGN_RESTORE_KEY, GRAPHIC_DESIGN_SCROLL_KEY } from "./utils/imageLinks";
 
 function App() {
   const { pathname } = useLocation();
+  const { siteContent } = useSiteData();
 
   const isGraphicDesignPage = pathname === '/graphic-design';
   const isImageViewerPage = pathname === '/image-viewer';
-  const isSpecialPage = isGraphicDesignPage || isImageViewerPage;
+  const isBlogPage = pathname === '/blog' || pathname.startsWith('/blog/');
+  const isSpecialPage = isGraphicDesignPage || isImageViewerPage || isBlogPage;
 
   useEffect(() => {
     if (pathname !== '/graphic-design') return;
@@ -73,29 +79,44 @@ function App() {
           <ImageViewerPage />
         ) : isGraphicDesignPage ? (
           <GraphicDesignPortfolio />
+        ) : isBlogPage ? (
+          <Routes>
+            <Route path="/blog" element={<BlogListPage />} />
+            <Route path="/blog/:slug" element={<BlogPostPage />} />
+          </Routes>
         ) : (
           <>
-            <section id="home">
-              <Hero />
-            </section>
-            <section id="about">
-              <About />
-            </section>
-            <section id="features">
-              <FeatureShowcase />
-            </section>
-            <section id="projects">
-              <Projects />
-            </section>
+            {getBool(siteContent, 'feature.show_hero', true) && (
+              <section id="home">
+                <Hero />
+              </section>
+            )}
+            {getBool(siteContent, 'feature.show_about', true) && (
+              <section id="about">
+                <About />
+              </section>
+            )}
+            {getBool(siteContent, 'feature.show_features', true) && (
+              <section id="features">
+                <FeatureShowcase />
+              </section>
+            )}
+            {getBool(siteContent, 'feature.show_projects', true) && (
+              <section id="projects">
+                <Projects />
+              </section>
+            )}
             <section id="timeline">
               <Timeline />
             </section>
             <section id="tech-stack">
               <TechStack />
             </section>
-            <section id="contact">
-              <Contact />
-            </section>
+            {getBool(siteContent, 'feature.show_contact', true) && (
+              <section id="contact">
+                <Contact />
+              </section>
+            )}
           </>
         )}
       </div>

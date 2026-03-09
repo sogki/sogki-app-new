@@ -2,6 +2,8 @@ import React, { useEffect, useRef } from 'react';
 import { motion, useInView, useMotionValue, useSpring } from 'framer-motion';
 import ShinyText from './ShinyText';
 import { Code2, Users, Rocket, Award } from 'lucide-react';
+import { useSiteData } from '../context/SiteDataContext';
+import { getString, getJson } from '../lib/siteContent';
 
 interface StatItem {
   icon: React.ReactNode;
@@ -13,7 +15,7 @@ interface StatItem {
   maxValue: number; // For graph scaling
 }
 
-const stats: StatItem[] = [
+const defaultStats: StatItem[] = [
   {
     icon: <Code2 size={24} />,
     value: 12,
@@ -84,9 +86,24 @@ const AnimatedCounter: React.FC<{ value: number; suffix?: string; duration?: num
   return <span ref={ref}>0{suffix}</span>;
 };
 
+type StatRow = { value: number; suffix?: string; label: string; labelJp: string };
+
 export const About: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const isInView = useInView(containerRef, { once: true, margin: "-100px" });
+  const { siteContent } = useSiteData();
+  const statsFromContent = getJson<StatRow[]>(siteContent, 'about.stats', []);
+  const stats: StatItem[] = statsFromContent.length > 0
+    ? statsFromContent.map((s, i) => ({
+        icon: [Code2, Users, Rocket, Award][i] ? React.createElement([Code2, Users, Rocket, Award][i], { size: 24 }) : <Code2 size={24} />,
+        value: s.value,
+        suffix: s.suffix ?? '',
+        label: s.label,
+        labelJp: s.labelJp,
+        color: 'from-purple-500 to-indigo-500',
+        maxValue: Math.max(s.value * 1.2, 1),
+      }))
+    : defaultStats;
 
   return (
     <section className="relative py-12 sm:py-16 md:py-20 px-4 sm:px-6 bg-transparent" ref={containerRef}>
@@ -100,9 +117,9 @@ export const About: React.FC = () => {
           viewport={{ once: true }}
         >
           <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-3 sm:mb-4 font-mono">
-            <ShinyText text="About Me" speed={3} />
+            <ShinyText text={getString(siteContent, 'about.section_title', 'About Me')} speed={3} />
           </h2>
-          <p className="text-purple-300 text-base sm:text-lg">私について</p>
+          <p className="text-purple-300 text-base sm:text-lg">{getString(siteContent, 'about.section_title_jp', '私について')}</p>
         </motion.div>
 
         {/* Side by Side Layout */}
@@ -116,18 +133,9 @@ export const About: React.FC = () => {
             viewport={{ once: true }}
           >
             <div className="text-gray-300 text-base sm:text-lg leading-relaxed space-y-4">
-              <p>
-                I am <span className="text-white font-semibold">Sogki</span>, a full-stack software engineer focused on
-                shipping production products that users return to.
-              </p>
-              <p>
-                My work spans creator ecosystems, companion tools, and community platforms.
-                I build the full stack: data models, backend logic, frontend UX, and iteration loops.
-              </p>
-              <p>
-                Projects like 50andBad, ArcRaiders Companion, and Profiles After Dark represent
-                my approach: strong visual direction, practical product value, and scalable engineering.
-              </p>
+              <p>{getString(siteContent, 'about.bio_1', 'I am Sogki, a full-stack software engineer focused on shipping production products that users return to.')}</p>
+              <p>{getString(siteContent, 'about.bio_2', 'My work spans creator ecosystems, companion tools, and community platforms. I build the full stack: data models, backend logic, frontend UX, and iteration loops.')}</p>
+              <p>{getString(siteContent, 'about.bio_3', 'Projects like 50andBad, ArcRaiders Companion, and Profiles After Dark represent my approach: strong visual direction, practical product value, and scalable engineering.')}</p>
             </div>
 
             {/* Starmap Button */}
@@ -149,7 +157,7 @@ export const About: React.FC = () => {
                   whileTap={{ scale: 0.95 }}
                   transition={{ type: 'spring', stiffness: 400, damping: 25 }}
                 >
-                  Explore My Starmap
+                  {getString(siteContent, 'about.starmap_label', 'Explore My Starmap')}
                 </motion.span>
               </a>
             </motion.div>
@@ -165,9 +173,9 @@ export const About: React.FC = () => {
           >
             <div className="mb-6">
               <h3 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 text-white font-mono">
-                By The Numbers
+                {getString(siteContent, 'about.stats_title', 'By The Numbers')}
               </h3>
-              <p className="text-purple-300 text-sm sm:text-base">数字で見る実績</p>
+              <p className="text-purple-300 text-sm sm:text-base">{getString(siteContent, 'about.stats_title_jp', '数字で見る実績')}</p>
             </div>
 
             {/* Graph Container */}

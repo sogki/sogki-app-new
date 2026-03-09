@@ -4,3 +4,7 @@
 # Discord OAuth callback - must be public (Discord redirects here without a JWT)
 [functions.auth-discord-callback]
 verify_jwt = false
+
+# Admin API - uses custom JWT (we verify in code), not Supabase JWT
+[functions.admin-api]
+verify_jwt = false

@@ -72,3 +72,15 @@ https://discord.com/api/oauth2/authorize?client_id=CLIENT_ID&redirect_uri=ENCODE
 ```
 
 Where `ENCODED_CALLBACK_URL` = `https://vwdrdqkzjkfdmycomfvf.supabase.co/functions/v1/auth-discord-callback`
+
+---
+
+## 8. Localhost Dev Bypass (Optional)
+
+To skip Discord OAuth when developing on localhost:
+
+1. Generate a dev token: `openssl rand -hex 32`
+2. Add to Supabase `keys` table: `ADMIN_DEV_TOKEN` = your token (server-only, `is_public = false`)
+3. Add to `.env.local`: `VITE_ADMIN_DEV_TOKEN=your_token_here`
+
+When both are set and you visit `http://localhost:5173/admin`, you'll be logged in automatically. The admin-api only accepts the dev token when the request Origin is localhost, so it stays secure in production.

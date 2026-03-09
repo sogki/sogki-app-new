@@ -19,12 +19,22 @@ type AdminAuthState = {
 
 const AdminAuthContext = createContext<AdminAuthState | null>(null);
 
+const isLocalhost = typeof window !== 'undefined' && /^localhost$|^127\.0\.0\.1$/.test(window.location.hostname);
+const devToken = import.meta.env.VITE_ADMIN_DEV_TOKEN as string | undefined;
+
 export function AdminAuthProvider({ children }: { children: ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    setIsAuthenticated(!!getAdminToken());
+    const token = getAdminToken();
+    if (token) {
+      setIsAuthenticated(true);
+    } else if (isLocalhost && devToken) {
+      // Localhost dev bypass: use dev token and skip Discord OAuth
+      setAdminToken(devToken);
+      setIsAuthenticated(true);
+    }
     setIsLoading(false);
   }, []);
 

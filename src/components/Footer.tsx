@@ -1,67 +1,49 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Github, Twitter, ArrowUpRight } from 'lucide-react';
+import { useSiteData } from '../context/SiteDataContext';
+
+const ICON_MAP: Record<string, React.ReactNode> = {
+  github: <Github size={20} />,
+  twitter: <Twitter size={20} />,
+  x: <Twitter size={20} />,
+};
 
 export const Footer: React.FC = () => {
-  const featuredProjects = [
-    {
-      name: 'BLXR.dev',
-      url: 'https://blxr.dev'
-    },
-    {
-      name: 'ArcRaiders Companion',
-      url: 'https://arcraiders.50andbad.site'
-    },
-    {
-      name: 'Profiles After Dark',
-      url: 'https://profilesafterdark.com'
-    }
-  ];
+  const { socialLinks, footerConfig, isLoading } = useSiteData();
 
-  const socialLinks = [
-    {
-      name: 'GitHub',
-      url: 'https://github.com/sogki',
-      icon: <Github size={20} />,
-    },
-    {
-      name: 'Twitter',
-      url: 'https://x.com/sogkii',
-      icon: <Twitter size={20} />,
-    }
-  ];
+  const featuredProjects = footerConfig?.featured_projects ?? [];
+  const quickLinks = footerConfig?.quick_links ?? [];
+  const tagline = footerConfig?.tagline ?? 'Full-stack product engineering with a design-first edge';
+  const philosophy = footerConfig?.philosophy ?? { jp: '美しさは簡潔にあり', en: 'Beauty lies in simplicity' };
 
-  const quickLinks = [
-    { name: 'About', href: '/#about' },
-    { name: 'Projects', href: '/#projects' },
-    { name: 'Graphic Design', href: '/graphic-design' },
-    { name: 'Tech Stack', href: '/#tech-stack' },
-    { name: 'Contact', href: '/#contact' }
-  ];
+  const socialWithIcons = socialLinks.map((s) => ({
+    name: s.platform.charAt(0).toUpperCase() + s.platform.slice(1),
+    url: s.url,
+    icon: ICON_MAP[s.platform.toLowerCase()] ?? <Github size={20} />,
+  }));
 
   const scrollToTop = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
-    window.scrollTo({
-      top: 0,
-      behavior: 'auto',
-    });
-    // Fallback for better compatibility
-    document.documentElement.scrollTo({
-      top: 0,
-      behavior: 'auto',
-    });
-    document.body.scrollTo({
-      top: 0,
-      behavior: 'auto',
-    });
+    window.scrollTo({ top: 0, behavior: 'auto' });
+    document.documentElement.scrollTo({ top: 0, behavior: 'auto' });
+    document.body.scrollTo({ top: 0, behavior: 'auto' });
   };
+
+  if (isLoading) {
+    return (
+      <footer className="relative z-20 border-t border-white/10 bg-gradient-to-b from-transparent via-black/20 to-black/40">
+        <div className="max-w-6xl mx-auto px-6 py-12 text-center">
+          <div className="w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto" />
+        </div>
+      </footer>
+    );
+  }
 
   return (
     <footer className="relative z-20 border-t border-white/10 bg-gradient-to-b from-transparent via-black/20 to-black/40">
       <div className="max-w-6xl mx-auto px-6 py-12">
-        {/* Main Content - Single Column Layout */}
         <div className="space-y-8">
-          {/* Brand & Social */}
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 pb-8 border-b border-white/10">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -73,12 +55,8 @@ export const Footer: React.FC = () => {
                 Sogki
                 <span className="text-purple-400">✦</span>
               </h2>
-              <p className="text-gray-400 text-sm">
-                Full-stack product engineering with a design-first edge
-              </p>
+              <p className="text-gray-400 text-sm">{tagline}</p>
             </motion.div>
-
-            {/* Social Links - Icon Only */}
             <motion.div
               className="flex gap-3"
               initial={{ opacity: 0, y: 20 }}
@@ -86,7 +64,7 @@ export const Footer: React.FC = () => {
               transition={{ duration: 0.4, delay: 0.1 }}
               viewport={{ once: true }}
             >
-              {socialLinks.map((social) => (
+              {socialWithIcons.map((social) => (
                 <motion.a
                   key={social.name}
                   href={social.url}
@@ -105,61 +83,62 @@ export const Footer: React.FC = () => {
             </motion.div>
           </div>
 
-          {/* Featured Projects - Compact */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.2 }}
-            viewport={{ once: true }}
-          >
-            <h3 className="text-sm font-semibold text-gray-400 mb-4 font-mono uppercase tracking-wider">
-              Featured Projects
-            </h3>
-            <div className="flex flex-wrap gap-3">
-              {featuredProjects.map((project, index) => (
-                <motion.a
-                  key={project.name}
-                  href={project.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="group flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 hover:border-purple-400/50 transition-all duration-150"
-                  initial={{ opacity: 0, x: -10 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.3, delay: 0.2 + index * 0.1 }}
-                  viewport={{ once: true }}
-                  whileHover={{ scale: 1.05, x: 4 }}
-                >
-                  <span className="text-sm text-gray-300 group-hover:text-white transition-colors font-mono">
-                    {project.name}
-                  </span>
-                  <ArrowUpRight size={14} className="text-gray-500 group-hover:text-purple-400 transition-colors opacity-0 group-hover:opacity-100" />
-                </motion.a>
-              ))}
-            </div>
-          </motion.div>
+          {featuredProjects.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.2 }}
+              viewport={{ once: true }}
+            >
+              <h3 className="text-sm font-semibold text-gray-400 mb-4 font-mono uppercase tracking-wider">
+                Featured Projects
+              </h3>
+              <div className="flex flex-wrap gap-3">
+                {featuredProjects.map((project, index) => (
+                  <motion.a
+                    key={project.name}
+                    href={project.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 hover:border-purple-400/50 transition-all duration-150"
+                    initial={{ opacity: 0, x: -10 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.3, delay: 0.2 + index * 0.1 }}
+                    viewport={{ once: true }}
+                    whileHover={{ scale: 1.05, x: 4 }}
+                  >
+                    <span className="text-sm text-gray-300 group-hover:text-white transition-colors font-mono">
+                      {project.name}
+                    </span>
+                    <ArrowUpRight size={14} className="text-gray-500 group-hover:text-purple-400 transition-colors opacity-0 group-hover:opacity-100" />
+                  </motion.a>
+                ))}
+              </div>
+            </motion.div>
+          )}
 
-          {/* Quick Links - Horizontal */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.3 }}
-            viewport={{ once: true }}
-          >
-            <div className="flex flex-wrap gap-6">
-              {quickLinks.map((link) => (
-                <a
-                  key={link.name}
-                  href={link.href}
-                  className="text-sm text-gray-400 hover:text-purple-400 transition-colors duration-150 font-mono group"
-                >
-                  <span className="group-hover:underline">{link.name}</span>
-                </a>
-              ))}
-            </div>
-          </motion.div>
+          {quickLinks.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.3 }}
+              viewport={{ once: true }}
+            >
+              <div className="flex flex-wrap gap-6">
+                {quickLinks.map((link) => (
+                  <a
+                    key={link.name}
+                    href={link.href}
+                    className="text-sm text-gray-400 hover:text-purple-400 transition-colors duration-150 font-mono group"
+                  >
+                    <span className="group-hover:underline">{link.name}</span>
+                  </a>
+                ))}
+              </div>
+            </motion.div>
+          )}
         </div>
 
-        {/* Bottom Bar - Compact */}
         <motion.div
           className="mt-8 pt-8 border-t border-white/10 flex flex-col md:flex-row items-center justify-between gap-4"
           initial={{ opacity: 0 }}
@@ -167,17 +146,12 @@ export const Footer: React.FC = () => {
           transition={{ duration: 0.4, delay: 0.4 }}
           viewport={{ once: true }}
         >
-          {/* Philosophy Quote */}
           <div className="text-center md:text-left">
-            <p className="text-sm text-gray-500 font-mono mb-1">美しさは簡潔にあり</p>
-            <p className="text-xs text-gray-600">Beauty lies in simplicity</p>
+            <p className="text-sm text-gray-500 font-mono mb-1">{philosophy.jp ?? '美しさは簡潔にあり'}</p>
+            <p className="text-xs text-gray-600">{philosophy.en ?? 'Beauty lies in simplicity'}</p>
           </div>
-
-          {/* Copyright & Back to Top */}
           <div className="flex items-center gap-6">
-            <p className="text-xs text-gray-500 font-mono">
-              © 2026 Sogki
-            </p>
+            <p className="text-xs text-gray-500 font-mono">© 2026 Sogki</p>
             <motion.button
               onClick={scrollToTop}
               type="button"

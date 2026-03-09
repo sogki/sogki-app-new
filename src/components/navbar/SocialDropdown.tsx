@@ -1,13 +1,30 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { socialLinks } from './NavbarData';
+import { Github, Twitter } from 'lucide-react';
+import { useSiteData } from '../../context/SiteDataContext';
 
 interface SocialDropdownProps {
   isOpen: boolean;
   isScrolled: boolean;
 }
 
+const ICON_MAP: Record<string, React.ReactNode> = {
+  github: <Github size={16} />,
+  twitter: <Twitter size={16} />,
+  x: <Twitter size={16} />,
+};
+
 export const SocialDropdown: React.FC<SocialDropdownProps> = ({ isOpen, isScrolled }) => {
+  const { socialLinks } = useSiteData();
+
+  const items = socialLinks.map((s) => ({
+    label: s.platform.charAt(0).toUpperCase() + s.platform.slice(1),
+    url: s.url,
+    icon: ICON_MAP[s.platform.toLowerCase()] ?? <Github size={16} />,
+    handle: s.handle ?? '',
+    description: s.description ?? '',
+  }));
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -19,7 +36,7 @@ export const SocialDropdown: React.FC<SocialDropdownProps> = ({ isOpen, isScroll
           transition={{ duration: 0.1 }}
         >
           <div className="space-y-2">
-            {socialLinks.map((social) => (
+            {items.map((social) => (
               <a
                 key={social.label}
                 href={social.url}

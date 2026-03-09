@@ -19,17 +19,31 @@ async function adminFetch(path: string, options: RequestInit = {}) {
   if (!token) throw new Error('Not authenticated');
 
   const url = `${FUNCTIONS_URL}/admin-api/${path.replace(/^\//, '')}`;
-  const res = await fetch(url, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-      ...options.headers,
-    },
-  });
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+        ...options.headers,
+      },
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Network error';
+    if (msg.includes('fetch') || msg.includes('Failed')) {
+      throw new Error(
+        'Cannot reach admin API. Ensure the admin-api Edge Function is deployed with verify_jwt = false (see supabase/config.toml).'
+      );
+    }
+    throw err;
+  }
 
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+  if (!res.ok) {
+    if (res.status === 401) throw new Error('Session expired. Please log in again.');
+    throw new Error(data.error || `HTTP ${res.status}`);
+  }
   return data;
 }
 
@@ -69,4 +83,25 @@ export const adminApi = {
 
   footer: () => adminApi.get('footer'),
   updateFooter: (key: string, value: unknown) => adminApi.post('footer', { key, value }),
+
+  siteContent: (section?: string) =>
+    adminApi.get(section ? `site_content?section=${encodeURIComponent(section)}` : 'site_content'),
+  updateSiteContent: (key: string, value: unknown, meta?: { content_type?: string; section?: string; label?: string }) =>
+    adminApi.post('site_content', { key, value, ...meta }),
+
+  uploadBlogImage: async (file: File, blogId?: string, alt?: string): Promise<string> => {
+    const reader = new FileReader();
+    const base64 = await new Promise<string>((resolve, reject) => {
+      reader.onload = () => resolve((reader.result as string) ?? '');
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+    const data = await adminApi.post('blogs/upload', {
+      file: base64,
+      filename: file.name,
+      blog_id: blogId || null,
+      alt: alt || null,
+    });
+    return (data as { url: string }).url;
+  },
 };
