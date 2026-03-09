@@ -32,7 +32,6 @@ const ABOUT_GROUPS: { label: string; labelJp: string; keys: string[] }[] = [
   { label: 'Section Titles', labelJp: '見出し', keys: ['about.section_title', 'about.section_title_jp'] },
   { label: 'Bio', labelJp: '自己紹介', keys: ['about.bio_1', 'about.bio_2', 'about.bio_3'] },
   { label: 'Stats', labelJp: '数字で見る実績', keys: ['about.stats_title', 'about.stats_title_jp', 'about.stats'] },
-  { label: 'Starmap', labelJp: 'スターマップ', keys: ['about.starmap_label'] },
 ];
 const FEATURES_GROUPS: { label: string; labelJp: string; keys: string[] }[] = [
   { label: 'Section Titles', labelJp: '見出し', keys: ['features.section_title', 'features.section_title_jp'] },

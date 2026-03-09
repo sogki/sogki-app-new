@@ -137,30 +137,6 @@ export const About: React.FC = () => {
               <p>{getString(siteContent, 'about.bio_2', 'My work spans creator ecosystems, companion tools, and community platforms. I build the full stack: data models, backend logic, frontend UX, and iteration loops.')}</p>
               <p>{getString(siteContent, 'about.bio_3', 'Projects like 50andBad, ArcRaiders Companion, and Profiles After Dark represent my approach: strong visual direction, practical product value, and scalable engineering.')}</p>
             </div>
-
-            {/* Starmap Button */}
-            <motion.div
-              className="pt-4"
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.4 }}
-              viewport={{ once: true }}
-            >
-              <a
-                href="https://constellation.sogki.dev"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-block px-5 sm:px-6 py-2.5 sm:py-3 bg-slate-800 text-purple-300 text-sm sm:text-base font-medium rounded-full hover:bg-slate-700 hover:text-purple-200 transition-colors duration-150"
-              >
-                <motion.span
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-                >
-                  {getString(siteContent, 'about.starmap_label', 'Explore My Starmap')}
-                </motion.span>
-              </a>
-            </motion.div>
           </motion.div>
 
           {/* Stats Graph - Right Side */}
