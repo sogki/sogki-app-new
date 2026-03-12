@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Calendar, Code, Rocket, Award, Clock, Globe } from 'lucide-react';
+import { Calendar, Code, Rocket, Award, Clock, Globe, Zap, Palette } from 'lucide-react';
 import ShinyText from './ShinyText';
 
 interface TimelineEvent {
@@ -15,6 +15,7 @@ interface TimelineEvent {
 }
 
 const events: TimelineEvent[] = [
+  // 2026 — Latest projects
   {
     year: '2026',
     title: 'ArcRaiders Companion',
@@ -26,20 +27,31 @@ const events: TimelineEvent[] = [
     branch: 'left'
   },
   {
+    year: '2026',
+    title: 'TikTok Live API',
+    titleJp: 'TikTok Live API',
+    description: 'Developer API to check if any TikTok user is live. REST API with live status, viewer counts, per-developer keys, free tier, and Discord login. No official API? No problem.',
+    icon: <Zap size={20} />,
+    color: 'from-pink-500 to-rose-500',
+    status: 'in-progress',
+    branch: 'right'
+  },
+  // 2025 — Shipped & in progress
+  {
     year: '2025',
-    title: '50andBad Platform',
-    titleJp: '50andBadプラットフォーム',
-    description: 'Built and shipped a creator-focused ecosystem including a VOD archive and companion experiences, with scalable data models and polished frontend UX.',
+    title: "50andBad's VOD Archive",
+    titleJp: '50andBad VODアーカイブ',
+    description: 'Creator-focused VOD archive with advanced admin features, scalable data models, and polished frontend UX. Part of the 50andBad ecosystem.',
     icon: <Globe size={20} />,
     color: 'from-emerald-500 to-teal-500',
     status: 'completed',
-    branch: 'right'
+    branch: 'left'
   },
   {
     year: '2025',
     title: 'Binderly TCG',
     titleJp: 'Binderly TCG',
-    description: 'Developing a comprehensive Pokemon card collection platform with real-time pricing, market insights, and community features. Currently in active development.',
+    description: 'Comprehensive Pokemon card collection platform with real-time pricing, market insights, and community features. Currently in active development.',
     icon: <Award size={20} />,
     color: 'from-blue-500 to-cyan-500',
     status: 'in-progress',
@@ -59,22 +71,23 @@ const events: TimelineEvent[] = [
     year: '2025',
     title: 'Profiles After Dark',
     titleJp: 'プロフィールアフターダーク',
-    description: 'Created an aesthetic profile database serving 200+ users. Built with Next.js, PostgreSQL, and modern design principles.',
+    description: 'Aesthetic profile database serving 200+ users. Built with Next.js, PostgreSQL, and modern design principles.',
     icon: <Code size={20} />,
-    color: 'from-pink-500 to-rose-500',
+    color: 'from-violet-500 to-purple-500',
     status: 'completed',
     branch: 'right'
   },
   {
     year: '2025',
-    title: 'BLXR Platform',
-    titleJp: 'BLXRプラットフォーム',
-    description: 'Building a next-generation developer platform for modular backends. Features innovative DSL system and zero-config type generation. In development.',
-    icon: <Rocket size={20} />,
-    color: 'from-purple-500 to-indigo-500',
-    status: 'in-progress',
+    title: 'Marlow Marketing',
+    titleJp: 'マーロウマーケティング',
+    description: 'Responsive, clean and minimalist website for a marketing agency. Built with React, TypeScript, and Framer Motion.',
+    icon: <Palette size={20} />,
+    color: 'from-amber-500 to-orange-500',
+    status: 'completed',
     branch: 'left'
   },
+  // Milestones
   {
     year: '2023',
     title: 'Full-Stack Journey',

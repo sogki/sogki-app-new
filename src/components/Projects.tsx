@@ -5,6 +5,7 @@ import ShinyText from './ShinyText';
 import { ExternalLink, Github, Sparkles } from 'lucide-react';
 import { useSiteData } from '../context/SiteDataContext';
 import { getString } from '../lib/siteContent';
+import { projects as navProjects } from './navbar/NavbarData';
 
 function mapProject(p: { title: string; title_jp: string | null; description: string; technologies: string[]; github: string | null; demo: string | null; featured: boolean; color: string | null }) {
   return {
@@ -173,31 +174,38 @@ export const Projects: React.FC = () => {
           </AnimatePresence>
         </div>
 
-        {otherProjects.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            viewport={{ once: true }}
-            className="mt-16"
-          >
-            <h3 className="text-xl sm:text-2xl font-bold text-white mb-6 sm:mb-8 font-mono text-center">
-              {getString(siteContent, 'projects.more_title', 'More Projects')}
-            </h3>
-            <div className="relative overflow-hidden py-4">
-              <div className="flex gap-4 sm:gap-6 animate-marquee">
-                {[...otherProjects, ...otherProjects].map((project, index) => (
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+          viewport={{ once: true }}
+          className="mt-16"
+        >
+          <h3 className="text-xl sm:text-2xl font-bold text-white mb-6 sm:mb-8 font-mono text-center">
+            {getString(siteContent, 'projects.more_title', 'More Projects')}
+          </h3>
+          <div className="relative overflow-hidden py-4">
+            <div className="flex gap-4 sm:gap-6 animate-marquee">
+              {[...navProjects, ...navProjects, ...navProjects].map((p, index) => {
+                const project = {
+                  title: p.name,
+                  titleJp: p.name,
+                  description: p.description,
+                  technologies: p.tech.split(' • ').filter(Boolean),
+                  demo: p.url,
+                };
+                return (
                   <div
-                    key={`${project.title}-${index}`}
+                    key={`${p.name}-${index}`}
                     className="flex-shrink-0 w-[300px] sm:w-[350px] md:w-[400px]"
                   >
                     <ProjectCard {...project} delay={0} />
                   </div>
-                ))}
-              </div>
+                );
+              })}
             </div>
-          </motion.div>
-        )}
+          </div>
+        </motion.div>
       </div>
     </section>
   );
