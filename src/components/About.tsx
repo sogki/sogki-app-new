@@ -133,7 +133,7 @@ export const About: React.FC = () => {
             viewport={{ once: true }}
           >
             <div className="text-gray-300 text-base sm:text-lg leading-relaxed space-y-4">
-              <p>{getString(siteContent, 'about.bio_1', 'I am Sogki, a full-stack software engineer focused on shipping production products that users return to.')}</p>
+              <p>{getString(siteContent, 'about.bio_1', 'I am Sogki, or you can call me Jay, a full-stack software engineer focused on shipping production products that users return to.')}</p>
               <p>{getString(siteContent, 'about.bio_2', 'My work spans creator ecosystems, companion tools, and community platforms. I build the full stack: data models, backend logic, frontend UX, and iteration loops.')}</p>
               <p>{getString(siteContent, 'about.bio_3', 'Projects like 50andBad, ArcRaiders Companion, and Profiles After Dark represent my approach: strong visual direction, practical product value, and scalable engineering.')}</p>
             </div>
