@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X } from 'lucide-react';
 import { DesktopNav } from './navbar/DesktopNav';
 import { MobileNav } from './navbar/MobileNav';
+import { getMotionAwareScrollBehavior } from '../utils/motion';
 
 export const Navbar: React.FC = () => {
   const navigate = useNavigate();
@@ -11,15 +12,11 @@ export const Navbar: React.FC = () => {
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProjectsOpen, setIsProjectsOpen] = useState(false);
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 50);
-    };
-
-    const handleMouseMove = (e: MouseEvent) => {
-      setMousePosition({ x: e.clientX, y: e.clientY });
+      const nextScrolled = window.scrollY > 50;
+      setIsScrolled((prev) => (prev === nextScrolled ? prev : nextScrolled));
     };
 
     const handleClickOutside = (event: MouseEvent) => {
@@ -31,12 +28,10 @@ export const Navbar: React.FC = () => {
       }
     };
 
-    window.addEventListener('scroll', handleScroll);
-    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('scroll', handleScroll, { passive: true });
     document.addEventListener('mousedown', handleClickOutside);
     return () => {
       window.removeEventListener('scroll', handleScroll);
-      window.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
@@ -45,13 +40,13 @@ export const Navbar: React.FC = () => {
     if (window.location.pathname !== path) {
       navigate(path);
     }
-    window.scrollTo({ top: 0, behavior: 'auto' });
+    window.scrollTo({ top: 0, behavior: getMotionAwareScrollBehavior() });
   };
 
   const scrollToSection = (href: string) => {
     const element = document.querySelector(href);
     if (element) {
-      element.scrollIntoView({ behavior: 'auto' });
+      element.scrollIntoView({ behavior: getMotionAwareScrollBehavior(), block: 'start' });
       window.scrollBy(0, -20);
     }
   };
@@ -145,7 +140,6 @@ export const Navbar: React.FC = () => {
         activeDropdown={activeDropdown}
         setActiveDropdown={setActiveDropdown}
         handleNavClick={handleNavClick}
-        mousePosition={mousePosition}
       />
 
       {/* Mobile Sidebar Menu */}

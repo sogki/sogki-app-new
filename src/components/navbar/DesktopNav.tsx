@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Briefcase, ChevronDown, Share2 } from 'lucide-react';
 import { navItems } from './NavbarData';
@@ -10,23 +10,34 @@ interface DesktopNavProps {
   activeDropdown: string | null;
   setActiveDropdown: (value: string | null) => void;
   handleNavClick: (href: string) => void;
-  mousePosition: { x: number; y: number };
 }
 
 export const DesktopNav: React.FC<DesktopNavProps> = ({
   isScrolled,
   activeDropdown,
   setActiveDropdown,
-  handleNavClick,
-  mousePosition
+  handleNavClick
 }) => {
+  const navRef = useRef<HTMLElement>(null);
+
+  const handleGlowMove = (event: React.MouseEvent<HTMLElement>) => {
+    const nav = navRef.current;
+    if (!nav) return;
+
+    const rect = nav.getBoundingClientRect();
+    nav.style.setProperty('--nav-glow-x', `${event.clientX - rect.left}px`);
+    nav.style.setProperty('--nav-glow-y', `${event.clientY - rect.top}px`);
+  };
+
   return (
     <motion.nav
+      ref={navRef}
       className={`hidden md:flex transition-all duration-200 ease-out relative ${
         isScrolled 
           ? 'bg-black border border-white/20 shadow-lg shadow-purple-500/10' 
           : 'bg-black/90 border border-white/10'
       } rounded-full ${isScrolled ? 'px-4 py-2' : 'px-6 py-3'}`}
+      style={{ '--nav-glow-x': '50%', '--nav-glow-y': '50%' } as React.CSSProperties}
       initial={{ y: -100, opacity: 0, scale: 0.8 }}
       animate={{ 
         y: 0, 
@@ -39,12 +50,13 @@ export const DesktopNav: React.FC<DesktopNavProps> = ({
         ease: "easeOut"
       }}
       whileHover={{ scale: isScrolled ? 0.98 : 1.02 }}
+      onMouseMove={handleGlowMove}
     >
       {/* Animated glow effect that follows mouse */}
       <div 
         className="absolute inset-0 rounded-full opacity-0 hover:opacity-100 transition-opacity duration-300 pointer-events-none"
         style={{
-          background: `radial-gradient(600px circle at ${mousePosition.x}px ${mousePosition.y}px, rgba(147, 51, 234, 0.15), transparent 40%)`,
+          background: 'radial-gradient(520px circle at var(--nav-glow-x) var(--nav-glow-y), rgba(147, 51, 234, 0.15), transparent 42%)',
         }}
       />
 

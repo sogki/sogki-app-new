@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Calendar, Code, Rocket, Award, Clock, Globe, Zap, Palette } from 'lucide-react';
 import ShinyText from './ShinyText';
+import { sectionRevealTransition, sectionViewport, smoothEase } from '../lib/motionPresets';
 
 interface TimelineEvent {
   year: string;
@@ -117,10 +118,10 @@ export const Timeline: React.FC = () => {
         {/* Header */}
         <motion.div
           className="text-center mb-16"
-          initial={{ opacity: 0, y: 30 }}
+          initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          viewport={{ once: true }}
+          transition={sectionRevealTransition}
+          viewport={sectionViewport}
         >
           <h2 className="text-5xl md:text-6xl font-bold mb-4 font-mono">
             <ShinyText text="Journey" speed={3} />
@@ -146,10 +147,14 @@ export const Timeline: React.FC = () => {
                 <motion.div
                   key={`${event.year}-${event.title}`}
                   className="relative"
-                  initial={{ opacity: 0, y: 50 }}
+                  initial={{ opacity: 0, y: 24 }}
                   whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6, delay: index * 0.15 }}
-                  viewport={{ once: true }}
+                  transition={{
+                    duration: 0.6,
+                    delay: Math.min(index * 0.05, 0.28),
+                    ease: smoothEase,
+                  }}
+                  viewport={sectionViewport}
                 >
                   {/* Branch Line (horizontal) */}
                   {!isCenter && (

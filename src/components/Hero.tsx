@@ -4,13 +4,14 @@ import ShinyText from "./ShinyText";
 import { ChevronDown, Github } from "lucide-react";
 import { useSiteData } from "../context/SiteDataContext";
 import { getString } from "../lib/siteContent";
+import { getMotionAwareScrollBehavior } from "../utils/motion";
 
 export const Hero: React.FC = () => {
   const { siteContent } = useSiteData();
   const scrollToProjects = () => {
     const element = document.getElementById("projects");
     if (element) {
-      element.scrollIntoView({ behavior: "auto" });
+      element.scrollIntoView({ behavior: getMotionAwareScrollBehavior(), block: "start" });
       window.scrollBy(0, -20);
     }
   };

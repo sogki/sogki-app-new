@@ -6,6 +6,7 @@ import { ExternalLink, Github, Sparkles } from 'lucide-react';
 import { useSiteData } from '../context/SiteDataContext';
 import { getString } from '../lib/siteContent';
 import { projects as navProjects } from './navbar/NavbarData';
+import { sectionRevealTransition, sectionViewport, smoothEase } from '../lib/motionPresets';
 
 function mapProject(p: { title: string; title_jp: string | null; description: string; technologies: string[]; github: string | null; demo: string | null; featured: boolean; color: string | null }) {
   return {
@@ -27,7 +28,6 @@ export const Projects: React.FC = () => {
   const [isHovered, setIsHovered] = useState(false);
 
   const featuredProjects = projects.filter(p => p.featured);
-  const otherProjects = projects.filter(p => !p.featured);
   const currentFeatured = featuredProjects[featuredIndex];
 
   useEffect(() => {
@@ -60,10 +60,10 @@ export const Projects: React.FC = () => {
       <div className="max-w-7xl mx-auto">
         <motion.div
           className="text-center mb-16"
-          initial={{ opacity: 0, y: 30 }}
+          initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          viewport={{ once: true }}
+          transition={sectionRevealTransition}
+          viewport={sectionViewport}
         >
           <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-3 sm:mb-4 font-mono">
             <ShinyText text={getString(siteContent, 'projects.section_title', 'Featured Projects')} speed={3} />
@@ -79,10 +79,10 @@ export const Projects: React.FC = () => {
             {currentFeatured && (
               <motion.div
                 key={featuredIndex}
-                initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                initial={{ opacity: 0, y: 16, scale: 0.98 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -20, scale: 0.95 }}
-                transition={{ duration: 0.4 }}
+                exit={{ opacity: 0, y: -12, scale: 0.98 }}
+                transition={{ duration: 0.52, ease: smoothEase }}
                 className="relative h-full"
                 onMouseEnter={() => setIsHovered(true)}
                 onMouseLeave={() => setIsHovered(false)}
@@ -175,10 +175,10 @@ export const Projects: React.FC = () => {
         </div>
 
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
+          initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-          viewport={{ once: true }}
+          transition={{ duration: 0.64, delay: 0.1, ease: smoothEase }}
+          viewport={sectionViewport}
           className="mt-16"
         >
           <h3 className="text-xl sm:text-2xl font-bold text-white mb-6 sm:mb-8 font-mono text-center">

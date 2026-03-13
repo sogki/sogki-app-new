@@ -4,6 +4,7 @@ import ShinyText from './ShinyText';
 import { MessageCircle } from 'lucide-react';
 import { useSiteData } from '../context/SiteDataContext';
 import { getString } from '../lib/siteContent';
+import { sectionRevealTransition, sectionViewport, smoothEase } from '../lib/motionPresets';
 
 export const Contact: React.FC = () => {
   const { siteContent } = useSiteData();
@@ -13,10 +14,10 @@ export const Contact: React.FC = () => {
         {/* Section Header */}
         <motion.div
           className="mb-12"
-          initial={{ opacity: 0, y: 30 }}
+          initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          viewport={{ once: true }}
+          transition={sectionRevealTransition}
+          viewport={sectionViewport}
         >
           <h2 className="text-5xl md:text-6xl font-bold mb-4 font-mono">
             <ShinyText text={getString(siteContent, 'contact.section_title', 'Get in touch')} speed={3} />
@@ -30,10 +31,10 @@ export const Contact: React.FC = () => {
         {/* Discord Contact */}
         <motion.div
           className="flex justify-center mb-12"
-          initial={{ opacity: 0, y: 30 }}
+          initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.2 }}
-          viewport={{ once: true }}
+          transition={{ duration: 0.62, delay: 0.08, ease: smoothEase }}
+          viewport={sectionViewport}
         >
           <div className="p-8 rounded-xl bg-gradient-to-br from-purple-900/20 to-blue-900/20 backdrop-blur-sm border border-white/10 hover:border-purple-400/50 transition-all duration-150 hover:scale-[1.02] max-w-md">
             <MessageCircle className="text-purple-400 mx-auto mb-4" size={48} />
@@ -46,10 +47,10 @@ export const Contact: React.FC = () => {
         
         {/* CTA */}
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
+          initial={{ opacity: 0, y: 16 }}
           whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.4 }}
-          viewport={{ once: true }}
+          transition={{ duration: 0.58, delay: 0.12, ease: smoothEase }}
+          viewport={sectionViewport}
         >
           <a
             href="https://discord.com/users/sogki"

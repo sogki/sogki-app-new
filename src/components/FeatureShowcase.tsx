@@ -4,6 +4,7 @@ import { Code2, Zap, Palette, Rocket, Shield, Sparkles } from 'lucide-react';
 import ShinyText from './ShinyText';
 import { useSiteData } from '../context/SiteDataContext';
 import { getString } from '../lib/siteContent';
+import { sectionRevealTransition, sectionViewport, smoothEase } from '../lib/motionPresets';
 
 interface Feature {
   id: string;
@@ -73,10 +74,10 @@ export const FeatureShowcase: React.FC = () => {
         {/* Header */}
         <motion.div
           className="text-center mb-20"
-          initial={{ opacity: 0, y: 30 }}
+          initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          viewport={{ once: true }}
+          transition={sectionRevealTransition}
+          viewport={sectionViewport}
         >
           <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-3 sm:mb-4 font-mono">
             <ShinyText text={getString(siteContent, 'features.section_title', 'What I Bring')} speed={3} />
@@ -88,8 +89,19 @@ export const FeatureShowcase: React.FC = () => {
         </motion.div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-          {features.map((feature) => (
-            <div key={feature.id} className="group relative h-full">
+          {features.map((feature, index) => (
+            <motion.div
+              key={feature.id}
+              className="group relative h-full"
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{
+                duration: 0.54,
+                delay: index * 0.06,
+                ease: smoothEase,
+              }}
+              viewport={sectionViewport}
+            >
               <div className="absolute -inset-1 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-xl blur-xl opacity-0 group-hover:opacity-30 transition-opacity duration-300 -z-10" />
 
               <div className="relative bg-black/40 border border-white/10 rounded-xl p-4 sm:p-6 h-full hover:border-purple-400/50 transition-all duration-200">
@@ -113,7 +125,7 @@ export const FeatureShowcase: React.FC = () => {
                   </p>
                 </div>
               </div>
-            </div>
+            </motion.div>
           ))}
         </div>
       </div>

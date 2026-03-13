@@ -11,6 +11,7 @@ import {
   Book,
   Plane
 } from 'lucide-react';
+import { sectionRevealTransition, sectionViewport, smoothEase } from '../lib/motionPresets';
 
 export const TechStack: React.FC = () => {
   const techCategories = [
@@ -51,10 +52,10 @@ export const TechStack: React.FC = () => {
         {/* Section Header */}
         <motion.div
           className="text-center mb-16"
-          initial={{ opacity: 0, y: 30 }}
+          initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          viewport={{ once: true }}
+          transition={sectionRevealTransition}
+          viewport={sectionViewport}
         >
           <h2 className="text-5xl md:text-6xl font-bold mb-4 font-mono">
             <ShinyText text="Tech stack & Languages" speed={3} />
@@ -69,8 +70,8 @@ export const TechStack: React.FC = () => {
                 className="flex items-center gap-2 px-3 py-1.5 bg-black/40 border border-white/10 rounded-full text-xs text-gray-300 hover:border-purple-400/50 transition-all duration-150"
                 initial={{ opacity: 0, scale: 0.9 }}
                 whileInView={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.3, delay: index * 0.05 }}
-                viewport={{ once: true }}
+                transition={{ duration: 0.42, delay: index * 0.05, ease: smoothEase }}
+                viewport={sectionViewport}
                 whileHover={{ scale: 1.05, y: -2 }}
               >
                 <span className="text-purple-400">{interest.icon}</span>
@@ -87,10 +88,10 @@ export const TechStack: React.FC = () => {
             <motion.div
               key={category.title}
               className="group relative overflow-hidden rounded-xl bg-gradient-to-br from-purple-900/20 to-blue-900/20 border border-white/10 h-full"
-              initial={{ opacity: 0, y: 30 }}
+              initial={{ opacity: 0, y: 22 }}
               whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: index * 0.1 }}
-              viewport={{ once: true }}
+              transition={{ duration: 0.56, delay: index * 0.08, ease: smoothEase }}
+              viewport={sectionViewport}
               whileHover={{ y: -4 }}
             >
               {/* Hover glow */}

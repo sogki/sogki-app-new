@@ -4,6 +4,7 @@ import ShinyText from './ShinyText';
 import { Code2, Users, Rocket, Award } from 'lucide-react';
 import { useSiteData } from '../context/SiteDataContext';
 import { getString, getJson } from '../lib/siteContent';
+import { sectionRevealTransition, sectionViewport, smoothEase } from '../lib/motionPresets';
 
 interface StatItem {
   icon: React.ReactNode;
@@ -111,10 +112,10 @@ export const About: React.FC = () => {
         {/* Section Header */}
         <motion.div
           className="text-center mb-8 sm:mb-12"
-          initial={{ opacity: 0, y: 30 }}
+          initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          viewport={{ once: true }}
+          transition={sectionRevealTransition}
+          viewport={sectionViewport}
         >
           <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-3 sm:mb-4 font-mono">
             <ShinyText text={getString(siteContent, 'about.section_title', 'About Me')} speed={3} />
@@ -127,10 +128,10 @@ export const About: React.FC = () => {
           {/* About Content - Left Side */}
           <motion.div
             className="space-y-6"
-            initial={{ opacity: 0, x: -30 }}
+            initial={{ opacity: 0, x: -24 }}
             whileInView={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            viewport={{ once: true }}
+            transition={{ duration: 0.64, delay: 0.06, ease: smoothEase }}
+            viewport={sectionViewport}
           >
             <div className="text-gray-300 text-base sm:text-lg leading-relaxed space-y-4">
               <p>{getString(siteContent, 'about.bio_1', 'I am Sogki, or you can call me Jay, a full-stack software engineer focused on shipping production products that users return to.')}</p>
@@ -142,10 +143,10 @@ export const About: React.FC = () => {
           {/* Stats Graph - Right Side */}
           <motion.div
             className="space-y-6"
-            initial={{ opacity: 0, x: 30 }}
+            initial={{ opacity: 0, x: 24 }}
             whileInView={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.6, delay: 0.3 }}
-            viewport={{ once: true }}
+            transition={{ duration: 0.64, delay: 0.1, ease: smoothEase }}
+            viewport={sectionViewport}
           >
             <div className="mb-6">
               <h3 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 text-white font-mono">
@@ -163,10 +164,10 @@ export const About: React.FC = () => {
                   <motion.div
                     key={stat.label}
                     className="space-y-2"
-                    initial={{ opacity: 0, y: 20 }}
+                    initial={{ opacity: 0, y: 16 }}
                     whileInView={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.4, delay: index * 0.1 }}
-                    viewport={{ once: true }}
+                    transition={{ duration: 0.48, delay: index * 0.06, ease: smoothEase }}
+                    viewport={sectionViewport}
                   >
                     {/* Label and Value */}
                     <div className="flex items-center justify-between">
@@ -199,9 +200,9 @@ export const About: React.FC = () => {
                         initial={{ width: 0 }}
                         animate={isInView ? { width: `${percentage}%` } : { width: 0 }}
                         transition={{ 
-                          duration: 1.5, 
-                          delay: 0.5 + (index * 0.1),
-                          ease: "easeOut"
+                          duration: 1.2, 
+                          delay: 0.35 + (index * 0.08),
+                          ease: smoothEase
                         }}
                       >
                         {/* Shimmer effect */}

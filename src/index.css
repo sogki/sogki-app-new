@@ -80,11 +80,22 @@ body {
 }
 
 
-/* Optimized animations - faster transitions */
-* {
-  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, scale;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  transition-duration: 100ms;
+/* Global motion tuning */
+:root {
+  --ease-smooth: cubic-bezier(0.22, 1, 0.36, 1);
+  --motion-fast: 160ms;
+}
+
+a,
+button,
+[role='button'],
+input,
+textarea,
+select,
+summary {
+  transition-property: color, background-color, border-color, text-decoration-color, opacity, box-shadow, transform, filter;
+  transition-timing-function: var(--ease-smooth);
+  transition-duration: var(--motion-fast);
 }
 
 /* Reduce backdrop-filter usage - only apply where needed */
@@ -98,6 +109,12 @@ body {
   transform: translateZ(0);
   backface-visibility: hidden;
   perspective: 1000px;
+}
+
+.motion-surface {
+  transform: translateZ(0);
+  will-change: transform, opacity;
+  backface-visibility: hidden;
 }
 
 /* Gradient text selection */
@@ -198,16 +215,6 @@ canvas::-webkit-scrollbar {
 
 .preserve-3d {
   transform-style: preserve-3d;
-}
-
-/* Optimized scroll - instant for navigation, smooth for manual scrolling */
-html {
-  scroll-behavior: auto;
-}
-
-/* Smooth scroll only for manual scrolling */
-.scroll-smooth {
-  scroll-behavior: smooth;
 }
 
 /* Better focus states */
@@ -315,18 +322,23 @@ a:focus-visible {
     font-size: 4rem;
   }
   
-  /* Reduce motion for mobile users who prefer it */
-  @media (prefers-reduced-motion: reduce) {
-    *,
-    *::before,
-    *::after {
-      animation-duration: 0.01ms !important;
-      animation-iteration-count: 1 !important;
-      transition-duration: 0.01ms !important;
-    }
-    
-    .animate-marquee {
-      animation: none;
-    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .animate-marquee,
+  .animate-marquee-features {
+    animation: none !important;
   }
 }

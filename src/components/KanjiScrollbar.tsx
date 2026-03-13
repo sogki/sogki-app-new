@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { getMotionAwareScrollBehavior } from '../utils/motion';
 
 interface Section {
   id: string;
@@ -59,7 +60,7 @@ export const KanjiScrollbar: React.FC = () => {
     if (element) {
       setIsClickNavigating(true); // Prevent scroll listener from interfering
       setActiveSection(sectionId); // Immediately update active state on click
-      element.scrollIntoView({ behavior: 'auto' });
+      element.scrollIntoView({ behavior: getMotionAwareScrollBehavior(), block: 'start' });
       // Small offset for navbar
       window.scrollBy(0, -20);
       

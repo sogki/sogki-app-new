@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Github, Twitter, ArrowUpRight } from 'lucide-react';
 import { useSiteData } from '../context/SiteDataContext';
+import { getMotionAwareScrollBehavior } from '../utils/motion';
 
 const ICON_MAP: Record<string, React.ReactNode> = {
   github: <Github size={20} />,
@@ -25,9 +26,10 @@ export const Footer: React.FC = () => {
 
   const scrollToTop = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
-    window.scrollTo({ top: 0, behavior: 'auto' });
-    document.documentElement.scrollTo({ top: 0, behavior: 'auto' });
-    document.body.scrollTo({ top: 0, behavior: 'auto' });
+    const behavior = getMotionAwareScrollBehavior();
+    window.scrollTo({ top: 0, behavior });
+    document.documentElement.scrollTo({ top: 0, behavior });
+    document.body.scrollTo({ top: 0, behavior });
   };
 
   if (isLoading) {

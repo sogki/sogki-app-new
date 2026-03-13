@@ -1,17 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowUp } from 'lucide-react';
+import { getMotionAwareScrollBehavior } from '../utils/motion';
 
 export const ScrollToTop: React.FC = () => {
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
     const toggleVisibility = () => {
-      if (window.scrollY > 300 || document.documentElement.scrollTop > 300) {
-        setIsVisible(true);
-      } else {
-        setIsVisible(false);
-      }
+      const nextVisible = window.scrollY > 300 || document.documentElement.scrollTop > 300;
+      setIsVisible((prev) => (prev === nextVisible ? prev : nextVisible));
     };
 
     window.addEventListener('scroll', toggleVisibility, { passive: true });
@@ -21,12 +19,12 @@ export const ScrollToTop: React.FC = () => {
   const scrollToTop = () => {
     window.scrollTo({
       top: 0,
-      behavior: 'auto',
+      behavior: getMotionAwareScrollBehavior(),
     });
     // Also try scrolling the document element as fallback
     document.documentElement.scrollTo({
       top: 0,
-      behavior: 'auto',
+      behavior: getMotionAwareScrollBehavior(),
     });
   };
 
@@ -41,7 +39,7 @@ export const ScrollToTop: React.FC = () => {
           initial={{ opacity: 0, scale: 0, rotate: -180 }}
           animate={{ opacity: 1, scale: 1, rotate: 0 }}
           exit={{ opacity: 0, scale: 0, rotate: 180 }}
-          transition={{ duration: 0.15 }}
+          transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
         >

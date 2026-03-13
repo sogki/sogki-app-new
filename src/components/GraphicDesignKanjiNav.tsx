@@ -1,4 +1,5 @@
 import React from 'react';
+import { getMotionAwareScrollBehavior } from '../utils/motion';
 
 export const GraphicDesignKanjiNav: React.FC = () => {
   const goHome = () => {
@@ -6,7 +7,7 @@ export const GraphicDesignKanjiNav: React.FC = () => {
       window.history.pushState({}, '', '/');
       window.dispatchEvent(new Event('app:navigate'));
     }
-    window.scrollTo({ top: 0, behavior: 'auto' });
+    window.scrollTo({ top: 0, behavior: getMotionAwareScrollBehavior() });
   };
 
   return (
