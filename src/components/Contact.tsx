@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import ShinyText from './ShinyText';
-import { MessageCircle } from 'lucide-react';
+import { Mail, MessageCircle } from 'lucide-react';
 import { useSiteData } from '../context/SiteDataContext';
 import { getString } from '../lib/siteContent';
 import { sectionRevealTransition, sectionViewport, smoothEase } from '../lib/motionPresets';
@@ -52,15 +52,24 @@ export const Contact: React.FC = () => {
           transition={{ duration: 0.58, delay: 0.12, ease: smoothEase }}
           viewport={sectionViewport}
         >
-          <a
-            href="https://discord.com/users/sogki"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full text-white font-medium hover:from-purple-700 hover:to-blue-700 transition-all duration-150 hover:scale-[1.02] hover:shadow-lg hover:shadow-purple-500/25"
-          >
-            <MessageCircle size={20} />
-            {getString(siteContent, 'contact.cta_label', 'Message on Discord')}
-          </a>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
+            <a
+              href="https://discord.com/users/sogki"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full text-white font-medium hover:from-purple-700 hover:to-blue-700 transition-all duration-150 hover:scale-[1.02] hover:shadow-lg hover:shadow-purple-500/25"
+            >
+              <MessageCircle size={20} />
+              {getString(siteContent, 'contact.cta_label', 'Message on Discord')}
+            </a>
+            <a
+              href="mailto:soggymousepad@gmail.com"
+              className="inline-flex items-center gap-2 px-8 py-4 rounded-full border border-purple-400/50 text-purple-200 hover:text-white hover:bg-purple-500/10 hover:border-purple-300 transition-all duration-150 hover:scale-[1.02]"
+            >
+              <Mail size={20} />
+              soggymousepad@gmail.com
+            </a>
+          </div>
         </motion.div>
       </div>
     </div>
