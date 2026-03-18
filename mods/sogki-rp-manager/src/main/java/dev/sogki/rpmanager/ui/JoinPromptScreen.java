@@ -275,7 +275,7 @@ public final class JoinPromptScreen extends Screen {
 
   private void drawOverlayText(DrawContext context) {
     int centerX = width / 2;
-    context.drawCenteredTextWithShadow(textRenderer, Text.literal("Sogki's Cobblemon Resource Pack Manager"), centerX, panelTop + 12, COLOR_TITLE);
+    context.drawCenteredTextWithShadow(textRenderer, Text.literal("Sogki's Resource Pack Manager"), centerX, panelTop + 12, COLOR_TITLE);
     context.drawCenteredTextWithShadow(textRenderer, Text.literal("Browse active packs and download one-by-one or all at once."), centerX, panelTop + 26, COLOR_MUTED);
     context.drawCenteredTextWithShadow(textRenderer, Text.literal("Need help? Contact Sogki on Discord or ping in Loafey's Pokepal server."), centerX, panelTop + 40, COLOR_HELP);
     context.drawTextWithShadow(textRenderer, "Texture Packs", listLeft, panelTop + 72, COLOR_WHITE);

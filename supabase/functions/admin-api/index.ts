@@ -14,6 +14,8 @@ const corsHeaders = {
 
 const BUCKET_BLOG_IMAGES = 'blog-images';
 const BUCKET_RESOURCEPACKS = 'resourcepacks';
+const MAX_BLOG_IMAGE_BYTES = 10 * 1024 * 1024; // 10 MB
+const MAX_RESOURCEPACK_BYTES = 200 * 1024 * 1024; // 200 MB
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
@@ -73,15 +75,15 @@ Deno.serve(async (req) => {
       return await handleGet(supabase, parts, url);
     }
     if (req.method === 'POST' || req.method === 'PUT' || req.method === 'PATCH' || req.method === 'DELETE') {
-      const body = req.method !== 'DELETE' ? await req.json().catch(() => ({})) : {};
       // Blog image upload: POST blogs/upload
       if (parts[0] === 'blogs' && parts[1] === 'upload' && req.method === 'POST') {
-        return await handleBlogImageUpload(supabase, body);
+        return await handleBlogImageUpload(supabase, req);
       }
       // Resource pack upload: POST resourcepacks/upload
       if (parts[0] === 'resourcepacks' && parts[1] === 'upload' && req.method === 'POST') {
-        return await handleResourcePackUpload(supabase, body);
+        return await handleResourcePackUpload(supabase, req);
       }
+      const body = req.method !== 'DELETE' ? await req.json().catch(() => ({})) : {};
       return await handleMutate(supabase, req.method, parts, body);
     }
   } catch (err) {
@@ -138,80 +140,82 @@ async function handleGet(supabase: any, parts: string[], url: URL) {
   }
 }
 
-async function handleBlogImageUpload(supabase: any, body: any) {
-  const { file, filename, blog_id, alt } = body;
-  if (!file || !filename) return json({ error: 'file and filename required' }, 400);
-  const base64 = typeof file === 'string' ? file.replace(/^data:image\/\w+;base64,/, '') : null;
-  if (!base64) return json({ error: 'Invalid file data' }, 400);
+async function handleBlogImageUpload(supabase: any, req: Request) {
+  const parsed = await parseUploadRequest(req);
+  const { fileBytes, filename, blogId, alt, mimeType } = parsed;
+  if (!fileBytes || !filename) return json({ error: 'file and filename required' }, 400);
+  if (fileBytes.byteLength > MAX_BLOG_IMAGE_BYTES) {
+    return json({ error: 'Image too large. Max size is 10 MB.' }, 413);
+  }
   const ext = filename.split('.').pop() || 'png';
   const safeExt = ['png', 'jpg', 'jpeg', 'gif', 'webp'].includes(ext.toLowerCase()) ? ext : 'png';
-  const path = `${blog_id || 'drafts'}/${Date.now()}-${Math.random().toString(36).slice(2, 9)}.${safeExt}`;
-  const buf = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+  const path = `${blogId || 'drafts'}/${Date.now()}-${Math.random().toString(36).slice(2, 9)}.${safeExt}`;
+  const contentType = mimeType && mimeType.startsWith('image/') ? mimeType : `image/${safeExt}`;
   const { data: upload, error: uploadErr } = await supabase.storage
     .from(BUCKET_BLOG_IMAGES)
-    .upload(path, buf, { contentType: `image/${safeExt}`, upsert: false });
+    .upload(path, fileBytes, { contentType, upsert: false });
   if (uploadErr) return json({ error: uploadErr.message }, 400);
   const { data: urlData } = supabase.storage.from(BUCKET_BLOG_IMAGES).getPublicUrl(upload.path);
   const publicUrl = urlData.publicUrl;
-  if (blog_id) {
+  if (blogId) {
     await supabase.from('blog_images').insert({
-      blog_id,
+      blog_id: blogId,
       storage_path: upload.path,
       public_url: publicUrl,
-      alt_text: alt || null,
+      alt_text: alt,
       sort_order: 0,
     });
   }
   return json({ url: publicUrl, path: upload.path });
 }
 
-async function handleResourcePackUpload(supabase: any, body: any) {
-  const { file, filename, name, version, description, is_active, auto_deactivate_previous, group_key } = body ?? {};
-  if (!file || !filename || !name || !version) {
+async function handleResourcePackUpload(supabase: any, req: Request) {
+  const parsed = await parseUploadRequest(req);
+  const { fileBytes, filename, name, version, description, isActive, autoDeactivatePrevious, groupKey } = parsed;
+  if (!fileBytes || !filename || !name || !version) {
     return json({ error: 'file, filename, name, and version are required' }, 400);
+  }
+  if (fileBytes.byteLength > MAX_RESOURCEPACK_BYTES) {
+    return json({ error: 'Resource pack too large. Max size is 200 MB.' }, 413);
   }
   if (!filename.toLowerCase().endsWith('.zip')) {
     return json({ error: 'Only .zip files are allowed' }, 400);
   }
 
-  const base64 = typeof file === 'string' ? file.replace(/^data:.*;base64,/, '') : null;
-  if (!base64) return json({ error: 'Invalid file data' }, 400);
+  const sha1 = await sha1Hex(fileBytes);
+  const size = fileBytes.byteLength;
 
-  const buf = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
-  const sha1 = await sha1Hex(buf);
-  const size = buf.byteLength;
-
-  const safeName = slugify(String(name));
-  const safeVersion = slugify(String(version));
+  const safeName = slugify(name);
+  const safeVersion = slugify(version);
   const safeFile = filename.replace(/[^a-zA-Z0-9._-]/g, '_');
   const path = `${safeName}/${safeVersion}/${Date.now()}-${safeFile}`;
 
   const { data: upload, error: uploadErr } = await supabase.storage
     .from(BUCKET_RESOURCEPACKS)
-    .upload(path, buf, {
+    .upload(path, fileBytes, {
       contentType: 'application/zip',
       cacheControl: '31536000',
       upsert: false,
     });
   if (uploadErr) return json({ error: uploadErr.message }, 400);
 
-  if (auto_deactivate_previous && group_key && Boolean(is_active ?? true)) {
+  if (autoDeactivatePrevious && groupKey && isActive) {
     await supabase
       .from('resource_packs')
       .update({ is_active: false })
-      .eq('name', group_key)
+      .eq('name', groupKey)
       .eq('is_active', true);
   }
 
   const row = {
-    name: String(name),
+    name,
     file_name: filename,
     file_path: upload.path,
-    version: String(version),
-    description: description != null ? String(description) : null,
+    version,
+    description: description ?? null,
     sha1,
     size,
-    is_active: Boolean(is_active ?? true),
+    is_active: isActive,
   };
 
   const { data, error } = await supabase.from('resource_packs').insert(row).select('*').single();
@@ -221,6 +225,87 @@ async function handleResourcePackUpload(supabase: any, body: any) {
   }
 
   return json(data);
+}
+
+async function parseUploadRequest(req: Request) {
+  const contentType = req.headers.get('content-type') ?? '';
+  if (contentType.toLowerCase().includes('multipart/form-data')) {
+    const form = await req.formData();
+    const fileField = form.get('file');
+    if (!(fileField instanceof File)) {
+      return {
+        fileBytes: null as Uint8Array | null,
+        filename: '',
+        mimeType: '',
+        name: '',
+        version: '',
+        description: null as string | null,
+        isActive: true,
+        autoDeactivatePrevious: false,
+        groupKey: '',
+        blogId: null as string | null,
+        alt: null as string | null,
+      };
+    }
+    const buffer = new Uint8Array(await fileField.arrayBuffer());
+    return {
+      fileBytes: buffer,
+      filename: fileField.name || String(form.get('filename') ?? ''),
+      mimeType: fileField.type || '',
+      name: String(form.get('name') ?? ''),
+      version: String(form.get('version') ?? ''),
+      description: nullableText(form.get('description')),
+      isActive: parseBoolean(form.get('is_active'), true),
+      autoDeactivatePrevious: parseBoolean(form.get('auto_deactivate_previous'), false),
+      groupKey: String(form.get('group_key') ?? ''),
+      blogId: nullableText(form.get('blog_id')),
+      alt: nullableText(form.get('alt')),
+    };
+  }
+
+  // Backward-compatible fallback for older clients still sending base64 JSON.
+  const body = await req.json().catch(() => ({} as any));
+  const file = body?.file;
+  const base64 = typeof file === 'string' ? file.replace(/^data:.*;base64,/, '') : null;
+  const fileBytes = base64 ? decodeBase64(base64) : null;
+  return {
+    fileBytes,
+    filename: String(body?.filename ?? ''),
+    mimeType: '',
+    name: String(body?.name ?? ''),
+    version: String(body?.version ?? ''),
+    description: body?.description == null ? null : String(body.description),
+    isActive: Boolean(body?.is_active ?? true),
+    autoDeactivatePrevious: Boolean(body?.auto_deactivate_previous ?? false),
+    groupKey: String(body?.group_key ?? ''),
+    blogId: body?.blog_id == null ? null : String(body.blog_id),
+    alt: body?.alt == null ? null : String(body.alt),
+  };
+}
+
+function decodeBase64(value: string) {
+  const binary = atob(value);
+  const out = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    out[i] = binary.charCodeAt(i);
+  }
+  return out;
+}
+
+function parseBoolean(value: FormDataEntryValue | null, fallback: boolean) {
+  if (value == null) return fallback;
+  if (typeof value === 'string') {
+    const v = value.trim().toLowerCase();
+    if (['true', '1', 'yes', 'on'].includes(v)) return true;
+    if (['false', '0', 'no', 'off'].includes(v)) return false;
+  }
+  return fallback;
+}
+
+function nullableText(value: FormDataEntryValue | null) {
+  if (value == null) return null;
+  const text = String(value).trim();
+  return text ? text : null;
 }
 
 async function handleMutate(supabase: any, method: string, parts: string[], body: any) {

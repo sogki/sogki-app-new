@@ -1,0 +1,8 @@
+{
+  "remoteConfig": {
+    "enabled": false,
+    "url": "",
+    "timeoutMs": 2000,
+    "failOpen": true
+  }
+}

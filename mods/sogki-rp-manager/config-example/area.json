@@ -1,0 +1,44 @@
+{
+  "enabled": true,
+  "checkIntervalTicks": 20,
+  "perPlayerCooldownSeconds": 8,
+  "enterTemplate": "&bEntered {area}",
+  "leaveTemplate": "&7Left {area}",
+  "enterDisplay": {
+    "showActionBar": false,
+    "showChat": true,
+    "showTitle": true,
+    "titleFadeInTicks": 5,
+    "titleStayTicks": 40,
+    "titleFadeOutTicks": 10
+  },
+  "leaveDisplay": {
+    "showActionBar": true,
+    "showChat": false,
+    "showTitle": false,
+    "titleFadeInTicks": 5,
+    "titleStayTicks": 30,
+    "titleFadeOutTicks": 10
+  },
+  "townDisplay": {
+    "showActionBar": false,
+    "showChat": true,
+    "showTitle": true,
+    "titleFadeInTicks": 5,
+    "titleStayTicks": 50,
+    "titleFadeOutTicks": 10
+  },
+  "towns": [
+    {
+      "id": "spawn",
+      "name": "Cobbletown Spawn",
+      "dimension": "minecraft:overworld",
+      "minX": -128,
+      "minY": -64,
+      "minZ": -128,
+      "maxX": 128,
+      "maxY": 320,
+      "maxZ": 128
+    }
+  ]
+}

@@ -1,0 +1,51 @@
+{
+  "enabled": true,
+  "graceDays": 1,
+  "autoNotifyOnJoin": true,
+  "rewards": [
+    {
+      "day": 1,
+      "itemId": "minecraft:experience_bottle",
+      "count": 8,
+      "label": "EXP Bottles",
+      "items": [
+        {
+          "itemId": "minecraft:experience_bottle",
+          "count": 8,
+          "label": "EXP Bottles"
+        }
+      ]
+    },
+    {
+      "day": 2,
+      "itemId": "cobblemon:exp_candy_s",
+      "count": 2,
+      "label": "EXP Candy S",
+      "items": [
+        {
+          "itemId": "cobblemon:exp_candy_s",
+          "count": 2,
+          "label": "EXP Candy S"
+        }
+      ]
+    },
+    {
+      "day": 3,
+      "itemId": "cobblemon:evolution_stone_fire",
+      "count": 1,
+      "label": "Fire Stone",
+      "items": [
+        {
+          "itemId": "cobblemon:evolution_stone_fire",
+          "count": 1,
+          "label": "Fire Stone"
+        },
+        {
+          "itemId": "cobblemon:exp_candy_s",
+          "count": 2,
+          "label": "Bonus EXP Candy S"
+        }
+      ]
+    }
+  ]
+}

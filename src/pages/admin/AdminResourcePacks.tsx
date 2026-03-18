@@ -18,6 +18,8 @@ type ResourcePack = {
   is_active: boolean;
 };
 
+const MAX_RESOURCEPACK_UPLOAD_BYTES = 200 * 1024 * 1024; // 200 MB
+
 export default function AdminResourcePacks() {
   const [packs, setPacks] = useState<ResourcePack[]>([]);
   const [loading, setLoading] = useState(true);
@@ -64,6 +66,10 @@ export default function AdminResourcePacks() {
     }
     if (!file.name.toLowerCase().endsWith('.zip')) {
       alert('Only .zip files are allowed.');
+      return;
+    }
+    if (file.size > MAX_RESOURCEPACK_UPLOAD_BYTES) {
+      alert('Resource pack is too large. Max size is 200 MB.');
       return;
     }
 

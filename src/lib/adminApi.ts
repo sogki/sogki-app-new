@@ -108,18 +108,23 @@ export const adminApi = {
     adminApi.post('site_content', { key, value, ...meta }),
 
   uploadBlogImage: async (file: File, blogId?: string, alt?: string): Promise<string> => {
-    const reader = new FileReader();
-    const base64 = await new Promise<string>((resolve, reject) => {
-      reader.onload = () => resolve((reader.result as string) ?? '');
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
+    const token = getAdminToken();
+    if (!token) throw new Error('Not authenticated');
+    const form = new FormData();
+    form.append('file', file, file.name);
+    form.append('filename', file.name);
+    if (blogId) form.append('blog_id', blogId);
+    if (alt) form.append('alt', alt);
+
+    const res = await fetch(`${FUNCTIONS_URL}/admin-api/blogs/upload`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: form,
     });
-    const data = await adminApi.post('blogs/upload', {
-      file: base64,
-      filename: file.name,
-      blog_id: blogId || null,
-      alt: alt || null,
-    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(resolveApiError(data, res.status));
+    }
     return (data as { url: string }).url;
   },
 
@@ -137,16 +142,28 @@ export const adminApi = {
       group_key?: string;
     }
   ) => {
-    const reader = new FileReader();
-    const base64 = await new Promise<string>((resolve, reject) => {
-      reader.onload = () => resolve((reader.result as string) ?? '');
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
+    const token = getAdminToken();
+    if (!token) throw new Error('Not authenticated');
+
+    const form = new FormData();
+    form.append('file', file, file.name);
+    form.append('filename', file.name);
+    form.append('name', data.name);
+    form.append('version', data.version);
+    form.append('is_active', String(Boolean(data.is_active)));
+    form.append('auto_deactivate_previous', String(Boolean(data.auto_deactivate_previous)));
+    if (data.group_key) form.append('group_key', data.group_key);
+    if (data.description) form.append('description', data.description);
+
+    const res = await fetch(`${FUNCTIONS_URL}/admin-api/resourcepacks/upload`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: form,
     });
-    return adminApi.post('resourcepacks/upload', {
-      file: base64,
-      filename: file.name,
-      ...data,
-    });
+    const payload = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(resolveApiError(payload, res.status));
+    }
+    return payload;
   },
 };

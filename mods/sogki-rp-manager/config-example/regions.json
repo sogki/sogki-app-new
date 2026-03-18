@@ -1,0 +1,26 @@
+{
+  "enabled": true,
+  "protectVillagersFromMobs": true,
+  "villagersIgnoreZombieFear": true,
+  "list": [
+    {
+      "id": "spawn-protect",
+      "displayName": "Cobbletown Spawn",
+      "dimension": "minecraft:overworld",
+      "useRadius": true,
+      "centerX": 0,
+      "centerZ": 0,
+      "radius": 80,
+      "minX": -64,
+      "minY": -64,
+      "minZ": -64,
+      "maxX": 64,
+      "maxY": 320,
+      "maxZ": 64,
+      "denyBlockBreak": true,
+      "denyBlockPlace": true,
+      "denyMobSpawn": true,
+      "isTown": true
+    }
+  ]
+}

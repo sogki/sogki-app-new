@@ -1,0 +1,12 @@
+sidebar:
+  realtimeCoordinates: true
+  title: "&bCobblepals"
+  lines:
+    - "&7Online: &f{online}"
+    - ""
+    - "&7Owned (Party+PC): &f{pokemonCount}"
+    - "&7Party: &f{partyCount} &8| &7PC: &f{pcCount}"
+    - "&7Dex Caught: &f{pokedexCaught} &8| &7Seen: &f{pokedexSeen}"
+    - "&7XYZ: &f{x}, {y}, {z}"
+    - ""
+    - "&b/claim &7for rewards"

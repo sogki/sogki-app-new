@@ -2,13 +2,16 @@
   "schemaVersion": 1,
   "id": "sogkirpmanager",
   "version": "${version}",
-  "name": "Sogki Resource Pack Manager",
-  "description": "Prompts players to download multiple server resource packs with one click.",
+  "name": "Sogki's Cobblemon",
+  "description": "Resource pack manager plus configurable server-side Cobblemon utilities.",
   "authors": [
     "Sogki"
   ],
-  "environment": "client",
+  "environment": "*",
   "entrypoints": {
+    "main": [
+      "dev.sogki.rpmanager.server.SogkiCobblemonServerMod"
+    ],
     "client": [
       "dev.sogki.rpmanager.SogkiRpManagerClient"
     ]

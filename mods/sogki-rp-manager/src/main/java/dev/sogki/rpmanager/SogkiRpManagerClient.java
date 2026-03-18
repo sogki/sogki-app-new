@@ -16,7 +16,11 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.command.CommandRegistryAccess;
+import net.minecraft.registry.Registries;
+import net.minecraft.sound.SoundEvent;
+import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.Text;
+import net.minecraft.util.Identifier;
 import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,28 +53,37 @@ public final class SogkiRpManagerClient implements ClientModInitializer {
     registerClientCommands();
 
     ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
-      if (!config.promptOnJoin || promptShownForConnection) return;
+      if (promptShownForConnection) return;
       String serverKey = resolveServerKey(client, handler);
       String playerKey = resolvePlayerKey(client);
+      boolean seenBefore = false;
       if (config.hasLegacySeenServer(serverKey)) {
+        seenBefore = true;
         if (promptPlayerDataStore != null) {
           promptPlayerDataStore.markSeen(serverKey, playerKey);
           promptPlayerDataStore.save();
         }
-        promptShownForConnection = true;
-        logUiEvent("Join prompt skipped by legacy seen-server match: " + serverKey);
-        return;
+        logUiEvent("Legacy seen-server match migrated: " + serverKey);
       }
-      if (promptPlayerDataStore != null && promptPlayerDataStore.hasSeen(serverKey, playerKey)) {
-        promptShownForConnection = true;
-        logUiEvent("Join prompt already shown before for player/server: " + playerKey + " @ " + serverKey);
-        return;
+      if (!seenBefore && promptPlayerDataStore != null && promptPlayerDataStore.hasSeen(serverKey, playerKey)) {
+        seenBefore = true;
       }
-      if (promptPlayerDataStore != null) {
+      if (!seenBefore && promptPlayerDataStore != null) {
         promptPlayerDataStore.markSeen(serverKey, playerKey);
         promptPlayerDataStore.save();
       }
+
+      showJoinWelcome(client, seenBefore, serverKey, playerKey);
+
       promptShownForConnection = true;
+      if (!config.promptOnJoin) {
+        logUiEvent("Join prompt disabled in config.");
+        return;
+      }
+      if (seenBefore) {
+        logUiEvent("Join prompt already shown before for player/server: " + playerKey + " @ " + serverKey);
+        return;
+      }
       logUiEvent("Opening RP manager on first join for player/server: " + playerKey + " @ " + serverKey);
       client.execute(() -> client.setScreen(new JoinPromptScreen(client.currentScreen, config)));
       fetchAndLogPacks("JOIN");
@@ -238,8 +251,48 @@ public final class SogkiRpManagerClient implements ClientModInitializer {
       "INITIALIZING SOGKI RESOURCE PACK MANAGER",
       "Active endpoint: " + config.activeEndpoint,
       "Prompt on join: " + config.promptOnJoin,
+      "Welcome on join: " + config.welcomeMessageOnJoin,
       "Keybind: " + openKeyLabel()
     );
+  }
+
+  private static void showJoinWelcome(
+    net.minecraft.client.MinecraftClient client,
+    boolean seenBefore,
+    String serverKey,
+    String playerKey
+  ) {
+    if (!config.welcomeMessageOnJoin) return;
+    client.execute(() -> {
+      if (client.player == null) return;
+      String message = seenBefore ? config.returningJoinMessage : config.firstJoinMessage;
+      if (message == null || message.isBlank()) {
+        message = seenBefore ? RpManagerConfig.DEFAULT_RETURNING_JOIN_MESSAGE : RpManagerConfig.DEFAULT_FIRST_JOIN_MESSAGE;
+      }
+      boolean actionBar = config.welcomeUseActionBar;
+      client.player.sendMessage(Text.literal(message), actionBar);
+
+      SoundEvent fallback;
+      if (seenBefore) {
+        fallback = SoundEvents.BLOCK_NOTE_BLOCK_PLING.value();
+      } else {
+        fallback = SoundEvents.ENTITY_PLAYER_LEVELUP;
+      }
+      String configuredId = seenBefore ? config.returningJoinSound : config.firstJoinSound;
+      SoundEvent chosen = resolveSoundEvent(configuredId, fallback);
+      client.player.playSound(chosen, config.welcomeSoundVolume, config.welcomeSoundPitch);
+
+      String soundId = Registries.SOUND_EVENT.getId(chosen).toString();
+      String type = seenBefore ? "returning" : "first-join";
+      logUiEvent("Played " + type + " welcome (" + playerKey + " @ " + serverKey + "), sound=" + soundId);
+    });
+  }
+
+  private static SoundEvent resolveSoundEvent(String configuredId, SoundEvent fallback) {
+    if (configuredId == null || configuredId.isBlank()) return fallback;
+    Identifier id = Identifier.tryParse(configuredId.trim());
+    if (id == null || !Registries.SOUND_EVENT.containsId(id)) return fallback;
+    return Registries.SOUND_EVENT.get(id);
   }
 
   private static void logLine(String message) {

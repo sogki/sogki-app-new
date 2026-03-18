@@ -18,13 +18,15 @@ Deno.serve(async (req) => {
   const state = url.searchParams.get('state'); // optional: redirect path
   const error = url.searchParams.get('error');
 
+  const siteUrl = getSiteUrl();
+
   if (error) {
-    const redirectUrl = `${getSiteUrl()}/admin?error=${encodeURIComponent(error)}`;
+    const redirectUrl = `${siteUrl}/admin?error=${encodeURIComponent(error)}`;
     return Response.redirect(redirectUrl, 302);
   }
 
   if (!code) {
-    return Response.redirect(`${getSiteUrl()}/admin?error=no_code`, 302);
+    return Response.redirect(`${siteUrl}/admin?error=no_code`, 302);
   }
 
   const supabase = createClient(
@@ -50,7 +52,7 @@ Deno.serve(async (req) => {
   const jwtSecret = keyMap['ADMIN_JWT_SECRET'];
 
   if (!allowedUserId || !clientId || !clientSecret || !jwtSecret) {
-    return Response.redirect(`${getSiteUrl()}/admin?error=config`, 302);
+    return Response.redirect(`${siteUrl}/admin?error=config`, 302);
   }
 
   const redirectUri = `${Deno.env.get('SUPABASE_URL')}/functions/v1/auth-discord-callback`;
@@ -69,7 +71,7 @@ Deno.serve(async (req) => {
 
   if (!tokenRes.ok) {
     const err = await tokenRes.text();
-    return Response.redirect(`${getSiteUrl()}/admin?error=token&msg=${encodeURIComponent(err.slice(0, 50))}`, 302);
+    return Response.redirect(`${siteUrl}/admin?error=token&msg=${encodeURIComponent(err.slice(0, 50))}`, 302);
   }
 
   const tokenData = await tokenRes.json();
@@ -80,14 +82,14 @@ Deno.serve(async (req) => {
   });
 
   if (!userRes.ok) {
-    return Response.redirect(`${getSiteUrl()}/admin?error=user`, 302);
+    return Response.redirect(`${siteUrl}/admin?error=user`, 302);
   }
 
   const user = await userRes.json();
   const discordUserId = user.id;
 
   if (discordUserId !== allowedUserId) {
-    return Response.redirect(`${getSiteUrl()}/admin?error=unauthorized`, 302);
+    return Response.redirect(`${siteUrl}/admin?error=unauthorized`, 302);
   }
 
   const secret = new TextEncoder().encode(jwtSecret);
@@ -96,11 +98,60 @@ Deno.serve(async (req) => {
     .setExpirationTime('7d')
     .sign(secret);
 
-  const adminPath = state ? `/admin${state}` : '/admin';
-  const redirectUrl = `${getSiteUrl()}${adminPath}?token=${jwt}`;
+  const adminPath = normalizeAdminPath(state);
+  const redirectUrl = `${siteUrl}${adminPath}?token=${jwt}`;
   return Response.redirect(redirectUrl, 302);
 
   function getSiteUrl() {
-    return (keyMap['ADMIN_SITE_URL'] || 'http://localhost:5173').replace(/\/$/, '');
+    const configured = normalizeAbsoluteUrl(keyMap['ADMIN_SITE_URL']);
+    if (configured) return configured;
+
+    // Fallback to request-origin in production so we never hard-redirect to localhost.
+    const originHeader = req.headers.get('origin');
+    const forwardedProto = req.headers.get('x-forwarded-proto');
+    const forwardedHost = req.headers.get('x-forwarded-host');
+    const host = req.headers.get('host');
+
+    const candidates = [
+      normalizeAbsoluteUrl(originHeader),
+      normalizeFromHost(forwardedHost, forwardedProto),
+      normalizeFromHost(host, forwardedProto),
+      normalizeFromHost(url.host, url.protocol.replace(':', '')),
+    ];
+    for (const candidate of candidates) {
+      if (candidate) return candidate;
+    }
+
+    return 'http://localhost:5173';
+  }
+
+  function normalizeAbsoluteUrl(raw: string | null | undefined): string | null {
+    if (!raw) return null;
+    const trimmed = raw.trim().replace(/\/$/, '');
+    if (!trimmed) return null;
+    try {
+      const parsed = new URL(trimmed);
+      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return null;
+      return `${parsed.protocol}//${parsed.host}`;
+    } catch {
+      return null;
+    }
+  }
+
+  function normalizeFromHost(hostValue: string | null, protoValue: string | null): string | null {
+    if (!hostValue) return null;
+    const hostClean = hostValue.trim();
+    if (!hostClean) return null;
+    const proto = (protoValue || '').toLowerCase() === 'http' ? 'http' : 'https';
+    return normalizeAbsoluteUrl(`${proto}://${hostClean}`);
+  }
+
+  function normalizeAdminPath(rawState: string | null): string {
+    if (!rawState || !rawState.trim()) return '/admin';
+    let statePath = rawState.trim();
+    if (statePath.startsWith('http://') || statePath.startsWith('https://')) return '/admin';
+    if (!statePath.startsWith('/')) statePath = `/${statePath}`;
+    if (!statePath.startsWith('/admin')) statePath = `/admin${statePath}`;
+    return statePath;
   }
 });
