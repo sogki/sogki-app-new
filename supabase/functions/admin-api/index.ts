@@ -1,15 +1,19 @@
 // Supabase Edge Function: Admin API
 // Verifies admin JWT, uses service role for all DB operations
-// Handles: graphics, blogs, projects, social, footer
+// Handles: graphics, blogs, projects, social, footer, resource packs
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import * as jose from 'https://deno.land/x/jose@v5.2.0/index.ts';
+import { createHash } from 'node:crypto';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
 };
+
+const BUCKET_BLOG_IMAGES = 'blog-images';
+const BUCKET_RESOURCEPACKS = 'resourcepacks';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
@@ -74,6 +78,10 @@ Deno.serve(async (req) => {
       if (parts[0] === 'blogs' && parts[1] === 'upload' && req.method === 'POST') {
         return await handleBlogImageUpload(supabase, body);
       }
+      // Resource pack upload: POST resourcepacks/upload
+      if (parts[0] === 'resourcepacks' && parts[1] === 'upload' && req.method === 'POST') {
+        return await handleResourcePackUpload(supabase, body);
+      }
       return await handleMutate(supabase, req.method, parts, body);
     }
   } catch (err) {
@@ -119,12 +127,16 @@ async function handleGet(supabase: any, parts: string[], url: URL) {
       if (section) scQ = scQ.eq('section', section);
       const { data: siteContent } = await scQ;
       return json(siteContent ?? []);
+    case 'resourcepacks':
+      const { data: packs } = await supabase
+        .from('resource_packs')
+        .select('*')
+        .order('created_at', { ascending: false });
+      return json(packs ?? []);
     default:
       return json({ error: 'Unknown resource' }, 404);
   }
 }
-
-const BUCKET_BLOG_IMAGES = 'blog-images';
 
 async function handleBlogImageUpload(supabase: any, body: any) {
   const { file, filename, blog_id, alt } = body;
@@ -153,8 +165,102 @@ async function handleBlogImageUpload(supabase: any, body: any) {
   return json({ url: publicUrl, path: upload.path });
 }
 
+async function handleResourcePackUpload(supabase: any, body: any) {
+  const { file, filename, name, version, is_active, auto_deactivate_previous, group_key } = body ?? {};
+  if (!file || !filename || !name || !version) {
+    return json({ error: 'file, filename, name, and version are required' }, 400);
+  }
+  if (!filename.toLowerCase().endsWith('.zip')) {
+    return json({ error: 'Only .zip files are allowed' }, 400);
+  }
+
+  const base64 = typeof file === 'string' ? file.replace(/^data:.*;base64,/, '') : null;
+  if (!base64) return json({ error: 'Invalid file data' }, 400);
+
+  const buf = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+  const sha1 = await sha1Hex(buf);
+  const size = buf.byteLength;
+
+  const safeName = slugify(String(name));
+  const safeVersion = slugify(String(version));
+  const safeFile = filename.replace(/[^a-zA-Z0-9._-]/g, '_');
+  const path = `${safeName}/${safeVersion}/${Date.now()}-${safeFile}`;
+
+  const { data: upload, error: uploadErr } = await supabase.storage
+    .from(BUCKET_RESOURCEPACKS)
+    .upload(path, buf, {
+      contentType: 'application/zip',
+      cacheControl: '31536000',
+      upsert: false,
+    });
+  if (uploadErr) return json({ error: uploadErr.message }, 400);
+
+  if (auto_deactivate_previous && group_key && Boolean(is_active ?? true)) {
+    await supabase
+      .from('resource_packs')
+      .update({ is_active: false })
+      .eq('name', group_key)
+      .eq('is_active', true);
+  }
+
+  const row = {
+    name: String(name),
+    file_name: filename,
+    file_path: upload.path,
+    version: String(version),
+    sha1,
+    size,
+    is_active: Boolean(is_active ?? true),
+  };
+
+  const { data, error } = await supabase.from('resource_packs').insert(row).select('*').single();
+  if (error) {
+    await supabase.storage.from(BUCKET_RESOURCEPACKS).remove([upload.path]);
+    return json({ error: error.message }, 400);
+  }
+
+  return json(data);
+}
+
 async function handleMutate(supabase: any, method: string, parts: string[], body: any) {
   const [resource, id] = parts;
+
+  if (resource === 'resourcepacks') {
+    if (method === 'PATCH' || method === 'PUT') {
+      if (!id) return json({ error: 'ID required' }, 400);
+      const payload: Record<string, unknown> = {};
+      if (body.name != null) payload.name = body.name;
+      if (body.version != null) payload.version = body.version;
+      if (body.is_active != null) payload.is_active = Boolean(body.is_active);
+      const { data, error } = await supabase
+        .from('resource_packs')
+        .update(payload)
+        .eq('id', id)
+        .select('*')
+        .single();
+      if (error) throw error;
+      return json(data);
+    }
+
+    if (method === 'DELETE') {
+      if (!id) return json({ error: 'ID required' }, 400);
+      const { data: existing, error: fetchErr } = await supabase
+        .from('resource_packs')
+        .select('id, file_path')
+        .eq('id', id)
+        .single();
+      if (fetchErr) throw fetchErr;
+
+      const { error: storageErr } = await supabase.storage.from(BUCKET_RESOURCEPACKS).remove([existing.file_path]);
+      if (storageErr) throw storageErr;
+
+      const { error } = await supabase.from('resource_packs').delete().eq('id', id);
+      if (error) throw error;
+      return json({ ok: true });
+    }
+
+    return json({ error: 'Method not allowed' }, 405);
+  }
 
   const tableMap: Record<string, string> = {
     collections: 'graphics_design_collections',
@@ -219,4 +325,17 @@ function json(data: unknown, status = 200) {
     status,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
+}
+
+function slugify(value: string) {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 80) || 'pack';
+}
+
+async function sha1Hex(buf: Uint8Array) {
+  return createHash('sha1').update(buf).digest('hex');
 }

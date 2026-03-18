@@ -104,4 +104,30 @@ export const adminApi = {
     });
     return (data as { url: string }).url;
   },
+
+  resourcePacks: () => adminApi.get('resourcepacks'),
+  updateResourcePack: (id: string, data: unknown) => adminApi.patch(`resourcepacks/${id}`, data),
+  deleteResourcePack: (id: string) => adminApi.delete(`resourcepacks/${id}`),
+  uploadResourcePack: async (
+    file: File,
+    data: {
+      name: string;
+      version: string;
+      is_active: boolean;
+      auto_deactivate_previous?: boolean;
+      group_key?: string;
+    }
+  ) => {
+    const reader = new FileReader();
+    const base64 = await new Promise<string>((resolve, reject) => {
+      reader.onload = () => resolve((reader.result as string) ?? '');
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+    return adminApi.post('resourcepacks/upload', {
+      file: base64,
+      filename: file.name,
+      ...data,
+    });
+  },
 };

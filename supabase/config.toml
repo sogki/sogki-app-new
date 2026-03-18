@@ -8,3 +8,7 @@ verify_jwt = false
 # Admin API - uses custom JWT (we verify in code), not Supabase JWT
 [functions.admin-api]
 verify_jwt = false
+
+# Public resource pack endpoints (Minecraft/server consumers)
+[functions.resourcepacks-api]
+verify_jwt = false

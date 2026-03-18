@@ -1,1 +1,3 @@
+/api/resourcepacks/active   https://vwdrdqkzjkfdmycomfvf.supabase.co/functions/v1/resourcepacks-api/active   200
+/api/resourcepacks/*        https://vwdrdqkzjkfdmycomfvf.supabase.co/functions/v1/resourcepacks-api/:splat   200
 /*    /index.html   200

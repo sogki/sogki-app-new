@@ -15,6 +15,7 @@ import {
   Home,
   MessageCircle,
   Settings,
+  Package,
 } from 'lucide-react';
 import AdminLogin from './AdminLogin';
 import AdminDashboard from './AdminDashboard';
@@ -26,6 +27,7 @@ import AdminFooter from './AdminFooter';
 import AdminHome from './AdminHome';
 import AdminContact from './AdminContact';
 import AdminSettings from './AdminSettings';
+import AdminResourcePacks from './AdminResourcePacks';
 
 function AdminRoutes() {
   const { isAuthenticated, isLoading, handleCallback, logout, login } = useAdminAuth();
@@ -101,6 +103,9 @@ function AdminRoutes() {
           <AdminNavLink to="/admin/blogs" icon={FileText}>
             Blogs
           </AdminNavLink>
+          <AdminNavLink to="/admin/resourcepacks" icon={Package}>
+            Resource Packs
+          </AdminNavLink>
           <AdminNavLink to="/admin/social" icon={Share2}>
             Social Links
           </AdminNavLink>
@@ -147,6 +152,7 @@ function AdminRoutes() {
               <Route path="contact" element={<AdminContact />} />
               <Route path="graphics" element={<AdminGraphics />} />
               <Route path="blogs" element={<AdminBlogs />} />
+              <Route path="resourcepacks" element={<AdminResourcePacks />} />
               <Route path="social" element={<AdminSocial />} />
               <Route path="footer" element={<AdminFooter />} />
               <Route path="settings" element={<AdminSettings />} />
