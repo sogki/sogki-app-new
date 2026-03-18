@@ -21,6 +21,11 @@ import java.util.regex.Pattern;
 
 public final class PackDiscoveryService {
   private static final String DIRECT_SUPABASE_ACTIVE = "https://vwdrdqkzjkfdmycomfvf.supabase.co/functions/v1/resourcepacks-api/active";
+  private static final String DIRECT_SUPABASE_REST_ACTIVE =
+    "https://vwdrdqkzjkfdmycomfvf.supabase.co/rest/v1/resource_packs?select=id,name,version,description,size,file_name,sha1&is_active=eq.true&order=created_at.desc";
+  private static final String SUPABASE_ANON_KEY =
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3ZHJkcWt6amtmZG15Y29tZnZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwNTAwOTIsImV4cCI6MjA4ODYyNjA5Mn0.Gm3Jg2i6oGdVSBODFrlZ2LXnZ9lvXBdsZfF6kyUxdUo";
+  private static final String PUBLIC_DOWNLOAD_BASE = "https://sogki.dev/api/resourcepacks/";
   private static final Pattern FILENAME_DISPOSITION = Pattern.compile("filename=\"?([^\";]+)\"?");
 
   private PackDiscoveryService() {
@@ -39,9 +44,12 @@ public final class PackDiscoveryService {
       body = requestText(DIRECT_SUPABASE_ACTIVE);
     }
     JsonElement root = JsonParser.parseString(body);
-    if (!root.isJsonArray()) return List.of();
+    if (!root.isJsonArray()) return resolveFromRestApi();
 
     JsonArray arr = root.getAsJsonArray();
+    if (isLegacyMinimalPayload(arr)) {
+      return resolveFromRestApi();
+    }
     List<PackEntry> packs = new ArrayList<>();
     for (JsonElement element : arr) {
       if (!element.isJsonObject()) continue;
@@ -79,10 +87,62 @@ public final class PackDiscoveryService {
     return packs;
   }
 
+  private static boolean isLegacyMinimalPayload(JsonArray arr) {
+    if (arr.isEmpty()) return false;
+    JsonElement first = arr.get(0);
+    if (!first.isJsonObject()) return false;
+    JsonObject obj = first.getAsJsonObject();
+    return obj.has("url")
+      && obj.has("sha1")
+      && !obj.has("name")
+      && !obj.has("version")
+      && !obj.has("description")
+      && !obj.has("size")
+      && !obj.has("file_name");
+  }
+
+  private static List<PackEntry> resolveFromRestApi() throws IOException {
+    String body = requestText(DIRECT_SUPABASE_REST_ACTIVE, true);
+    JsonElement root = JsonParser.parseString(body);
+    if (!root.isJsonArray()) return List.of();
+    JsonArray arr = root.getAsJsonArray();
+    List<PackEntry> packs = new ArrayList<>();
+    for (JsonElement element : arr) {
+      if (!element.isJsonObject()) continue;
+      JsonObject obj = element.getAsJsonObject();
+      String id = getAsString(obj, "id");
+      if (id == null || id.isBlank()) continue;
+      String fileName = defaultValue(getAsString(obj, "file_name"), "resource-pack.zip");
+      int size = Math.max(0, getAsInt(obj, "size"));
+      String version = defaultValue(emptyToNull(getAsString(obj, "version")), "");
+      String description = defaultValue(getAsString(obj, "description"), "");
+      String name = defaultValue(getAsString(obj, "name"), inferName(fileName, version));
+      String url = PUBLIC_DOWNLOAD_BASE + id;
+      packs.add(new PackEntry(
+        url,
+        emptyToNull(getAsString(obj, "sha1")),
+        name,
+        version,
+        description,
+        size,
+        fileName
+      ));
+    }
+    return packs;
+  }
+
   private static String requestText(String url) throws IOException {
+    return requestText(url, false);
+  }
+
+  private static String requestText(String url, boolean withSupabaseRestAuth) throws IOException {
     HttpURLConnection conn = open(url);
     conn.setRequestMethod("GET");
     conn.setRequestProperty("Accept", "application/json");
+    if (withSupabaseRestAuth) {
+      conn.setRequestProperty("apikey", SUPABASE_ANON_KEY);
+      conn.setRequestProperty("Authorization", "Bearer " + SUPABASE_ANON_KEY);
+    }
     conn.setConnectTimeout(8000);
     conn.setReadTimeout(12000);
     int code = conn.getResponseCode();

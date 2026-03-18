@@ -46,6 +46,9 @@ public final class JoinPromptScreen extends Screen {
   private int listLeft;
   private int listWidth;
   private int listTop;
+  private int listBottom;
+  private int visibleRows = ROWS_PER_PAGE;
+  private int footerTextY;
 
   public JoinPromptScreen(Screen parent, RpManagerConfig config) {
     super(Text.literal("Server Resource Packs"));
@@ -59,15 +62,21 @@ public final class JoinPromptScreen extends Screen {
     rowButtons.clear();
 
     int centerX = width / 2;
-    panelWidth = Math.min(460, width - 40);
-    panelHeight = Math.min(340, height - 30);
+    panelWidth = Math.min(560, Math.max(320, width - 24));
+    panelWidth = Math.min(panelWidth, width - 8);
+    panelHeight = Math.min(360, Math.max(250, height - 20));
+    panelHeight = Math.min(panelHeight, height - 8);
     panelLeft = centerX - panelWidth / 2;
     panelTop = (height - panelHeight) / 2;
     int listActionsY = panelTop + 88;
     listTop = panelTop + 116;
     listLeft = panelLeft + 12;
     listWidth = panelWidth - 24;
-    int bottomButtonsY = panelTop + panelHeight - 28;
+    int bottomButtonsY = panelTop + panelHeight - 26;
+    int availableRowsHeight = Math.max(ROW_HEIGHT, (bottomButtonsY - 18) - listTop);
+    visibleRows = Math.max(1, Math.min(ROWS_PER_PAGE, availableRowsHeight / ROW_HEIGHT));
+    listBottom = listTop + visibleRows * ROW_HEIGHT;
+    footerTextY = Math.min(bottomButtonsY - 12, listBottom + 6);
 
     // Panel background and rows as a drawable in the same screen render pipeline.
     addDrawable((context, mouseX, mouseY, delta) -> drawPanelAndRows(context));
@@ -196,7 +205,7 @@ public final class JoinPromptScreen extends Screen {
     rowButtons.clear();
 
     int startY = listTop;
-    int shown = Math.min(ROWS_PER_PAGE, Math.max(0, packs.size() - listOffset));
+    int shown = Math.min(visibleRows, Math.max(0, packs.size() - listOffset));
     for (int i = 0; i < shown; i++) {
       int index = listOffset + i;
       PackEntry pack = packs.get(index);
@@ -247,7 +256,7 @@ public final class JoinPromptScreen extends Screen {
     context.fill(panelLeft, panelTop, panelLeft + 1, panelTop + panelHeight, COLOR_PANEL_BORDER);
     context.fill(panelLeft + panelWidth - 1, panelTop, panelLeft + panelWidth, panelTop + panelHeight, COLOR_PANEL_BORDER);
 
-    int shown = Math.min(ROWS_PER_PAGE, Math.max(0, packs.size() - listOffset));
+    int shown = Math.min(visibleRows, Math.max(0, packs.size() - listOffset));
     for (int i = 0; i < shown; i++) {
       int rowY = listTop + i * ROW_HEIGHT;
       int rowLeft = listLeft;
@@ -259,7 +268,7 @@ public final class JoinPromptScreen extends Screen {
       context.fill(rowRight - 1, rowY, rowRight, rowY + 42, COLOR_ROW_BORDER);
     }
 
-    if (packs.size() > ROWS_PER_PAGE) {
+    if (packs.size() > visibleRows) {
       drawScrollbar(context);
     }
   }
@@ -273,7 +282,7 @@ public final class JoinPromptScreen extends Screen {
     context.drawTextWithShadow(textRenderer, "Open again anytime with keybind: " + SogkiRpManagerClient.openKeyLabel(), listLeft + 150, panelTop + 72, COLOR_SOFT);
 
     int textY = listTop;
-    int shown = Math.min(ROWS_PER_PAGE, Math.max(0, packs.size() - listOffset));
+    int shown = Math.min(visibleRows, Math.max(0, packs.size() - listOffset));
     for (int i = 0; i < shown; i++) {
       int index = listOffset + i;
       PackEntry pack = packs.get(index);
@@ -298,10 +307,10 @@ public final class JoinPromptScreen extends Screen {
       }
     }
 
-    if (packs.size() > ROWS_PER_PAGE) {
+    if (packs.size() > visibleRows) {
       int currentStart = listOffset + 1;
-      int currentEnd = Math.min(listOffset + ROWS_PER_PAGE, packs.size());
-      context.drawTextWithShadow(textRenderer, "Showing " + currentStart + "-" + currentEnd + " of " + packs.size() + " (use mouse wheel to scroll)", listLeft, panelTop + panelHeight - 16, COLOR_SOFT);
+      int currentEnd = Math.min(listOffset + visibleRows, packs.size());
+      context.drawTextWithShadow(textRenderer, "Showing " + currentStart + "-" + currentEnd + " of " + packs.size() + " (use mouse wheel to scroll)", listLeft, footerTextY, COLOR_SOFT);
     }
   }
 
@@ -310,7 +319,7 @@ public final class JoinPromptScreen extends Screen {
     if (!isWithinListContainer(mouseX, mouseY)) {
       return super.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);
     }
-    int maxOffset = Math.max(0, packs.size() - ROWS_PER_PAGE);
+    int maxOffset = Math.max(0, packs.size() - visibleRows);
     if (verticalAmount < 0 && listOffset < maxOffset) {
       listOffset++;
       refreshRowButtons();
@@ -325,7 +334,6 @@ public final class JoinPromptScreen extends Screen {
   }
 
   private boolean isWithinListContainer(double mouseX, double mouseY) {
-    int listBottom = listTop + ROWS_PER_PAGE * ROW_HEIGHT;
     return mouseX >= listLeft && mouseX <= listLeft + listWidth && mouseY >= listTop && mouseY <= listBottom;
   }
 
@@ -333,14 +341,14 @@ public final class JoinPromptScreen extends Screen {
     int trackLeft = listLeft + listWidth - 1;
     int trackRight = trackLeft + 1;
     int trackTop = listTop + 2;
-    int trackBottom = listTop + ROWS_PER_PAGE * ROW_HEIGHT - 2;
+    int trackBottom = listBottom - 2;
     int trackHeight = Math.max(8, trackBottom - trackTop);
     context.fill(trackLeft, trackTop, trackRight, trackBottom, COLOR_SCROLL_TRACK);
 
     int totalRows = Math.max(1, packs.size());
-    int visibleRows = Math.min(ROWS_PER_PAGE, totalRows);
-    int thumbHeight = Math.max(16, (int) Math.round((visibleRows / (double) totalRows) * trackHeight));
-    int maxOffset = Math.max(1, packs.size() - ROWS_PER_PAGE);
+    int onScreenRows = Math.min(visibleRows, totalRows);
+    int thumbHeight = Math.max(16, (int) Math.round((onScreenRows / (double) totalRows) * trackHeight));
+    int maxOffset = Math.max(1, packs.size() - visibleRows);
     int travel = Math.max(0, trackHeight - thumbHeight);
     int thumbTop = trackTop + (int) Math.round((listOffset / (double) maxOffset) * travel);
     int thumbBottom = Math.min(trackBottom, thumbTop + thumbHeight);

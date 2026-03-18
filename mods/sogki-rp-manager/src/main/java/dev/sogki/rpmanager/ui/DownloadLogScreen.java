@@ -35,21 +35,29 @@ public final class DownloadLogScreen extends Screen {
   @Override
   protected void init() {
     int centerX = this.width / 2;
-    panelWidth = Math.min(460, width - 40);
-    panelHeight = Math.min(330, height - 30);
+    panelWidth = Math.min(560, Math.max(320, width - 24));
+    panelWidth = Math.min(panelWidth, width - 8);
+    panelHeight = Math.min(360, Math.max(230, height - 20));
+    panelHeight = Math.min(panelHeight, height - 8);
     panelLeft = centerX - panelWidth / 2;
     panelTop = (height - panelHeight) / 2;
+    int buttonY = panelTop + panelHeight - 26;
+    int buttonGap = 8;
+    int optionsWidth = Math.min(132, Math.max(100, panelWidth / 4));
+    int smallWidth = Math.min(96, Math.max(78, panelWidth / 6));
+    int totalButtonsWidth = optionsWidth + smallWidth + smallWidth + (buttonGap * 2);
+    int buttonsLeft = centerX - (totalButtonsWidth / 2);
 
     addDrawable((context, mouseX, mouseY, delta) -> drawPanelAndText(context));
 
     addDrawableChild(ButtonWidget.builder(Text.literal("Open Options"), button -> openOptions())
-      .dimensions(centerX - 166, panelTop + panelHeight - 28, 108, 20)
+      .dimensions(buttonsLeft, buttonY, optionsWidth, 20)
       .build());
     addDrawableChild(ButtonWidget.builder(Text.literal("Back"), button -> close())
-      .dimensions(centerX - 52, panelTop + panelHeight - 28, 80, 20)
+      .dimensions(buttonsLeft + optionsWidth + buttonGap, buttonY, smallWidth, 20)
       .build());
     addDrawableChild(ButtonWidget.builder(Text.literal("Done"), button -> close())
-      .dimensions(centerX + 34, panelTop + panelHeight - 28, 80, 20)
+      .dimensions(buttonsLeft + optionsWidth + buttonGap + smallWidth + buttonGap, buttonY, smallWidth, 20)
       .build());
   }
 
@@ -100,7 +108,7 @@ public final class DownloadLogScreen extends Screen {
     context.drawTextWithShadow(this.textRenderer, "Failed: " + failCount, failedBoxLeft + 6, statsTop + 5, failCount > 0 ? COLOR_ERROR : COLOR_SOFT);
 
     int logTop = panelTop + 78;
-    int logBottom = panelTop + panelHeight - 38;
+    int logBottom = panelTop + panelHeight - 36;
     int logLeft = panelLeft + 12;
     int logRight = panelLeft + panelWidth - 12;
     context.fill(logLeft, logTop, logRight, logBottom, COLOR_SECTION);
@@ -110,7 +118,8 @@ public final class DownloadLogScreen extends Screen {
     context.fill(logRight - 1, logTop, logRight, logBottom, COLOR_SECTION_BORDER);
 
     int y = logTop + 7;
-    int maxLines = Math.min(logs.size(), 14);
+    int maxLinesByHeight = Math.max(1, (logBottom - logTop - 14) / 12);
+    int maxLines = Math.min(logs.size(), maxLinesByHeight);
     for (int i = 0; i < maxLines; i++) {
       String line = prettify(logs.get(i));
       int color = line.startsWith("Failed:") ? COLOR_ERROR : line.startsWith("Downloaded:") ? COLOR_SUCCESS : COLOR_BODY;

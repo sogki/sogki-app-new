@@ -8,6 +8,11 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 
 public final class RpManagerConfig {
   public static final String DEFAULT_ACTIVE_ENDPOINT = "https://sogki.dev/api/resourcepacks/active";
@@ -16,6 +21,8 @@ public final class RpManagerConfig {
 
   public boolean promptOnJoin = true;
   public String activeEndpoint = DEFAULT_ACTIVE_ENDPOINT;
+  // Legacy migration field from older versions.
+  public List<String> promptSeenServers = new ArrayList<>();
 
   public static RpManagerConfig load() {
     if (Files.notExists(CONFIG_PATH)) {
@@ -56,5 +63,21 @@ public final class RpManagerConfig {
     if (config.activeEndpoint == null || config.activeEndpoint.isBlank()) {
       config.activeEndpoint = DEFAULT_ACTIVE_ENDPOINT;
     }
+    if (config.promptSeenServers == null) {
+      config.promptSeenServers = new ArrayList<>();
+      return;
+    }
+    Set<String> unique = new LinkedHashSet<>();
+    for (String entry : config.promptSeenServers) {
+      if (entry == null) continue;
+      String normalized = entry.trim().toLowerCase(Locale.ROOT);
+      if (!normalized.isBlank()) unique.add(normalized);
+    }
+    config.promptSeenServers = new ArrayList<>(unique);
+  }
+
+  public boolean hasLegacySeenServer(String serverKey) {
+    if (serverKey == null || serverKey.isBlank()) return false;
+    return promptSeenServers.contains(serverKey.trim().toLowerCase(Locale.ROOT));
   }
 }

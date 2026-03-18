@@ -52,6 +52,15 @@ public final class SogkiRpManagerClient implements ClientModInitializer {
       if (!config.promptOnJoin || promptShownForConnection) return;
       String serverKey = resolveServerKey(client, handler);
       String playerKey = resolvePlayerKey(client);
+      if (config.hasLegacySeenServer(serverKey)) {
+        if (promptPlayerDataStore != null) {
+          promptPlayerDataStore.markSeen(serverKey, playerKey);
+          promptPlayerDataStore.save();
+        }
+        promptShownForConnection = true;
+        logUiEvent("Join prompt skipped by legacy seen-server match: " + serverKey);
+        return;
+      }
       if (promptPlayerDataStore != null && promptPlayerDataStore.hasSeen(serverKey, playerKey)) {
         promptShownForConnection = true;
         logUiEvent("Join prompt already shown before for player/server: " + playerKey + " @ " + serverKey);
