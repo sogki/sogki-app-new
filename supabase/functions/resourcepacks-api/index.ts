@@ -29,17 +29,18 @@ Deno.serve(async (req) => {
     if (first === 'active') {
       const { data, error } = await supabase
         .from('resource_packs')
-        .select('id, name, version, size, file_name, sha1')
+        .select('id, name, version, description, size, file_name, sha1')
         .eq('is_active', true)
         .order('created_at', { ascending: false });
       if (error) throw error;
 
       return json(
-        (data ?? []).map((row: { id: string; name: string; version: string; size: number; file_name: string; sha1: string }) => ({
+        (data ?? []).map((row: { id: string; name: string; version: string; description: string | null; size: number; file_name: string; sha1: string }) => ({
           url: `${siteUrl}/api/resourcepacks/${row.id}`,
           sha1: row.sha1,
           name: row.name,
           version: row.version,
+          description: row.description,
           size: row.size,
           file_name: row.file_name,
         }))

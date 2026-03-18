@@ -40,6 +40,8 @@ public final class DownloadLogScreen extends Screen {
     panelLeft = centerX - panelWidth / 2;
     panelTop = (height - panelHeight) / 2;
 
+    addDrawable((context, mouseX, mouseY, delta) -> drawPanelAndText(context));
+
     addDrawableChild(ButtonWidget.builder(Text.literal("Open Options"), button -> openOptions())
       .dimensions(centerX - 166, panelTop + panelHeight - 28, 108, 20)
       .build());
@@ -61,6 +63,15 @@ public final class DownloadLogScreen extends Screen {
   @Override
   public void render(DrawContext context, int mouseX, int mouseY, float delta) {
     renderBackground(context, mouseX, mouseY, delta);
+    super.render(context, mouseX, mouseY, delta);
+  }
+
+  private void drawPanelAndText(DrawContext context) {
+    context.fill(panelLeft, panelTop, panelLeft + panelWidth, panelTop + panelHeight, COLOR_PANEL);
+    context.fill(panelLeft, panelTop, panelLeft + panelWidth, panelTop + 1, COLOR_PANEL_BORDER);
+    context.fill(panelLeft, panelTop + panelHeight - 1, panelLeft + panelWidth, panelTop + panelHeight, COLOR_PANEL_BORDER);
+    context.fill(panelLeft, panelTop, panelLeft + 1, panelTop + panelHeight, COLOR_PANEL_BORDER);
+    context.fill(panelLeft + panelWidth - 1, panelTop, panelLeft + panelWidth, panelTop + panelHeight, COLOR_PANEL_BORDER);
 
     context.drawCenteredTextWithShadow(this.textRenderer, this.title, this.width / 2, panelTop + 12, COLOR_TITLE);
     context.drawCenteredTextWithShadow(this.textRenderer, Text.literal("Packs were downloaded to your resourcepacks folder."), this.width / 2, panelTop + 28, COLOR_MUTED);
@@ -86,7 +97,6 @@ public final class DownloadLogScreen extends Screen {
     if (logs.size() > maxLines) {
       context.drawTextWithShadow(this.textRenderer, "... and " + (logs.size() - maxLines) + " more lines", panelLeft + 12, y, COLOR_SOFT);
     }
-    super.render(context, mouseX, mouseY, delta);
   }
 
   private void openOptions() {

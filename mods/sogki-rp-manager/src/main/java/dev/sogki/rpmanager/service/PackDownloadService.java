@@ -64,7 +64,9 @@ public final class PackDownloadService {
       throw new IOException("HTTP " + code);
     }
 
-    String fileName = inferFilename(pack.url(), conn);
+    String fileName = (pack.fileName() != null && !pack.fileName().isBlank())
+      ? pack.fileName()
+      : inferFilename(pack.url(), conn);
     if (!fileName.toLowerCase(Locale.ROOT).endsWith(".zip")) {
       fileName = fileName + ".zip";
     }
@@ -88,7 +90,7 @@ public final class PackDownloadService {
       throw new IOException("SHA1 mismatch. Expected " + pack.sha1() + ", got " + sha1);
     }
 
-    return "Downloaded: " + fileName + " (SHA1 " + sha1 + ")";
+    return "Downloaded: " + fileName;
   }
 
   private static HttpURLConnection open(String urlText) throws IOException {

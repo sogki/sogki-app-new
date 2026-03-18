@@ -113,6 +113,7 @@ export const adminApi = {
     data: {
       name: string;
       version: string;
+      description?: string;
       is_active: boolean;
       auto_deactivate_previous?: boolean;
       group_key?: string;

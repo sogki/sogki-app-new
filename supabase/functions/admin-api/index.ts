@@ -166,7 +166,7 @@ async function handleBlogImageUpload(supabase: any, body: any) {
 }
 
 async function handleResourcePackUpload(supabase: any, body: any) {
-  const { file, filename, name, version, is_active, auto_deactivate_previous, group_key } = body ?? {};
+  const { file, filename, name, version, description, is_active, auto_deactivate_previous, group_key } = body ?? {};
   if (!file || !filename || !name || !version) {
     return json({ error: 'file, filename, name, and version are required' }, 400);
   }
@@ -208,6 +208,7 @@ async function handleResourcePackUpload(supabase: any, body: any) {
     file_name: filename,
     file_path: upload.path,
     version: String(version),
+    description: description != null ? String(description) : null,
     sha1,
     size,
     is_active: Boolean(is_active ?? true),
@@ -231,6 +232,7 @@ async function handleMutate(supabase: any, method: string, parts: string[], body
       const payload: Record<string, unknown> = {};
       if (body.name != null) payload.name = body.name;
       if (body.version != null) payload.version = body.version;
+      if (body.description != null) payload.description = body.description;
       if (body.is_active != null) payload.is_active = Boolean(body.is_active);
       const { data, error } = await supabase
         .from('resource_packs')

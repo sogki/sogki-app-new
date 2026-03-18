@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 public final class JoinPromptScreen extends Screen {
-  private static final int ROWS_PER_PAGE = 5;
+  private static final int ROWS_PER_PAGE = 4;
   private static final int COLOR_WHITE = 0xFFFFFFFF;
   private static final int COLOR_MUTED = 0xFFBBBBBB;
   private static final int COLOR_SOFT = 0xFFA4A4B0;
@@ -59,7 +59,7 @@ public final class JoinPromptScreen extends Screen {
 
     int centerX = width / 2;
     panelWidth = Math.min(460, width - 40);
-    panelHeight = Math.min(300, height - 30);
+    panelHeight = Math.min(320, height - 30);
     panelLeft = centerX - panelWidth / 2;
     panelTop = (height - panelHeight) / 2;
     int listActionsY = panelTop + 88;
@@ -67,6 +67,9 @@ public final class JoinPromptScreen extends Screen {
     listLeft = panelLeft + 12;
     listWidth = panelWidth - 24;
     int bottomButtonsY = panelTop + panelHeight - 28;
+
+    // Panel background and rows as a drawable in the same screen render pipeline.
+    addDrawable((context, mouseX, mouseY, delta) -> drawPanelAndRows(context));
 
     downloadButton = addDrawableChild(ButtonWidget.builder(Text.literal("Download All"), button -> startDownload())
       .dimensions(listLeft, listActionsY, 112, 20)
@@ -80,6 +83,9 @@ public final class JoinPromptScreen extends Screen {
     closeButton = addDrawableChild(ButtonWidget.builder(Text.literal("I'll do this later"), button -> close())
       .dimensions(centerX - 66, bottomButtonsY, 132, 20)
       .build());
+
+    // Text drawable added after buttons for consistent layering.
+    addDrawable((context, mouseX, mouseY, delta) -> drawOverlayText(context));
 
     refreshRowButtons();
     if (!discovered) {
@@ -193,10 +199,10 @@ public final class JoinPromptScreen extends Screen {
     for (int i = 0; i < shown; i++) {
       int index = listOffset + i;
       PackEntry pack = packs.get(index);
-      int rowY = startY + i * 32;
+      int rowY = startY + i * 44;
 
       ButtonWidget downloadOneButton = addDrawableChild(ButtonWidget.builder(Text.literal("Download"), button -> downloadSingle(pack))
-        .dimensions(listLeft + listWidth - 96, rowY + 6, 84, 20)
+        .dimensions(listLeft + listWidth - 96, rowY + 12, 84, 20)
         .build());
       rowButtons.add(downloadOneButton);
     }
@@ -230,8 +236,32 @@ public final class JoinPromptScreen extends Screen {
   @Override
   public void render(DrawContext context, int mouseX, int mouseY, float delta) {
     renderBackground(context, mouseX, mouseY, delta);
+    super.render(context, mouseX, mouseY, delta);
+  }
 
-    // Draw text and then widgets so button hover states remain visible.
+  private void drawPanelAndRows(DrawContext context) {
+    context.fill(panelLeft, panelTop, panelLeft + panelWidth, panelTop + panelHeight, COLOR_PANEL);
+    context.fill(panelLeft, panelTop, panelLeft + panelWidth, panelTop + 1, COLOR_PANEL_BORDER);
+    context.fill(panelLeft, panelTop + panelHeight - 1, panelLeft + panelWidth, panelTop + panelHeight, COLOR_PANEL_BORDER);
+    context.fill(panelLeft, panelTop, panelLeft + 1, panelTop + panelHeight, COLOR_PANEL_BORDER);
+    context.fill(panelLeft + panelWidth - 1, panelTop, panelLeft + panelWidth, panelTop + panelHeight, COLOR_PANEL_BORDER);
+
+    int y = listTop;
+    int shown = Math.min(ROWS_PER_PAGE, Math.max(0, packs.size() - listOffset));
+    for (int i = 0; i < shown; i++) {
+      int rowY = y + i * 44;
+      int rowLeft = listLeft;
+      int rowRight = listLeft + listWidth;
+      context.fill(rowLeft, rowY, rowRight, rowY + 42, COLOR_ROW);
+      context.fill(rowLeft, rowY, rowRight, rowY + 1, COLOR_ROW_BORDER);
+      context.fill(rowLeft, rowY + 41, rowRight, rowY + 42, COLOR_ROW_BORDER);
+      context.fill(rowLeft, rowY, rowLeft + 1, rowY + 42, COLOR_ROW_BORDER);
+      context.fill(rowRight - 1, rowY, rowRight, rowY + 42, COLOR_ROW_BORDER);
+      y += 44;
+    }
+  }
+
+  private void drawOverlayText(DrawContext context) {
     int centerX = width / 2;
     context.drawCenteredTextWithShadow(textRenderer, Text.literal("Sogki's Cobblemon Resource Pack Manager"), centerX, panelTop + 12, COLOR_TITLE);
     context.drawCenteredTextWithShadow(textRenderer, Text.literal("Browse active packs and download one-by-one or all at once."), centerX, panelTop + 26, COLOR_MUTED);
@@ -244,11 +274,14 @@ public final class JoinPromptScreen extends Screen {
     for (int i = 0; i < shown; i++) {
       int index = listOffset + i;
       PackEntry pack = packs.get(index);
-      int rowY = textY + i * 32;
+      int rowY = textY + i * 44;
       String heading = pack.name() + "  " + pack.version();
-      String details = "- " + trim(pack.fileName(), 30) + "  •  " + formatBytes(pack.size());
+      String details = trim(pack.fileName(), 36) + "  •  " + formatBytes(pack.size());
       context.drawTextWithShadow(textRenderer, heading, listLeft + 8, rowY + 6, COLOR_WHITE);
       context.drawTextWithShadow(textRenderer, details, listLeft + 8, rowY + 18, COLOR_SOFT);
+      if (pack.description() != null && !pack.description().isBlank()) {
+        context.drawTextWithShadow(textRenderer, trim(pack.description(), 56), listLeft + 8, rowY + 30, COLOR_MUTED);
+      }
     }
 
     if (loading) {
@@ -266,8 +299,6 @@ public final class JoinPromptScreen extends Screen {
       int currentEnd = Math.min(listOffset + ROWS_PER_PAGE, packs.size());
       context.drawTextWithShadow(textRenderer, "Showing " + currentStart + "-" + currentEnd + " of " + packs.size() + " (use mouse wheel to scroll)", listLeft, panelTop + panelHeight - 44, COLOR_SOFT);
     }
-
-    super.render(context, mouseX, mouseY, delta);
   }
 
   @Override

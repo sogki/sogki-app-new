@@ -49,6 +49,7 @@ public final class SogkiRpManagerClient implements ClientModInitializer {
       promptShownForConnection = true;
       logUiEvent("Opening RP manager on join.");
       client.execute(() -> client.setScreen(new JoinPromptScreen(client.currentScreen, config)));
+      fetchAndLogPacks("JOIN");
     });
 
     ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> promptShownForConnection = false);
@@ -219,14 +220,14 @@ public final class SogkiRpManagerClient implements ClientModInitializer {
 
   private static void logLine(String message) {
     String line = "[SogkiRP] " + message;
-    LOGGER.info(line);
-    System.out.println(line);
+    LOGGER.warn(line);
+    System.err.println(line);
   }
 
   private static void logWarnLine(String message) {
     String line = "[SogkiRP] " + message;
     LOGGER.warn(line);
-    System.out.println(line);
+    System.err.println(line);
   }
 
   private static void logBlock(String title, String... lines) {

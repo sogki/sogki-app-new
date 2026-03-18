@@ -5,6 +5,7 @@ public record PackEntry(
   String sha1,
   String name,
   String version,
+  String description,
   int size,
   String fileName
 ) {

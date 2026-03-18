@@ -22,7 +22,8 @@ import java.util.regex.Pattern;
 public final class PackDiscoveryService {
   private static final String DIRECT_SUPABASE_ACTIVE = "https://vwdrdqkzjkfdmycomfvf.supabase.co/functions/v1/resourcepacks-api/active";
   private static final Pattern FILENAME_DISPOSITION = Pattern.compile("filename=\"?([^\";]+)\"?");
-  private static final Pattern VERSION_PATTERN = Pattern.compile("(?i)(v?\\d+(?:\\.\\d+){0,3})");
+  private static final Pattern VERSION_WITH_V_PATTERN = Pattern.compile("(?i)\\bv\\d+(?:\\.\\d+){0,3}\\b");
+  private static final Pattern VERSION_DOTTED_PATTERN = Pattern.compile("\\b\\d+\\.\\d+(?:\\.\\d+){0,2}\\b");
 
   private PackDiscoveryService() {
   }
@@ -51,6 +52,7 @@ public final class PackDiscoveryService {
       String sha1 = getAsString(obj, "sha1");
       String name = getAsString(obj, "name");
       String version = getAsString(obj, "version");
+      String description = getAsString(obj, "description");
       String fileName = getAsString(obj, "file_name");
       int size = getAsInt(obj, "size");
       if (url != null && !url.isBlank()) {
@@ -65,7 +67,15 @@ public final class PackDiscoveryService {
         String inferredVersion = defaultValue(version, inferVersion(resolvedFile));
         String inferredName = defaultValue(name, inferName(resolvedFile, inferredVersion));
 
-        packs.add(new PackEntry(url, emptyToNull(sha1), inferredName, inferredVersion, resolvedSize, resolvedFile));
+        packs.add(new PackEntry(
+          url,
+          emptyToNull(sha1),
+          inferredName,
+          inferredVersion,
+          defaultValue(description, ""),
+          resolvedSize,
+          resolvedFile
+        ));
       }
     }
     return packs;
@@ -174,16 +184,21 @@ public final class PackDiscoveryService {
 
   private static String inferVersion(String fileName) {
     String base = stripZip(fileName);
-    Matcher m = VERSION_PATTERN.matcher(base);
-    if (m.find()) {
-      String v = m.group(1);
-      return v.toLowerCase(Locale.ROOT).startsWith("v") ? v : "v" + v;
+    Matcher mv = VERSION_WITH_V_PATTERN.matcher(base);
+    if (mv.find()) {
+      return mv.group().toLowerCase(Locale.ROOT);
+    }
+    Matcher md = VERSION_DOTTED_PATTERN.matcher(base);
+    if (md.find()) {
+      return "v" + md.group();
     }
     return "latest";
   }
 
   private static String inferName(String fileName, String version) {
     String base = stripZip(fileName);
+    // Strip common storage prefixes like timestamps to get a cleaner display name.
+    base = base.replaceFirst("^\\d{10,}-", "");
     String normalized = base.replace('_', ' ').trim();
     String withoutVersion = normalized;
     if (version != null && !"latest".equalsIgnoreCase(version)) {

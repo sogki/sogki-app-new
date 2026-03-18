@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Check, Copy, Package, Trash2, Upload } from 'lucide-react';
+import { Check, Copy, Package, Pencil, Trash2, Upload } from 'lucide-react';
 import { adminApi } from '../../lib/adminApi';
 import AdminPageLayout from './AdminPageLayout';
 
 type ResourcePack = {
   id: string;
   name: string;
+  description: string | null;
   file_name: string;
   file_path: string;
   version: string;
@@ -27,6 +28,7 @@ export default function AdminResourcePacks() {
 
   const [name, setName] = useState('');
   const [version, setVersion] = useState('v1.0.0');
+  const [description, setDescription] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [isActive, setIsActive] = useState(true);
   const [autoDeactivatePrevious, setAutoDeactivatePrevious] = useState(true);
@@ -68,6 +70,7 @@ export default function AdminResourcePacks() {
       await adminApi.uploadResourcePack(file, {
         name,
         version,
+        description: description || undefined,
         is_active: isActive,
         auto_deactivate_previous: autoDeactivatePrevious,
         group_key: name,
@@ -75,6 +78,7 @@ export default function AdminResourcePacks() {
       setFile(null);
       setName('');
       setVersion('v1.0.0');
+      setDescription('');
       setIsActive(true);
       await load();
     } catch (e) {
@@ -104,6 +108,20 @@ export default function AdminResourcePacks() {
       await load();
     } catch (e) {
       alert(e instanceof Error ? e.message : 'Failed to delete');
+    } finally {
+      setBusyPackId(null);
+    }
+  };
+
+  const handleEditDescription = async (pack: ResourcePack) => {
+    const nextDescription = prompt('Edit description (shown in mod UI):', pack.description ?? '');
+    if (nextDescription === null) return;
+    setBusyPackId(pack.id);
+    try {
+      await adminApi.updateResourcePack(pack.id, { description: nextDescription.trim() || null });
+      await load();
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Failed to update description');
     } finally {
       setBusyPackId(null);
     }
@@ -163,6 +181,16 @@ export default function AdminResourcePacks() {
                 required
               />
             </div>
+          </div>
+          <div>
+            <label className="block text-sm text-gray-400 mb-1">Description (shown in mod UI)</label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="What this pack adds..."
+              rows={2}
+              className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:border-purple-400/50 outline-none resize-y"
+            />
           </div>
 
           <div className="flex flex-wrap items-center gap-4">
@@ -232,6 +260,9 @@ export default function AdminResourcePacks() {
                     </span>
                   </div>
                   <p className="text-sm text-gray-400 mt-1 break-all">{pack.file_name}</p>
+                  {pack.description && (
+                    <p className="text-sm text-gray-300 mt-1">{pack.description}</p>
+                  )}
                   <div className="text-xs text-gray-500 mt-2">
                     <span>{formatBytes(pack.size)}</span>
                     <span className="mx-2">•</span>
@@ -259,6 +290,15 @@ export default function AdminResourcePacks() {
                   >
                     {copied === `sha1:${pack.id}` ? <Check size={14} /> : <Copy size={14} />}
                     Copy SHA1
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleEditDescription(pack)}
+                    disabled={busyPackId === pack.id}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 text-sm disabled:opacity-50"
+                  >
+                    <Pencil size={14} />
+                    Edit Description
                   </button>
                   <button
                     type="button"
