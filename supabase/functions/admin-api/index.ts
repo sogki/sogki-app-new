@@ -232,7 +232,7 @@ async function handleMutate(supabase: any, method: string, parts: string[], body
       const payload: Record<string, unknown> = {};
       if (body.name != null) payload.name = body.name;
       if (body.version != null) payload.version = body.version;
-      if (body.description != null) payload.description = body.description;
+      if (Object.prototype.hasOwnProperty.call(body, 'description')) payload.description = body.description;
       if (body.is_active != null) payload.is_active = Boolean(body.is_active);
       const { data, error } = await supabase
         .from('resource_packs')
