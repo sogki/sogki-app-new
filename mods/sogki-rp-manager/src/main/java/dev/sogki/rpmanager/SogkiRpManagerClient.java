@@ -21,6 +21,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 
 public final class SogkiRpManagerClient implements ClientModInitializer {
@@ -46,8 +47,16 @@ public final class SogkiRpManagerClient implements ClientModInitializer {
 
     ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
       if (!config.promptOnJoin || promptShownForConnection) return;
+      String serverKey = resolveServerKey(client, handler);
+      if (config.hasSeenPromptForServer(serverKey)) {
+        promptShownForConnection = true;
+        logUiEvent("Join prompt already shown before for server: " + serverKey);
+        return;
+      }
+      config.markPromptSeenForServer(serverKey);
+      config.save();
       promptShownForConnection = true;
-      logUiEvent("Opening RP manager on join.");
+      logUiEvent("Opening RP manager on first join for server: " + serverKey);
       client.execute(() -> client.setScreen(new JoinPromptScreen(client.currentScreen, config)));
       fetchAndLogPacks("JOIN");
     });
@@ -246,6 +255,29 @@ public final class SogkiRpManagerClient implements ClientModInitializer {
     Throwable curr = error;
     while (curr.getCause() != null) curr = curr.getCause();
     return curr.getMessage() == null ? "Unknown error" : curr.getMessage();
+  }
+
+  private static String resolveServerKey(net.minecraft.client.MinecraftClient client, net.minecraft.client.network.ClientPlayNetworkHandler handler) {
+    try {
+      var server = client.getCurrentServerEntry();
+      if (server != null && server.address != null && !server.address.isBlank()) {
+        return server.address.trim().toLowerCase(Locale.ROOT);
+      }
+    } catch (Throwable ignored) {
+    }
+
+    try {
+      var connection = handler.getConnection();
+      if (connection != null && connection.getAddress() != null) {
+        String value = connection.getAddress().toString();
+        if (value != null && !value.isBlank()) {
+          return value.trim().toLowerCase(Locale.ROOT);
+        }
+      }
+    } catch (Throwable ignored) {
+    }
+
+    return "unknown-server";
   }
 
   private static String formatBytes(int bytes) {

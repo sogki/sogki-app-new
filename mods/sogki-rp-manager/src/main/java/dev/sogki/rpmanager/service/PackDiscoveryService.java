@@ -22,8 +22,6 @@ import java.util.regex.Pattern;
 public final class PackDiscoveryService {
   private static final String DIRECT_SUPABASE_ACTIVE = "https://vwdrdqkzjkfdmycomfvf.supabase.co/functions/v1/resourcepacks-api/active";
   private static final Pattern FILENAME_DISPOSITION = Pattern.compile("filename=\"?([^\";]+)\"?");
-  private static final Pattern VERSION_WITH_V_PATTERN = Pattern.compile("(?i)\\bv\\d+(?:\\.\\d+){0,3}\\b");
-  private static final Pattern VERSION_DOTTED_PATTERN = Pattern.compile("\\b\\d+\\.\\d+(?:\\.\\d+){0,2}\\b");
 
   private PackDiscoveryService() {
   }
@@ -64,14 +62,14 @@ public final class PackDiscoveryService {
           if (probe.size > 0) resolvedSize = probe.size;
         }
 
-        String inferredVersion = defaultValue(version, inferVersion(resolvedFile));
-        String inferredName = defaultValue(name, inferName(resolvedFile, inferredVersion));
+        String resolvedVersion = emptyToNull(version);
+        String inferredName = defaultValue(name, inferName(resolvedFile, resolvedVersion));
 
         packs.add(new PackEntry(
           url,
           emptyToNull(sha1),
           inferredName,
-          inferredVersion,
+          defaultValue(resolvedVersion, ""),
           defaultValue(description, ""),
           resolvedSize,
           resolvedFile
@@ -180,19 +178,6 @@ public final class PackDiscoveryService {
     } catch (Exception ignored) {
     }
     return 0;
-  }
-
-  private static String inferVersion(String fileName) {
-    String base = stripZip(fileName);
-    Matcher mv = VERSION_WITH_V_PATTERN.matcher(base);
-    if (mv.find()) {
-      return mv.group().toLowerCase(Locale.ROOT);
-    }
-    Matcher md = VERSION_DOTTED_PATTERN.matcher(base);
-    if (md.find()) {
-      return "v" + md.group();
-    }
-    return "latest";
   }
 
   private static String inferName(String fileName, String version) {

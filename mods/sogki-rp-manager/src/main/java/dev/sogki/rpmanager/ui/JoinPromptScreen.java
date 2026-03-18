@@ -16,17 +16,18 @@ import java.util.concurrent.CompletableFuture;
 
 public final class JoinPromptScreen extends Screen {
   private static final int ROWS_PER_PAGE = 4;
+  private static final int ROW_HEIGHT = 44;
   private static final int COLOR_WHITE = 0xFFFFFFFF;
   private static final int COLOR_MUTED = 0xFFBBBBBB;
   private static final int COLOR_SOFT = 0xFFA4A4B0;
-  private static final int COLOR_BODY = 0xFFE0E0E0;
   private static final int COLOR_HELP = 0xFFB5C9FF;
   private static final int COLOR_TITLE = 0xFFB486FF;
-  private static final int COLOR_BACKGROUND = 0xFF000000;
   private static final int COLOR_PANEL = 0xFF141722;
   private static final int COLOR_PANEL_BORDER = 0xFF3A3A48;
   private static final int COLOR_ROW = 0xFF1B1B2A;
   private static final int COLOR_ROW_BORDER = 0xFF50506A;
+  private static final int COLOR_SCROLL_TRACK = 0xFF2B2B3C;
+  private static final int COLOR_SCROLL_THUMB = 0xFF8B8BB0;
   private final Screen parent;
   private final RpManagerConfig config;
   private List<PackEntry> packs = new ArrayList<>();
@@ -199,7 +200,7 @@ public final class JoinPromptScreen extends Screen {
     for (int i = 0; i < shown; i++) {
       int index = listOffset + i;
       PackEntry pack = packs.get(index);
-      int rowY = startY + i * 44;
+      int rowY = startY + i * ROW_HEIGHT;
 
       ButtonWidget downloadOneButton = addDrawableChild(ButtonWidget.builder(Text.literal("Download"), button -> downloadSingle(pack))
         .dimensions(listLeft + listWidth - 96, rowY + 12, 84, 20)
@@ -246,10 +247,9 @@ public final class JoinPromptScreen extends Screen {
     context.fill(panelLeft, panelTop, panelLeft + 1, panelTop + panelHeight, COLOR_PANEL_BORDER);
     context.fill(panelLeft + panelWidth - 1, panelTop, panelLeft + panelWidth, panelTop + panelHeight, COLOR_PANEL_BORDER);
 
-    int y = listTop;
     int shown = Math.min(ROWS_PER_PAGE, Math.max(0, packs.size() - listOffset));
     for (int i = 0; i < shown; i++) {
-      int rowY = y + i * 44;
+      int rowY = listTop + i * ROW_HEIGHT;
       int rowLeft = listLeft;
       int rowRight = listLeft + listWidth;
       context.fill(rowLeft, rowY, rowRight, rowY + 42, COLOR_ROW);
@@ -257,7 +257,10 @@ public final class JoinPromptScreen extends Screen {
       context.fill(rowLeft, rowY + 41, rowRight, rowY + 42, COLOR_ROW_BORDER);
       context.fill(rowLeft, rowY, rowLeft + 1, rowY + 42, COLOR_ROW_BORDER);
       context.fill(rowRight - 1, rowY, rowRight, rowY + 42, COLOR_ROW_BORDER);
-      y += 44;
+    }
+
+    if (packs.size() > ROWS_PER_PAGE) {
+      drawScrollbar(context);
     }
   }
 
@@ -274,14 +277,15 @@ public final class JoinPromptScreen extends Screen {
     for (int i = 0; i < shown; i++) {
       int index = listOffset + i;
       PackEntry pack = packs.get(index);
-      int rowY = textY + i * 44;
-      String heading = pack.name() + "  " + pack.version();
-      String details = trim(pack.fileName(), 36) + "  •  " + formatBytes(pack.size());
+      int rowY = textY + i * ROW_HEIGHT;
+      String version = (pack.version() == null || pack.version().isBlank()) ? "" : "  " + pack.version();
+      String heading = pack.name() + version;
+      String details = (pack.description() == null || pack.description().isBlank())
+        ? "No description provided."
+        : trim(pack.description(), 56);
       context.drawTextWithShadow(textRenderer, heading, listLeft + 8, rowY + 6, COLOR_WHITE);
       context.drawTextWithShadow(textRenderer, details, listLeft + 8, rowY + 18, COLOR_SOFT);
-      if (pack.description() != null && !pack.description().isBlank()) {
-        context.drawTextWithShadow(textRenderer, trim(pack.description(), 56), listLeft + 8, rowY + 30, COLOR_MUTED);
-      }
+      context.drawTextWithShadow(textRenderer, formatBytes(pack.size()), listLeft + 8, rowY + 30, COLOR_MUTED);
     }
 
     if (loading) {
@@ -303,6 +307,9 @@ public final class JoinPromptScreen extends Screen {
 
   @Override
   public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
+    if (!isWithinListContainer(mouseX, mouseY)) {
+      return super.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);
+    }
     int maxOffset = Math.max(0, packs.size() - ROWS_PER_PAGE);
     if (verticalAmount < 0 && listOffset < maxOffset) {
       listOffset++;
@@ -317,15 +324,32 @@ public final class JoinPromptScreen extends Screen {
     return super.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);
   }
 
+  private boolean isWithinListContainer(double mouseX, double mouseY) {
+    int listBottom = listTop + ROWS_PER_PAGE * ROW_HEIGHT;
+    return mouseX >= listLeft && mouseX <= listLeft + listWidth && mouseY >= listTop && mouseY <= listBottom;
+  }
+
+  private void drawScrollbar(DrawContext context) {
+    int trackLeft = listLeft + listWidth - 5;
+    int trackRight = trackLeft + 2;
+    int trackTop = listTop + 2;
+    int trackBottom = listTop + ROWS_PER_PAGE * ROW_HEIGHT - 2;
+    int trackHeight = Math.max(8, trackBottom - trackTop);
+    context.fill(trackLeft, trackTop, trackRight, trackBottom, COLOR_SCROLL_TRACK);
+
+    int totalRows = Math.max(1, packs.size());
+    int visibleRows = Math.min(ROWS_PER_PAGE, totalRows);
+    int thumbHeight = Math.max(16, (int) Math.round((visibleRows / (double) totalRows) * trackHeight));
+    int maxOffset = Math.max(1, packs.size() - ROWS_PER_PAGE);
+    int travel = Math.max(0, trackHeight - thumbHeight);
+    int thumbTop = trackTop + (int) Math.round((listOffset / (double) maxOffset) * travel);
+    int thumbBottom = Math.min(trackBottom, thumbTop + thumbHeight);
+    context.fill(trackLeft, thumbTop, trackRight, thumbBottom, COLOR_SCROLL_THUMB);
+  }
+
   private static String trim(String value, int maxChars) {
     if (value.length() <= maxChars) return value;
     return value.substring(0, maxChars - 3) + "...";
-  }
-
-  private static String rootMessage(Throwable error) {
-    Throwable curr = error;
-    while (curr.getCause() != null) curr = curr.getCause();
-    return curr.getMessage() == null ? "Unknown error" : curr.getMessage();
   }
 
   private static String formatBytes(int bytes) {
