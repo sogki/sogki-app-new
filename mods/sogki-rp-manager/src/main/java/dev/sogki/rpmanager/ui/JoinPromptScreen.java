@@ -229,29 +229,7 @@ public final class JoinPromptScreen extends Screen {
 
   @Override
   public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-    // Fully opaque, single-pass UI (no fade/transparency effects).
-    context.fill(0, 0, width, height, COLOR_BACKGROUND);
-
-    // Draw panel and list containers in standard GUI layer.
-    context.fill(panelLeft, panelTop, panelLeft + panelWidth, panelTop + panelHeight, COLOR_PANEL);
-    context.fill(panelLeft, panelTop, panelLeft + panelWidth, panelTop + 1, COLOR_PANEL_BORDER);
-    context.fill(panelLeft, panelTop + panelHeight - 1, panelLeft + panelWidth, panelTop + panelHeight, COLOR_PANEL_BORDER);
-    context.fill(panelLeft, panelTop, panelLeft + 1, panelTop + panelHeight, COLOR_PANEL_BORDER);
-    context.fill(panelLeft + panelWidth - 1, panelTop, panelLeft + panelWidth, panelTop + panelHeight, COLOR_PANEL_BORDER);
-
-    int y = listTop;
-    int shown = Math.min(ROWS_PER_PAGE, Math.max(0, packs.size() - listOffset));
-    for (int i = 0; i < shown; i++) {
-      int rowY = y + i * 32;
-      int rowLeft = listLeft;
-      int rowRight = listLeft + listWidth;
-      context.fill(rowLeft, rowY, rowRight, rowY + 30, COLOR_ROW);
-      context.fill(rowLeft, rowY, rowRight, rowY + 1, COLOR_ROW_BORDER);
-      context.fill(rowLeft, rowY + 29, rowRight, rowY + 30, COLOR_ROW_BORDER);
-      context.fill(rowLeft, rowY, rowLeft + 1, rowY + 30, COLOR_ROW_BORDER);
-      context.fill(rowRight - 1, rowY, rowRight, rowY + 30, COLOR_ROW_BORDER);
-      y += 32;
-    }
+    renderBackground(context, mouseX, mouseY, delta);
 
     // Draw text and then widgets so button hover states remain visible.
     int centerX = width / 2;
@@ -262,12 +240,13 @@ public final class JoinPromptScreen extends Screen {
     context.drawTextWithShadow(textRenderer, "Open again anytime with keybind: " + SogkiRpManagerClient.openKeyLabel(), listLeft + 150, panelTop + 72, COLOR_SOFT);
 
     int textY = listTop;
+    int shown = Math.min(ROWS_PER_PAGE, Math.max(0, packs.size() - listOffset));
     for (int i = 0; i < shown; i++) {
       int index = listOffset + i;
       PackEntry pack = packs.get(index);
       int rowY = textY + i * 32;
       String heading = pack.name() + "  " + pack.version();
-      String details = trim(pack.fileName(), 30) + "  •  " + formatBytes(pack.size());
+      String details = "- " + trim(pack.fileName(), 30) + "  •  " + formatBytes(pack.size());
       context.drawTextWithShadow(textRenderer, heading, listLeft + 8, rowY + 6, COLOR_WHITE);
       context.drawTextWithShadow(textRenderer, details, listLeft + 8, rowY + 18, COLOR_SOFT);
     }

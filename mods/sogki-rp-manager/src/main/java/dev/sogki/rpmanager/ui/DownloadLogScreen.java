@@ -60,13 +60,7 @@ public final class DownloadLogScreen extends Screen {
 
   @Override
   public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-    // Fully opaque, single-pass UI (no fade/transparency effects).
-    context.fill(0, 0, width, height, COLOR_BACKGROUND);
-    context.fill(panelLeft, panelTop, panelLeft + panelWidth, panelTop + panelHeight, COLOR_PANEL);
-    context.fill(panelLeft, panelTop, panelLeft + panelWidth, panelTop + 1, COLOR_PANEL_BORDER);
-    context.fill(panelLeft, panelTop + panelHeight - 1, panelLeft + panelWidth, panelTop + panelHeight, COLOR_PANEL_BORDER);
-    context.fill(panelLeft, panelTop, panelLeft + 1, panelTop + panelHeight, COLOR_PANEL_BORDER);
-    context.fill(panelLeft + panelWidth - 1, panelTop, panelLeft + panelWidth, panelTop + panelHeight, COLOR_PANEL_BORDER);
+    renderBackground(context, mouseX, mouseY, delta);
 
     context.drawCenteredTextWithShadow(this.textRenderer, this.title, this.width / 2, panelTop + 12, COLOR_TITLE);
     context.drawCenteredTextWithShadow(this.textRenderer, Text.literal("Packs were downloaded to your resourcepacks folder."), this.width / 2, panelTop + 28, COLOR_MUTED);
