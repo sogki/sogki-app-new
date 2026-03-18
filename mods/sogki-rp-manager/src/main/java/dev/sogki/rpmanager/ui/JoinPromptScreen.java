@@ -22,7 +22,7 @@ public final class JoinPromptScreen extends Screen {
   private static final int COLOR_BODY = 0xFFE0E0E0;
   private static final int COLOR_HELP = 0xFFB5C9FF;
   private static final int COLOR_TITLE = 0xFFB486FF;
-  private static final int COLOR_PANEL = 0xCC101018;
+  private static final int COLOR_PANEL = 0xEE0E101A;
   private static final int COLOR_PANEL_BORDER = 0xFF3A3A48;
   private static final int COLOR_ROW = 0xCC1B1B2A;
   private static final int COLOR_ROW_BORDER = 0xFF50506A;
@@ -222,26 +222,17 @@ public final class JoinPromptScreen extends Screen {
   @Override
   public void render(DrawContext context, int mouseX, int mouseY, float delta) {
     renderBackground(context, mouseX, mouseY, delta);
-    // Main panel and border so all text is visibly on one foreground surface.
+
+    // Draw panel and list containers in standard GUI layer.
     context.fill(panelLeft, panelTop, panelLeft + panelWidth, panelTop + panelHeight, COLOR_PANEL);
     context.fill(panelLeft, panelTop, panelLeft + panelWidth, panelTop + 1, COLOR_PANEL_BORDER);
     context.fill(panelLeft, panelTop + panelHeight - 1, panelLeft + panelWidth, panelTop + panelHeight, COLOR_PANEL_BORDER);
     context.fill(panelLeft, panelTop, panelLeft + 1, panelTop + panelHeight, COLOR_PANEL_BORDER);
     context.fill(panelLeft + panelWidth - 1, panelTop, panelLeft + panelWidth, panelTop + panelHeight, COLOR_PANEL_BORDER);
-    super.render(context, mouseX, mouseY, delta);
-
-    int centerX = width / 2;
-    context.drawCenteredTextWithShadow(textRenderer, Text.literal("Sogki's Cobblemon Resource Pack Manager"), centerX, panelTop + 12, COLOR_TITLE);
-    context.drawCenteredTextWithShadow(textRenderer, Text.literal("Browse active packs and download one-by-one or all at once."), centerX, panelTop + 26, COLOR_MUTED);
-    context.drawCenteredTextWithShadow(textRenderer, Text.literal("Need help? Contact Sogki on Discord or ping in Loafey's Pokepal server."), centerX, panelTop + 40, COLOR_HELP);
-    context.drawTextWithShadow(textRenderer, "Texture Packs", listLeft, panelTop + 72, COLOR_WHITE);
-    context.drawTextWithShadow(textRenderer, "Open again anytime with keybind: " + SogkiRpManagerClient.openKeyLabel(), listLeft + 150, panelTop + 72, COLOR_SOFT);
 
     int y = listTop;
     int shown = Math.min(ROWS_PER_PAGE, Math.max(0, packs.size() - listOffset));
     for (int i = 0; i < shown; i++) {
-      int index = listOffset + i;
-      PackEntry pack = packs.get(index);
       int rowY = y + i * 32;
       int rowLeft = listLeft;
       int rowRight = listLeft + listWidth;
@@ -250,12 +241,29 @@ public final class JoinPromptScreen extends Screen {
       context.fill(rowLeft, rowY + 29, rowRight, rowY + 30, COLOR_ROW_BORDER);
       context.fill(rowLeft, rowY, rowLeft + 1, rowY + 30, COLOR_ROW_BORDER);
       context.fill(rowRight - 1, rowY, rowRight, rowY + 30, COLOR_ROW_BORDER);
+      y += 32;
+    }
 
+    // Draw widgets.
+    super.render(context, mouseX, mouseY, delta);
+
+    // Draw text after widgets to keep labels crisp and unified.
+    int centerX = width / 2;
+    context.drawCenteredTextWithShadow(textRenderer, Text.literal("Sogki's Cobblemon Resource Pack Manager"), centerX, panelTop + 12, COLOR_TITLE);
+    context.drawCenteredTextWithShadow(textRenderer, Text.literal("Browse active packs and download one-by-one or all at once."), centerX, panelTop + 26, COLOR_MUTED);
+    context.drawCenteredTextWithShadow(textRenderer, Text.literal("Need help? Contact Sogki on Discord or ping in Loafey's Pokepal server."), centerX, panelTop + 40, COLOR_HELP);
+    context.drawTextWithShadow(textRenderer, "Texture Packs", listLeft, panelTop + 72, COLOR_WHITE);
+    context.drawTextWithShadow(textRenderer, "Open again anytime with keybind: " + SogkiRpManagerClient.openKeyLabel(), listLeft + 150, panelTop + 72, COLOR_SOFT);
+
+    int textY = listTop;
+    for (int i = 0; i < shown; i++) {
+      int index = listOffset + i;
+      PackEntry pack = packs.get(index);
+      int rowY = textY + i * 32;
       String heading = pack.name() + "  " + pack.version();
       String details = trim(pack.fileName(), 30) + "  •  " + formatBytes(pack.size());
-      context.drawTextWithShadow(textRenderer, heading, rowLeft + 8, rowY + 6, COLOR_WHITE);
-      context.drawTextWithShadow(textRenderer, details, rowLeft + 8, rowY + 18, COLOR_SOFT);
-      y += 32;
+      context.drawTextWithShadow(textRenderer, heading, listLeft + 8, rowY + 6, COLOR_WHITE);
+      context.drawTextWithShadow(textRenderer, details, listLeft + 8, rowY + 18, COLOR_SOFT);
     }
 
     if (loading) {
@@ -273,7 +281,6 @@ public final class JoinPromptScreen extends Screen {
       int currentEnd = Math.min(listOffset + ROWS_PER_PAGE, packs.size());
       context.drawTextWithShadow(textRenderer, "Showing " + currentStart + "-" + currentEnd + " of " + packs.size() + " (use mouse wheel to scroll)", listLeft, panelTop + panelHeight - 44, COLOR_SOFT);
     }
-    super.render(context, mouseX, mouseY, delta);
   }
 
   @Override
