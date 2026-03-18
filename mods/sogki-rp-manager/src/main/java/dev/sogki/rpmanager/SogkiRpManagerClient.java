@@ -23,11 +23,12 @@ public final class SogkiRpManagerClient implements ClientModInitializer {
   private static RpManagerConfig config;
   private static KeyBinding openManagerKey;
   private static boolean promptShownForConnection = false;
+  private static boolean startupLogged = false;
 
   @Override
   public void onInitializeClient() {
     config = RpManagerConfig.load();
-    logStartupHeader();
+    logLine("Client mod loaded (pre-init).");
     openManagerKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
       "key.sogkirpmanager.open_manager",
       InputUtil.Type.KEYSYM,
@@ -35,21 +36,25 @@ public final class SogkiRpManagerClient implements ClientModInitializer {
       "category.sogkirpmanager"
     ));
     // Avoid resolving localized key text here; GLFW may not be initialized yet.
-    LOGGER.info("[SogkiRP] Keybind registered: Open Resource Pack Manager (default key: P)");
-
-    // Fetch and print active packs once when client starts.
-    logFetchedPacksOnStartup();
+    logLine("Keybind registered: Open Resource Pack Manager (default key: P)");
 
     ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
       if (!config.promptOnJoin || promptShownForConnection) return;
       promptShownForConnection = true;
+      logUiEvent("Opening RP manager on join.");
       client.execute(() -> client.setScreen(new JoinPromptScreen(client.currentScreen, config)));
     });
 
     ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> promptShownForConnection = false);
 
     ClientTickEvents.END_CLIENT_TICK.register(client -> {
+      if (!startupLogged) {
+        startupLogged = true;
+        logStartupHeader();
+        logFetchedPacksOnStartup();
+      }
       while (openManagerKey.wasPressed()) {
+        logUiEvent("Opening RP manager via keybind: " + openKeyLabel());
         client.setScreen(new JoinPromptScreen(client.currentScreen, config));
       }
     });
@@ -79,50 +84,80 @@ public final class SogkiRpManagerClient implements ClientModInitializer {
       })
       .thenAccept(SogkiRpManagerClient::logPackList)
       .exceptionally(error -> {
-        LOGGER.warn("============================================================");
-        LOGGER.warn("[SogkiRP] RESOURCE PACK FETCH FAILED");
-        LOGGER.warn("[SogkiRP] Endpoint: {}", config.activeEndpoint);
-        LOGGER.warn("[SogkiRP] Reason: {}", rootMessage(error));
-        LOGGER.warn("============================================================");
+        String sep = "============================================================";
+        LOGGER.warn(sep);
+        System.out.println(sep);
+        logWarnLine("RESOURCE PACK FETCH FAILED");
+        logWarnLine("Endpoint: " + config.activeEndpoint);
+        logWarnLine("Reason: " + rootMessage(error));
+        LOGGER.warn(sep);
+        System.out.println(sep);
         return null;
       });
   }
 
   private static void logPackList(List<PackEntry> packs) {
     if (packs == null || packs.isEmpty()) {
-      LOGGER.info("============================================================");
-      LOGGER.info("[SogkiRP] RESOURCE PACKS (STARTUP)");
-      LOGGER.info("[SogkiRP] Endpoint: {}", config.activeEndpoint);
-      LOGGER.info("[SogkiRP] No active packs found.");
-      LOGGER.info("============================================================");
+      logBlock(
+        "RESOURCE PACKS (STARTUP)",
+        "Endpoint: " + config.activeEndpoint,
+        "No active packs found."
+      );
       return;
     }
 
-    LOGGER.info("============================================================");
-    LOGGER.info("[SogkiRP] RESOURCE PACKS (STARTUP)");
-    LOGGER.info("[SogkiRP] Endpoint: {}", config.activeEndpoint);
-    LOGGER.info("[SogkiRP] Active pack count: {}", packs.size());
-    LOGGER.info("------------------------------------------------------------");
+    String sep = "============================================================";
+    String mid = "------------------------------------------------------------";
+    LOGGER.info(sep);
+    System.out.println(sep);
+    logLine("RESOURCE PACKS (STARTUP)");
+    logLine("Endpoint: " + config.activeEndpoint);
+    logLine("Active pack count: " + packs.size());
+    LOGGER.info(mid);
+    System.out.println(mid);
     for (int i = 0; i < packs.size(); i++) {
       PackEntry pack = packs.get(i);
-      LOGGER.info(
-        "[SogkiRP] {}. {} | {} | {} | {}",
-        String.format("%02d", i + 1),
-        pack.name(),
-        pack.version(),
-        formatBytes(pack.size()),
-        pack.url()
-      );
+      logLine(String.format("%02d", i + 1) + ". " + pack.name() + " | " + pack.version() + " | " + formatBytes(pack.size()) + " | " + pack.url());
     }
-    LOGGER.info("============================================================");
+    LOGGER.info(sep);
+    System.out.println(sep);
   }
 
   private static void logStartupHeader() {
-    LOGGER.info("============================================================");
-    LOGGER.info("[SogkiRP] Initializing Sogki Resource Pack Manager");
-    LOGGER.info("[SogkiRP] Active endpoint: {}", config.activeEndpoint);
-    LOGGER.info("[SogkiRP] Prompt on join: {}", config.promptOnJoin);
-    LOGGER.info("============================================================");
+    logBlock(
+      "INITIALIZING SOGKI RESOURCE PACK MANAGER",
+      "Active endpoint: " + config.activeEndpoint,
+      "Prompt on join: " + config.promptOnJoin,
+      "Keybind: " + openKeyLabel()
+    );
+  }
+
+  public static void logUiEvent(String message) {
+    logLine("[UI] " + message);
+  }
+
+  private static void logLine(String message) {
+    String line = "[SogkiRP] " + message;
+    LOGGER.info(line);
+    System.out.println(line);
+  }
+
+  private static void logWarnLine(String message) {
+    String line = "[SogkiRP] " + message;
+    LOGGER.warn(line);
+    System.out.println(line);
+  }
+
+  private static void logBlock(String title, String... lines) {
+    String sep = "============================================================";
+    LOGGER.info(sep);
+    System.out.println(sep);
+    logLine(title);
+    for (String line : lines) {
+      logLine(line);
+    }
+    LOGGER.info(sep);
+    System.out.println(sep);
   }
 
   private static String rootMessage(Throwable error) {

@@ -22,9 +22,10 @@ public final class JoinPromptScreen extends Screen {
   private static final int COLOR_BODY = 0xFFE0E0E0;
   private static final int COLOR_HELP = 0xFFB5C9FF;
   private static final int COLOR_TITLE = 0xFFB486FF;
-  private static final int COLOR_PANEL = 0xEE0E101A;
+  private static final int COLOR_BACKGROUND = 0xFF000000;
+  private static final int COLOR_PANEL = 0xFF141722;
   private static final int COLOR_PANEL_BORDER = 0xFF3A3A48;
-  private static final int COLOR_ROW = 0xCC1B1B2A;
+  private static final int COLOR_ROW = 0xFF1B1B2A;
   private static final int COLOR_ROW_BORDER = 0xFF50506A;
   private final Screen parent;
   private final RpManagerConfig config;
@@ -70,7 +71,10 @@ public final class JoinPromptScreen extends Screen {
     downloadButton = addDrawableChild(ButtonWidget.builder(Text.literal("Download All"), button -> startDownload())
       .dimensions(listLeft, listActionsY, 112, 20)
       .build());
-    refreshButton = addDrawableChild(ButtonWidget.builder(Text.literal("Refresh"), button -> discoverPacks())
+    refreshButton = addDrawableChild(ButtonWidget.builder(Text.literal("Refresh"), button -> {
+        SogkiRpManagerClient.logUiEvent("Refresh button clicked.");
+        discoverPacks("refresh");
+      })
       .dimensions(listLeft + 118, listActionsY, 84, 20)
       .build());
     closeButton = addDrawableChild(ButtonWidget.builder(Text.literal("I'll do this later"), button -> close())
@@ -80,13 +84,15 @@ public final class JoinPromptScreen extends Screen {
     refreshRowButtons();
     if (!discovered) {
       discovered = true;
-      discoverPacks();
+      SogkiRpManagerClient.logUiEvent("RP manager screen opened.");
+      discoverPacks("initial-open");
     }
   }
 
-  private void discoverPacks() {
+  private void discoverPacks(String reason) {
     setLoading(true);
     fetchError = "";
+    SogkiRpManagerClient.logUiEvent("Fetching active packs (" + reason + ").");
     CompletableFuture
       .supplyAsync(() -> {
         try {
@@ -103,6 +109,7 @@ public final class JoinPromptScreen extends Screen {
           fetchError = "";
           setLoading(false);
           refreshRowButtons();
+          SogkiRpManagerClient.logUiEvent("Fetched " + packs.size() + " active pack(s).");
         });
       })
       .exceptionally(error -> {
@@ -111,6 +118,7 @@ public final class JoinPromptScreen extends Screen {
             fetchError = "Could not load active packs. Press Refresh and try again.";
             setLoading(false);
             refreshRowButtons();
+            SogkiRpManagerClient.logUiEvent("Fetch failed: " + error.getMessage());
           });
         }
         return null;
@@ -221,7 +229,8 @@ public final class JoinPromptScreen extends Screen {
 
   @Override
   public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-    renderBackground(context, mouseX, mouseY, delta);
+    // Fully opaque, single-pass UI (no fade/transparency effects).
+    context.fill(0, 0, width, height, COLOR_BACKGROUND);
 
     // Draw panel and list containers in standard GUI layer.
     context.fill(panelLeft, panelTop, panelLeft + panelWidth, panelTop + panelHeight, COLOR_PANEL);
@@ -244,10 +253,7 @@ public final class JoinPromptScreen extends Screen {
       y += 32;
     }
 
-    // Draw widgets.
-    super.render(context, mouseX, mouseY, delta);
-
-    // Draw text after widgets to keep labels crisp and unified.
+    // Draw text and then widgets so button hover states remain visible.
     int centerX = width / 2;
     context.drawCenteredTextWithShadow(textRenderer, Text.literal("Sogki's Cobblemon Resource Pack Manager"), centerX, panelTop + 12, COLOR_TITLE);
     context.drawCenteredTextWithShadow(textRenderer, Text.literal("Browse active packs and download one-by-one or all at once."), centerX, panelTop + 26, COLOR_MUTED);
@@ -281,6 +287,8 @@ public final class JoinPromptScreen extends Screen {
       int currentEnd = Math.min(listOffset + ROWS_PER_PAGE, packs.size());
       context.drawTextWithShadow(textRenderer, "Showing " + currentStart + "-" + currentEnd + " of " + packs.size() + " (use mouse wheel to scroll)", listLeft, panelTop + panelHeight - 44, COLOR_SOFT);
     }
+
+    super.render(context, mouseX, mouseY, delta);
   }
 
   @Override
