@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "id": "sogkirpmanager",
+  "version": "${version}",
+  "name": "Sogki Resource Pack Manager",
+  "description": "Prompts players to download multiple server resource packs with one click.",
+  "authors": [
+    "Sogki"
+  ],
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "dev.sogki.rpmanager.SogkiRpManagerClient"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.16.10",
+    "fabric-api": "*",
+    "minecraft": "~1.21.1"
+  }
+}

@@ -13,6 +13,12 @@ dist-ssr
 *.local
 .env
 
+# Gradle / Fabric mod build artifacts and caches
+mods/**/.gradle/
+mods/**/build/
+mods/**/.gradle-user-home/
+mods/**/.gradle-user-home-*/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

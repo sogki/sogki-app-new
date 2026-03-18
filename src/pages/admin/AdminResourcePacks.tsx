@@ -237,6 +237,9 @@ export default function AdminResourcePacks() {
                     <span className="mx-2">•</span>
                     <span>Uploaded {new Date(pack.created_at).toLocaleString()}</span>
                   </div>
+                  <div className="text-xs text-gray-500 mt-1 break-all">
+                    URL: <span className="text-gray-300">{directUrl}</span>
+                  </div>
                   <div className="text-xs text-gray-500 mt-1 break-all">SHA1: {pack.sha1}</div>
                 </div>
 
