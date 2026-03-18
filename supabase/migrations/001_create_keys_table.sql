@@ -42,6 +42,7 @@ ALTER TABLE public.keys ENABLE ROW LEVEL SECURITY;
 
 -- Policy: Only public keys are readable by anon/authenticated roles
 -- Sensitive keys (is_public = false) are only accessible via service_role (RLS bypassed)
+DROP POLICY IF EXISTS "Public keys are readable by all" ON public.keys;
 CREATE POLICY "Public keys are readable by all"
   ON public.keys
   FOR SELECT

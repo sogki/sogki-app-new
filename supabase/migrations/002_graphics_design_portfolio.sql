@@ -72,9 +72,11 @@ CREATE TRIGGER graphics_assets_updated_at
 ALTER TABLE public.graphics_design_collections ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.graphics_design_assets ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Collections are publicly readable" ON public.graphics_design_collections;
 CREATE POLICY "Collections are publicly readable"
   ON public.graphics_design_collections FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS "Assets are publicly readable" ON public.graphics_design_assets;
 CREATE POLICY "Assets are publicly readable"
   ON public.graphics_design_assets FOR SELECT USING (true);
 

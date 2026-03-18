@@ -88,11 +88,15 @@ ALTER TABLE public.projects ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.social_links ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.footer_config ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Published blogs are readable" ON public.blogs;
 CREATE POLICY "Published blogs are readable" ON public.blogs FOR SELECT
   USING (published_at IS NOT NULL);
 
+DROP POLICY IF EXISTS "Projects are readable" ON public.projects;
 CREATE POLICY "Projects are readable" ON public.projects FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Social links are readable" ON public.social_links;
 CREATE POLICY "Social links are readable" ON public.social_links FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Footer config is readable" ON public.footer_config;
 CREATE POLICY "Footer config is readable" ON public.footer_config FOR SELECT USING (true);
 
 -- Admin write access via service_role (RLS bypassed) - no anon/authenticated write policies
