@@ -42,9 +42,27 @@ async function adminFetch(path: string, options: RequestInit = {}) {
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     if (res.status === 401) throw new Error('Session expired. Please log in again.');
-    throw new Error(data.error || `HTTP ${res.status}`);
+    throw new Error(resolveApiError(data, res.status));
   }
   return data;
+}
+
+function resolveApiError(data: unknown, status: number): string {
+  if (typeof data === 'string' && data.trim()) return data;
+  if (data && typeof data === 'object') {
+    const obj = data as Record<string, unknown>;
+    const primary = obj.error;
+    if (typeof primary === 'string' && primary.trim()) return primary;
+    if (primary && typeof primary === 'object') {
+      const nested = primary as Record<string, unknown>;
+      if (typeof nested.message === 'string' && nested.message.trim()) return nested.message;
+      if (typeof nested.details === 'string' && nested.details.trim()) return nested.details;
+      if (typeof nested.hint === 'string' && nested.hint.trim()) return nested.hint;
+      if (typeof nested.code === 'string' && nested.code.trim()) return `Error code: ${nested.code}`;
+    }
+    if (typeof obj.message === 'string' && obj.message.trim()) return obj.message;
+  }
+  return `HTTP ${status}`;
 }
 
 export const adminApi = {

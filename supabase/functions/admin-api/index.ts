@@ -85,7 +85,7 @@ Deno.serve(async (req) => {
       return await handleMutate(supabase, req.method, parts, body);
     }
   } catch (err) {
-    return json({ error: String(err) }, 500);
+    return json({ error: errorMessage(err) }, 500);
   }
 
   return json({ error: 'Not found' }, 404);
@@ -327,6 +327,22 @@ function json(data: unknown, status = 200) {
     status,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
+}
+
+function errorMessage(err: unknown) {
+  if (typeof err === 'string') return err;
+  if (err && typeof err === 'object') {
+    const obj = err as Record<string, unknown>;
+    const message = obj.message;
+    if (typeof message === 'string' && message.trim()) return message;
+    const details = obj.details;
+    if (typeof details === 'string' && details.trim()) return details;
+    const hint = obj.hint;
+    if (typeof hint === 'string' && hint.trim()) return hint;
+    const code = obj.code;
+    if (typeof code === 'string' && code.trim()) return `Error code: ${code}`;
+  }
+  return 'Unknown admin API error';
 }
 
 function slugify(value: string) {
