@@ -1,6 +1,7 @@
 package dev.sogki.rpmanager;
 
 import com.mojang.brigadier.CommandDispatcher;
+import dev.sogki.rpmanager.config.PromptPlayerDataStore;
 import dev.sogki.rpmanager.config.RpManagerConfig;
 import dev.sogki.rpmanager.model.PackEntry;
 import dev.sogki.rpmanager.service.PackDiscoveryService;
@@ -30,10 +31,12 @@ public final class SogkiRpManagerClient implements ClientModInitializer {
   private static KeyBinding openManagerKey;
   private static boolean promptShownForConnection = false;
   private static boolean startupLogged = false;
+  private static PromptPlayerDataStore promptPlayerDataStore;
 
   @Override
   public void onInitializeClient() {
     config = RpManagerConfig.load();
+    promptPlayerDataStore = PromptPlayerDataStore.load();
     logLine("Client mod loaded (pre-init).");
 
     openManagerKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
@@ -48,15 +51,18 @@ public final class SogkiRpManagerClient implements ClientModInitializer {
     ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
       if (!config.promptOnJoin || promptShownForConnection) return;
       String serverKey = resolveServerKey(client, handler);
-      if (config.hasSeenPromptForServer(serverKey)) {
+      String playerKey = resolvePlayerKey(client);
+      if (promptPlayerDataStore != null && promptPlayerDataStore.hasSeen(serverKey, playerKey)) {
         promptShownForConnection = true;
-        logUiEvent("Join prompt already shown before for server: " + serverKey);
+        logUiEvent("Join prompt already shown before for player/server: " + playerKey + " @ " + serverKey);
         return;
       }
-      config.markPromptSeenForServer(serverKey);
-      config.save();
+      if (promptPlayerDataStore != null) {
+        promptPlayerDataStore.markSeen(serverKey, playerKey);
+        promptPlayerDataStore.save();
+      }
       promptShownForConnection = true;
-      logUiEvent("Opening RP manager on first join for server: " + serverKey);
+      logUiEvent("Opening RP manager on first join for player/server: " + playerKey + " @ " + serverKey);
       client.execute(() -> client.setScreen(new JoinPromptScreen(client.currentScreen, config)));
       fetchAndLogPacks("JOIN");
     });
@@ -278,6 +284,22 @@ public final class SogkiRpManagerClient implements ClientModInitializer {
     }
 
     return "unknown-server";
+  }
+
+  private static String resolvePlayerKey(net.minecraft.client.MinecraftClient client) {
+    try {
+      var uuid = client.getSession().getUuidOrNull();
+      if (uuid != null) return uuid.toString().toLowerCase(Locale.ROOT);
+    } catch (Throwable ignored) {
+    }
+    try {
+      String username = client.getSession().getUsername();
+      if (username != null && !username.isBlank()) {
+        return username.trim().toLowerCase(Locale.ROOT);
+      }
+    } catch (Throwable ignored) {
+    }
+    return "unknown-player";
   }
 
   private static String formatBytes(int bytes) {

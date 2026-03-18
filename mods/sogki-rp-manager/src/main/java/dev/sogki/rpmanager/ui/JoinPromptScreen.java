@@ -60,7 +60,7 @@ public final class JoinPromptScreen extends Screen {
 
     int centerX = width / 2;
     panelWidth = Math.min(460, width - 40);
-    panelHeight = Math.min(320, height - 30);
+    panelHeight = Math.min(340, height - 30);
     panelLeft = centerX - panelWidth / 2;
     panelTop = (height - panelHeight) / 2;
     int listActionsY = panelTop + 88;
@@ -289,7 +289,7 @@ public final class JoinPromptScreen extends Screen {
     }
 
     if (loading) {
-      context.drawTextWithShadow(textRenderer, "Loading packs...", listLeft + 4, listTop + 12, COLOR_MUTED);
+      context.drawCenteredTextWithShadow(textRenderer, Text.literal("Loading packs..."), centerX, panelTop + (panelHeight / 2), COLOR_MUTED);
     } else if (packs.isEmpty()) {
       context.drawTextWithShadow(textRenderer, "No active packs currently listed.", listLeft + 4, listTop + 12, COLOR_MUTED);
       context.drawTextWithShadow(textRenderer, "Ask staff to activate packs in the admin panel and press Refresh.", listLeft + 4, listTop + 26, COLOR_SOFT);
@@ -301,7 +301,7 @@ public final class JoinPromptScreen extends Screen {
     if (packs.size() > ROWS_PER_PAGE) {
       int currentStart = listOffset + 1;
       int currentEnd = Math.min(listOffset + ROWS_PER_PAGE, packs.size());
-      context.drawTextWithShadow(textRenderer, "Showing " + currentStart + "-" + currentEnd + " of " + packs.size() + " (use mouse wheel to scroll)", listLeft, panelTop + panelHeight - 44, COLOR_SOFT);
+      context.drawTextWithShadow(textRenderer, "Showing " + currentStart + "-" + currentEnd + " of " + packs.size() + " (use mouse wheel to scroll)", listLeft, panelTop + panelHeight - 16, COLOR_SOFT);
     }
   }
 
@@ -330,8 +330,8 @@ public final class JoinPromptScreen extends Screen {
   }
 
   private void drawScrollbar(DrawContext context) {
-    int trackLeft = listLeft + listWidth - 5;
-    int trackRight = trackLeft + 2;
+    int trackLeft = listLeft + listWidth - 1;
+    int trackRight = trackLeft + 1;
     int trackTop = listTop + 2;
     int trackBottom = listTop + ROWS_PER_PAGE * ROW_HEIGHT - 2;
     int trackHeight = Math.max(8, trackBottom - trackTop);
