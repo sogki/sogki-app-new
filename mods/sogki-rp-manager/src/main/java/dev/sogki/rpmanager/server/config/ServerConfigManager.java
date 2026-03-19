@@ -27,6 +27,7 @@ public final class ServerConfigManager {
   private static final Path ANNOUNCEMENTS_JSON_PATH = BASE_DIR.resolve("announcements.json");
   private static final Path AREA_JSON_PATH = BASE_DIR.resolve("area.json");
   private static final Path STREAK_JSON_PATH = BASE_DIR.resolve("streak.json");
+  private static final Path QUIZ_JSON_PATH = BASE_DIR.resolve("quiz.json");
   private static final Path REGIONS_JSON_PATH = BASE_DIR.resolve("regions.json");
   private static final Path COBBLETOWN_JSON_PATH = BASE_DIR.resolve("cobbletown.json");
   private static final Path MESSAGES_JSON_PATH = BASE_DIR.resolve("messages.json");
@@ -77,6 +78,7 @@ public final class ServerConfigManager {
     cfg.announcements = loadJsonSection(ANNOUNCEMENTS_JSON_PATH, defaults.announcements, ServerFeatureConfig.AnnouncementConfig.class);
     cfg.area = loadJsonSection(AREA_JSON_PATH, defaults.area, ServerFeatureConfig.AreaConfig.class);
     cfg.streak = loadJsonSection(STREAK_JSON_PATH, defaults.streak, ServerFeatureConfig.StreakConfig.class);
+    cfg.quiz = loadJsonSection(QUIZ_JSON_PATH, defaults.quiz, ServerFeatureConfig.QuizConfig.class);
     cfg.regions = loadJsonSection(REGIONS_JSON_PATH, defaults.regions, ServerFeatureConfig.RegionConfig.class);
     cfg.cobbletown = loadJsonSection(COBBLETOWN_JSON_PATH, defaults.cobbletown, ServerFeatureConfig.CobbletownConfig.class);
     cfg.messages = loadJsonSection(MESSAGES_JSON_PATH, defaults.messages, ServerFeatureConfig.MessagesConfig.class);
@@ -298,6 +300,18 @@ public final class ServerConfigManager {
     cfg.streak.rewards.add(reward(5, "minecraft:glowstone_dust", 12, "Training Dust"));
     cfg.streak.rewards.add(reward(6, "minecraft:lapis_lazuli", 20, "Move Tutor Dust"));
     cfg.streak.rewards.add(reward(7, "minecraft:diamond", 2, "Weekly Bonus"));
+    cfg.quiz.questions.add(defaultQuiz("What's the evolution of Squirtle?", List.of("wartortle"), List.of(
+      rewardItem("cobblemon:poke_ball", 8, "Pokeballs"),
+      rewardItem("minecraft:experience_bottle", 6, "EXP Bottles")
+    )));
+    cfg.quiz.questions.add(defaultQuiz("What's the evolution of Charmander?", List.of("charmeleon"), List.of(
+      rewardItem("cobblemon:exp_candy_s", 2, "EXP Candy S"),
+      rewardItem("cobblemon:poke_ball", 6, "Pokeballs")
+    )));
+    cfg.quiz.questions.add(defaultQuiz("What's the evolution of Bulbasaur?", List.of("ivysaur"), List.of(
+      rewardItem("cobblemon:oran_berry", 6, "Oran Berries"),
+      rewardItem("cobblemon:poke_ball", 6, "Pokeballs")
+    )));
     return cfg;
   }
 
@@ -315,11 +329,28 @@ public final class ServerConfigManager {
     return rule;
   }
 
+  private ServerFeatureConfig.QuizQuestion defaultQuiz(String question, List<String> answers, List<ServerFeatureConfig.RewardItem> rewards) {
+    ServerFeatureConfig.QuizQuestion quiz = new ServerFeatureConfig.QuizQuestion();
+    quiz.question = question;
+    quiz.answers = new ArrayList<>(answers);
+    quiz.rewards = new ArrayList<>(rewards);
+    return quiz;
+  }
+
+  private ServerFeatureConfig.RewardItem rewardItem(String itemId, int count, String label) {
+    ServerFeatureConfig.RewardItem item = new ServerFeatureConfig.RewardItem();
+    item.itemId = itemId;
+    item.count = count;
+    item.label = label;
+    return item;
+  }
+
   private void ensureDefaults(ServerFeatureConfig cfg) {
     if (cfg.brand == null) cfg.brand = "";
     if (cfg.announcements == null) cfg.announcements = new ServerFeatureConfig.AnnouncementConfig();
     if (cfg.area == null) cfg.area = new ServerFeatureConfig.AreaConfig();
     if (cfg.streak == null) cfg.streak = new ServerFeatureConfig.StreakConfig();
+    if (cfg.quiz == null) cfg.quiz = new ServerFeatureConfig.QuizConfig();
     if (cfg.regions == null) cfg.regions = new ServerFeatureConfig.RegionConfig();
     if (cfg.cobbletown == null) cfg.cobbletown = new ServerFeatureConfig.CobbletownConfig();
     if (cfg.chat == null) cfg.chat = new ServerFeatureConfig.ChatConfig();
@@ -332,6 +363,16 @@ public final class ServerConfigManager {
     for (ServerFeatureConfig.RewardRule reward : cfg.streak.rewards) {
       if (reward == null) continue;
       if (reward.items == null) reward.items = new java.util.ArrayList<>();
+    }
+    if (cfg.quiz.questions == null) cfg.quiz.questions = new java.util.ArrayList<>();
+    if (cfg.quiz.questions.isEmpty()) cfg.quiz.questions = defaultsWithRewards().quiz.questions;
+    cfg.quiz.intervalSeconds = Math.max(30, cfg.quiz.intervalSeconds);
+    cfg.quiz.timeLimitSeconds = Math.max(5, cfg.quiz.timeLimitSeconds);
+    cfg.quiz.minOnlinePlayers = Math.max(1, cfg.quiz.minOnlinePlayers);
+    for (ServerFeatureConfig.QuizQuestion question : cfg.quiz.questions) {
+      if (question == null) continue;
+      if (question.answers == null) question.answers = new java.util.ArrayList<>();
+      if (question.rewards == null) question.rewards = new java.util.ArrayList<>();
     }
     if (cfg.area.towns == null) cfg.area.towns = new java.util.ArrayList<>();
     if (cfg.area.enterDisplay == null) cfg.area.enterDisplay = new ServerFeatureConfig.DisplayRoute();

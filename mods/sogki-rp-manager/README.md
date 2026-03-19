@@ -51,6 +51,7 @@ Saved at:
 - `config/sogki-cobblemon/announcements.json`
 - `config/sogki-cobblemon/area.json`
 - `config/sogki-cobblemon/streak.json`
+- `config/sogki-cobblemon/quiz.json`
 - `config/sogki-cobblemon/regions.json`
 - `config/sogki-cobblemon/cobbletown.json`
 - `config/sogki-cobblemon/messages.json`
@@ -64,6 +65,7 @@ Reference examples are included in:
 - `config-example/announcements.json`
 - `config-example/area.json`
 - `config-example/streak.json`
+- `config-example/quiz.json`
 - `config-example/regions.json`
 - `config-example/cobbletown.json`
 - `config-example/messages.json`
@@ -77,7 +79,7 @@ Supported placeholders include:
 - `{x}`, `{y}`, `{z}`
 - `{pokemonCount}` (party + PC total), `{partyCount}`, `{pcCount}`
 - `{pokedexCaught}`, `{pokedexSeen}`
-- message-specific values like `{day}`, `{count}`, `{label}`, `{region}`, `{town}`, `{status}`, `{pokemon}`
+- message-specific values like `{day}`, `{count}`, `{label}`, `{region}`, `{town}`, `{status}`, `{pokemon}`, `{question}`, `{answer}`, `{seconds}`, `{rewards}`
 
 Display route toggles for area/town notifications are in `area.json`:
 
@@ -97,6 +99,7 @@ Town/region protections:
 - `regions.json` supports generic protected regions.
 - `cobbletown.json` supports Cobbletown ID mappings with independent protection flags.
 - Protections are designed to block breaking/placing/explosives/spawns while still allowing normal right-click interactions (doors, PCs, healing stations).
+- `denyCreeperExplosions` and `denyEndermanGrief` are available per region/town (legacy `denyExplosives` remains supported and enables both).
 - `regions.protectVillagersFromMobs` blocks villager damage from mob attackers/projectiles without disabling mob spawns.
 - `regions.villagersIgnoreZombieFear` makes villagers stop treating nearby zombies as a flee trigger.
 
@@ -117,6 +120,7 @@ Radius mode setup (easy `/locate structure` workflow):
 - Admin (`permission level >= 2`):
   - `/setspawn` - set server spawn to your current location
   - `/sogkiadmin reload`
+  - `/sogkiadmin quiz start|skip|status`
   - `/sogkiadmin tab preview`
   - `/sogkiadmin sidebar preview`
   - `/sogkiadmin announce <message>`

@@ -19,6 +19,9 @@
       "maxZ": 64,
       "denyBlockBreak": true,
       "denyBlockPlace": true,
+      "denyExplosives": true,
+      "denyCreeperExplosions": true,
+      "denyEndermanGrief": true,
       "denyMobSpawn": true,
       "isTown": true
     }

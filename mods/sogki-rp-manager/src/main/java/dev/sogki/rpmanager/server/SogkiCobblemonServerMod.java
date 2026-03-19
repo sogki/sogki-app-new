@@ -12,6 +12,7 @@ import dev.sogki.rpmanager.server.service.CobblemonAnnouncementService;
 import dev.sogki.rpmanager.server.service.RegionProtectionService;
 import dev.sogki.rpmanager.server.service.StreakService;
 import dev.sogki.rpmanager.server.service.TablistSidebarService;
+import dev.sogki.rpmanager.server.service.QuizService;
 import dev.sogki.rpmanager.server.util.MessageDisplay;
 import dev.sogki.rpmanager.server.util.TemplateEngine;
 import net.fabricmc.api.ModInitializer;
@@ -36,6 +37,7 @@ import net.minecraft.block.TrapdoorBlock;
 import net.minecraft.command.argument.IdentifierArgumentType;
 import net.minecraft.entity.ai.brain.MemoryModuleType;
 import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.mob.EndermanEntity;
 import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.entity.passive.VillagerEntity;
 import net.minecraft.entity.mob.ZombieEntity;
@@ -76,6 +78,7 @@ public final class SogkiCobblemonServerMod implements ModInitializer {
   private static final ChatFormatService CHAT_SERVICE = new ChatFormatService();
   private static final TablistSidebarService TABLIST_SERVICE = new TablistSidebarService();
   private static final CobblemonAnnouncementService COBBLEMON_ANNOUNCEMENTS = new CobblemonAnnouncementService(LOGGER);
+  private static final QuizService QUIZ_SERVICE = new QuizService();
 
   private static long ticks;
 
@@ -106,8 +109,11 @@ public final class SogkiCobblemonServerMod implements ModInitializer {
       ServerFeatureConfig cfg = CONFIG_MANAGER.get();
       AREA_SERVICE.tick(server, cfg, ticks);
       TABLIST_SERVICE.tick(server, cfg, ticks);
+      QUIZ_SERVICE.tick(server, cfg, ticks);
       enforceMobSpawnRules(server, cfg);
+      enforceExplosiveRegionSafety(server, cfg);
       suppressVillagerZombiePanic(server, cfg);
+      enforceNpcPersistence(server);
     });
 
     ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
@@ -185,6 +191,7 @@ public final class SogkiCobblemonServerMod implements ModInitializer {
           if (pos == null) continue;
           if (REGION_SERVICE.denyMobSpawn(world, pos, entity, cfg)) {
             toDiscard.add(entity);
+            continue;
           }
         } catch (Throwable ignored) {
           // Defensive guard: skip entities that become invalid mid-iteration.
@@ -223,9 +230,55 @@ public final class SogkiCobblemonServerMod implements ModInitializer {
     }
   }
 
+  private void enforceExplosiveRegionSafety(net.minecraft.server.MinecraftServer server, ServerFeatureConfig cfg) {
+    if (!cfg.regions.enabled && (cfg.cobbletown == null || !cfg.cobbletown.enabled)) return;
+    if (ticks % 5 != 0) return;
+    for (var world : server.getWorlds()) {
+      List<net.minecraft.entity.Entity> toDiscard = new ArrayList<>();
+      for (var entity : world.iterateEntities()) {
+        if (entity == null) continue;
+        try {
+          var pos = entity.getBlockPos();
+          if (pos == null) continue;
+          if (REGION_SERVICE.denyExplosiveThreatEntity(world, pos, entity, cfg)) {
+            toDiscard.add(entity);
+            continue;
+          }
+          if (entity instanceof EndermanEntity enderman
+            && REGION_SERVICE.denyEndermanGriefInProtectedArea(world, pos, entity, cfg)) {
+            enderman.setCarriedBlock(null);
+          }
+        } catch (Throwable ignored) {
+        }
+      }
+      for (var entity : toDiscard) {
+        try {
+          if (entity != null && entity.isAlive()) entity.discard();
+        } catch (Throwable ignored) {
+        }
+      }
+    }
+  }
+
+  private void enforceNpcPersistence(net.minecraft.server.MinecraftServer server) {
+    if (ticks % 40 != 0) return;
+    for (var world : server.getWorlds()) {
+      for (var entity : world.iterateEntities()) {
+        if (!(entity instanceof MobEntity mob)) continue;
+        if (!isCobbletownEntity(entity)) continue;
+        try {
+          mob.setPersistent();
+        } catch (Throwable ignored) {
+          // Best effort: keep custom town NPCs from despawning.
+        }
+      }
+    }
+  }
+
   private void registerFormattingHooks() {
     ServerMessageDecoratorEvent.EVENT.register(ServerMessageDecoratorEvent.CONTENT_PHASE, (sender, message) -> {
       if (sender == null || sender.getServer() == null) return message;
+      QUIZ_SERVICE.onPlayerChat(sender.getServer(), sender, message.getString(), CONFIG_MANAGER.get());
       return CHAT_SERVICE.format(sender.getServer(), sender, message, CONFIG_MANAGER.get());
     });
   }
@@ -262,6 +315,13 @@ public final class SogkiCobblemonServerMod implements ModInitializer {
           .executes(ctx -> runCheckRegion(ctx.getSource())))
         .then(CommandManager.literal("whereami")
           .executes(ctx -> runWhereAmI(ctx.getSource())))
+        .then(CommandManager.literal("quiz")
+          .then(CommandManager.literal("start")
+            .executes(ctx -> runQuizStart(ctx.getSource())))
+          .then(CommandManager.literal("skip")
+            .executes(ctx -> runQuizSkip(ctx.getSource())))
+          .then(CommandManager.literal("status")
+            .executes(ctx -> runQuizStatus(ctx.getSource()))))
         .then(CommandManager.literal("makeradius")
           .then(CommandManager.literal("region")
             .then(CommandManager.argument("id", StringArgumentType.word())
@@ -433,6 +493,8 @@ public final class SogkiCobblemonServerMod implements ModInitializer {
         + "  \"denyBlockBreak\": true,\n"
         + "  \"denyBlockPlace\": true,\n"
         + "  \"denyExplosives\": true,\n"
+        + "  \"denyCreeperExplosions\": true,\n"
+        + "  \"denyEndermanGrief\": true,\n"
         + "  \"denyMobSpawn\": true,\n"
         + "  \"isTown\": false\n"
         + "}";
@@ -464,6 +526,8 @@ public final class SogkiCobblemonServerMod implements ModInitializer {
         + "  \"denyBlockBreak\": true,\n"
         + "  \"denyBlockPlace\": true,\n"
         + "  \"denyExplosives\": true,\n"
+        + "  \"denyCreeperExplosions\": true,\n"
+        + "  \"denyEndermanGrief\": true,\n"
         + "  \"denyMobSpawn\": true\n"
         + "}";
       source.sendFeedback(() -> Text.literal("Cobbletown radius snippet generated (copy from logs/chat output)."), false);
@@ -504,6 +568,39 @@ public final class SogkiCobblemonServerMod implements ModInitializer {
     }
   }
 
+  private static int runQuizStart(ServerCommandSource source) {
+    if (source.getServer() == null) return 0;
+    boolean started = QUIZ_SERVICE.forceStart(source.getServer(), CONFIG_MANAGER.get(), ticks);
+    if (!started) {
+      String msg = TemplateEngine.render(CONFIG_MANAGER.get().messages.quizAdminStartFailed, Map.of());
+      source.sendError(Text.literal(msg));
+      return 0;
+    }
+    String msg = TemplateEngine.render(CONFIG_MANAGER.get().messages.quizAdminStartSuccess, Map.of());
+    source.sendFeedback(() -> Text.literal(msg), true);
+    return 1;
+  }
+
+  private static int runQuizSkip(ServerCommandSource source) {
+    if (source.getServer() == null) return 0;
+    boolean skipped = QUIZ_SERVICE.skipActive(source.getServer(), CONFIG_MANAGER.get());
+    if (!skipped) {
+      String msg = TemplateEngine.render(CONFIG_MANAGER.get().messages.quizAdminSkipFailed, Map.of());
+      source.sendError(Text.literal(msg));
+      return 0;
+    }
+    String msg = TemplateEngine.render(CONFIG_MANAGER.get().messages.quizAdminSkipSuccess, Map.of());
+    source.sendFeedback(() -> Text.literal(msg), true);
+    return 1;
+  }
+
+  private static int runQuizStatus(ServerCommandSource source) {
+    String status = QUIZ_SERVICE.status(ticks);
+    String msg = TemplateEngine.render(CONFIG_MANAGER.get().messages.quizAdminStatus, Map.of("status", status));
+    source.sendFeedback(() -> Text.literal(msg), false);
+    return 1;
+  }
+
   private static boolean shouldAllowInteraction(BlockState state, net.minecraft.server.network.ServerPlayerEntity player) {
     if (state == null || state.isAir()) return false;
     if (player != null && player.isSneaking()) return false;
@@ -537,6 +634,17 @@ public final class SogkiCobblemonServerMod implements ModInitializer {
       || path.contains("crafting")
       || path.contains("furnace")
       || path.contains("enchanting_table");
+  }
+
+  private boolean isCobbletownEntity(net.minecraft.entity.Entity entity) {
+    try {
+      Identifier id = Registries.ENTITY_TYPE.getId(entity.getType());
+      if (id == null) return false;
+      String namespace = id.getNamespace();
+      return "cobbletown".equals(namespace) || "cobbletowns".equals(namespace);
+    } catch (Throwable ignored) {
+      return false;
+    }
   }
 
   private static SpawnPoint loadSpawn() {

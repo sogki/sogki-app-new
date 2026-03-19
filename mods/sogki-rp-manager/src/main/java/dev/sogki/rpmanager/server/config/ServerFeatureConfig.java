@@ -9,6 +9,7 @@ public final class ServerFeatureConfig {
   public AnnouncementConfig announcements = new AnnouncementConfig();
   public AreaConfig area = new AreaConfig();
   public StreakConfig streak = new StreakConfig();
+  public QuizConfig quiz = new QuizConfig();
   public RegionConfig regions = new RegionConfig();
   public CobbletownConfig cobbletown = new CobbletownConfig();
   public ChatConfig chat = new ChatConfig();
@@ -79,6 +80,28 @@ public final class ServerFeatureConfig {
     public String label = "Reward";
   }
 
+  public static final class QuizConfig {
+    public boolean enabled = true;
+    public int intervalSeconds = 900;
+    public int timeLimitSeconds = 20;
+    public int minOnlinePlayers = 1;
+    public List<QuizQuestion> questions = new ArrayList<>();
+  }
+
+  public static final class QuizQuestion {
+    public String question = "What's the evolution of Squirtle?";
+    public List<String> answers = new ArrayList<>(List.of("wartortle"));
+    public List<RewardItem> rewards = new ArrayList<>(List.of(defaultQuizReward()));
+
+    private static RewardItem defaultQuizReward() {
+      RewardItem reward = new RewardItem();
+      reward.itemId = "cobblemon:poke_ball";
+      reward.count = 8;
+      reward.label = "Pokeballs";
+      return reward;
+    }
+  }
+
   public static final class RegionConfig {
     public boolean enabled = true;
     public boolean protectVillagersFromMobs = true;
@@ -102,6 +125,8 @@ public final class ServerFeatureConfig {
     public boolean denyBlockBreak = true;
     public boolean denyBlockPlace = true;
     public boolean denyExplosives = true;
+    public boolean denyCreeperExplosions = true;
+    public boolean denyEndermanGrief = true;
     public boolean denyMobSpawn = false;
     public boolean isTown = false;
     public String displayName = "Spawn";
@@ -129,6 +154,8 @@ public final class ServerFeatureConfig {
     public boolean denyBlockBreak = true;
     public boolean denyBlockPlace = true;
     public boolean denyExplosives = true;
+    public boolean denyCreeperExplosions = true;
+    public boolean denyEndermanGrief = true;
     public boolean denyMobSpawn = true;
   }
 
@@ -185,6 +212,14 @@ public final class ServerFeatureConfig {
     public String spawnTeleported = "Teleported to spawn ({world} @ {x}, {y}, {z}).";
     public String setSpawnPlayerOnly = "Setspawn is player-only.";
     public String setSpawnSuccess = "Spawn set to {world} @ {x}, {y}, {z}.";
+    public String quizStart = "[Quiz] {question} ({seconds}s) - one-word answer only!";
+    public String quizWinner = "[Quiz] {player} got it right ({answer}) and won {rewards}.";
+    public String quizNoWinner = "[Quiz] Time's up! Correct answer: {answer}.";
+    public String quizAdminStartSuccess = "&aQuiz started.";
+    public String quizAdminStartFailed = "&cQuiz could not be started (disabled, active, or no valid questions).";
+    public String quizAdminSkipSuccess = "&aQuiz skipped.";
+    public String quizAdminSkipFailed = "&eNo active quiz to skip.";
+    public String quizAdminStatus = "&7Quiz status: &f{status}";
 
     public String regionDenyBreak = "You cannot break blocks in {region}.";
     public String regionDenyPlace = "You cannot place blocks in {region}.";

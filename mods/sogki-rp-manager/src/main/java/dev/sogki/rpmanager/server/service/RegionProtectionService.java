@@ -3,7 +3,11 @@ package dev.sogki.rpmanager.server.service;
 import dev.sogki.rpmanager.server.config.ServerFeatureConfig;
 import dev.sogki.rpmanager.server.util.TemplateEngine;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.mob.CreeperEntity;
+import net.minecraft.entity.mob.EndermanEntity;
+import net.minecraft.entity.mob.HostileEntity;
 import net.minecraft.entity.mob.MobEntity;
+import net.minecraft.entity.TntEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.Items;
 import net.minecraft.registry.Registries;
@@ -53,6 +57,28 @@ public final class RegionProtectionService {
     return region != null && region.denyMobSpawn;
   }
 
+  public boolean denyHostileMobInExplosiveProtectedArea(World world, BlockPos pos, Entity entity, ServerFeatureConfig config) {
+    if (!config.regions.enabled && (config.cobbletown == null || !config.cobbletown.enabled)) return false;
+    if (!(entity instanceof HostileEntity)) return false;
+    if (isCobblemonEntity(entity)) return false;
+    RegionMatch region = regionAt(world, pos, config);
+    return region != null && region.denyExplosives;
+  }
+
+  public boolean denyExplosiveThreatEntity(World world, BlockPos pos, Entity entity, ServerFeatureConfig config) {
+    if (!config.regions.enabled && (config.cobbletown == null || !config.cobbletown.enabled)) return false;
+    if (!(entity instanceof CreeperEntity) && !(entity instanceof TntEntity)) return false;
+    RegionMatch region = regionAt(world, pos, config);
+    return region != null && region.denyCreeperExplosions;
+  }
+
+  public boolean denyEndermanGriefInProtectedArea(World world, BlockPos pos, Entity entity, ServerFeatureConfig config) {
+    if (!config.regions.enabled && (config.cobbletown == null || !config.cobbletown.enabled)) return false;
+    if (!(entity instanceof EndermanEntity)) return false;
+    RegionMatch region = regionAt(world, pos, config);
+    return region != null && region.denyEndermanGrief;
+  }
+
   public String townNameAt(World world, BlockPos pos, ServerFeatureConfig config) {
     RegionMatch region = regionAt(world, pos, config);
     if (region == null || !region.isTown) return null;
@@ -67,6 +93,8 @@ public final class RegionProtectionService {
       + " | break=" + region.denyBlockBreak
       + " | place=" + region.denyBlockPlace
       + " | explosives=" + region.denyExplosives
+      + " | creeperExplosions=" + region.denyCreeperExplosions
+      + " | endermanGrief=" + region.denyEndermanGrief
       + " | mobSpawn=" + region.denyMobSpawn;
   }
 
@@ -82,6 +110,8 @@ public final class RegionProtectionService {
         region.denyBlockBreak,
         region.denyBlockPlace,
         region.denyExplosives,
+        region.denyExplosives || region.denyCreeperExplosions,
+        region.denyExplosives || region.denyEndermanGrief,
         region.denyMobSpawn
       );
     }
@@ -97,6 +127,8 @@ public final class RegionProtectionService {
           town.denyBlockBreak,
           town.denyBlockPlace,
           town.denyExplosives,
+          town.denyExplosives || town.denyCreeperExplosions,
+          town.denyExplosives || town.denyEndermanGrief,
           town.denyMobSpawn
         );
       }
@@ -146,6 +178,8 @@ public final class RegionProtectionService {
     boolean denyBlockBreak,
     boolean denyBlockPlace,
     boolean denyExplosives,
+    boolean denyCreeperExplosions,
+    boolean denyEndermanGrief,
     boolean denyMobSpawn
   ) {
   }
@@ -153,7 +187,11 @@ public final class RegionProtectionService {
   private boolean isCobblemonEntity(Entity entity) {
     try {
       Identifier id = Registries.ENTITY_TYPE.getId(entity.getType());
-      return id != null && "cobblemon".equals(id.getNamespace());
+      if (id == null) return false;
+      String namespace = id.getNamespace();
+      return "cobblemon".equals(namespace)
+        || "cobbletown".equals(namespace)
+        || "cobbletowns".equals(namespace);
     } catch (Throwable ignored) {
       return false;
     }

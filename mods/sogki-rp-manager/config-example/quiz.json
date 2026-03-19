@@ -1,0 +1,62 @@
+{
+  "enabled": true,
+  "intervalSeconds": 900,
+  "timeLimitSeconds": 20,
+  "minOnlinePlayers": 1,
+  "questions": [
+    {
+      "question": "What's the evolution of Squirtle?",
+      "answers": [
+        "wartortle"
+      ],
+      "rewards": [
+        {
+          "itemId": "cobblemon:poke_ball",
+          "count": 8,
+          "label": "Pokeballs"
+        },
+        {
+          "itemId": "minecraft:experience_bottle",
+          "count": 6,
+          "label": "EXP Bottles"
+        }
+      ]
+    },
+    {
+      "question": "What's the evolution of Charmander?",
+      "answers": [
+        "charmeleon"
+      ],
+      "rewards": [
+        {
+          "itemId": "cobblemon:exp_candy_s",
+          "count": 2,
+          "label": "EXP Candy S"
+        },
+        {
+          "itemId": "cobblemon:poke_ball",
+          "count": 6,
+          "label": "Pokeballs"
+        }
+      ]
+    },
+    {
+      "question": "What's the evolution of Bulbasaur?",
+      "answers": [
+        "ivysaur"
+      ],
+      "rewards": [
+        {
+          "itemId": "cobblemon:oran_berry",
+          "count": 6,
+          "label": "Oran Berries"
+        },
+        {
+          "itemId": "cobblemon:poke_ball",
+          "count": 6,
+          "label": "Pokeballs"
+        }
+      ]
+    }
+  ]
+}
