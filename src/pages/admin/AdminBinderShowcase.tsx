@@ -260,6 +260,7 @@ function ShowcaseEditorModal({
         showcase_id: showcase.id,
         name: 'Set name',
         name_jp: '',
+        description: null,
         completed: 0,
         total: 1,
         sort_order: nextOrder,
@@ -402,7 +403,8 @@ function ShowcaseEditorModal({
                   </button>
                 </div>
                 <p className="text-xs text-gray-500 mb-3">
-                  If you add no rows, the public page hides the progress block for this binder.
+                  Each row shows a percentage and gradient bar from Completed ÷ Total. Add an optional short description
+                  per set (shown above the bar on the site). If you add no rows, this block is hidden for the binder.
                 </p>
                 {sets.map((row) => (
                   <SetRowForm key={row.id} row={row} onSave={saveSet} onDelete={removeSet} />
@@ -451,15 +453,35 @@ function SetRowForm({
 }) {
   const [name, setName] = useState(row.name);
   const [nameJp, setNameJp] = useState(row.name_jp ?? '');
+  const [setDescription, setSetDescription] = useState(row.description ?? '');
   const [completed, setCompleted] = useState(String(row.completed));
   const [total, setTotal] = useState(String(row.total));
   const [sortOrder, setSortOrder] = useState(String(row.sort_order));
+
+  useEffect(() => {
+    setName(row.name);
+    setNameJp(row.name_jp ?? '');
+    setSetDescription(row.description ?? '');
+    setCompleted(String(row.completed));
+    setTotal(String(row.total));
+    setSortOrder(String(row.sort_order));
+  }, [row.id]);
 
   return (
     <div className="p-3 rounded-lg bg-white/5 border border-white/10 mb-3 space-y-2">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         <Input label="Set name" value={name} onChange={setName} />
         <Input label="Set name (JP)" value={nameJp} onChange={setNameJp} />
+      </div>
+      <div>
+        <label className="block text-sm text-gray-400 mb-1">Short description (optional)</label>
+        <textarea
+          value={setDescription}
+          onChange={(e) => setSetDescription(e.target.value)}
+          rows={2}
+          placeholder="e.g. Missing only secret rares from booster boxes"
+          className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white placeholder-gray-600 focus:border-purple-400/50 outline-none text-sm"
+        />
       </div>
       <div className="grid grid-cols-3 gap-2">
         <Input label="Completed" type="number" value={completed} onChange={setCompleted} />
@@ -480,6 +502,7 @@ function SetRowForm({
             onSave(row, {
               name: name.trim() || 'Set',
               name_jp: nameJp.trim() || null,
+              description: setDescription.trim() || null,
               completed: Math.max(0, parseInt(completed, 10) || 0),
               total: Math.max(1, parseInt(total, 10) || 1),
               sort_order: parseInt(sortOrder, 10) || 0,

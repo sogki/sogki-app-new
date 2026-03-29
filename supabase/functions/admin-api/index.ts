@@ -146,7 +146,7 @@ async function handleGet(supabase: any, parts: string[], url: URL) {
           `
           *,
           binder_showcase_images ( id, showcase_id, public_url, storage_path, sort_order ),
-          binder_showcase_sets ( id, showcase_id, name, name_jp, completed, total, sort_order )
+          binder_showcase_sets ( id, showcase_id, name, name_jp, description, completed, total, sort_order )
         `
         )
         .order('sort_order', { ascending: true });

@@ -13,6 +13,8 @@ export type MasterSetProgress = {
   id: string;
   name: string;
   name_jp: string;
+  /** Optional; shown above the bar when set in this file */
+  description?: string | null;
   completed: number;
   total: number;
 };

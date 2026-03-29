@@ -11,8 +11,16 @@ import { fetchBinderShowcases, type BinderShowcase, type BinderShowcaseSet } fro
 
 type SetRow = MasterSetProgress | BinderShowcaseSet;
 
+function setRowDescription(row: SetRow): string | null {
+  const d = 'description' in row ? row.description : undefined;
+  if (d == null || typeof d !== 'string') return null;
+  const t = d.trim();
+  return t ? t : null;
+}
+
 function MasterSetBar({ row, index }: { row: SetRow; index: number }) {
   const pct = Math.min(100, Math.round((row.completed / row.total) * 100));
+  const blurb = setRowDescription(row);
   return (
     <motion.div
       initial={{ opacity: 0, x: -12 }}
@@ -21,18 +29,19 @@ function MasterSetBar({ row, index }: { row: SetRow; index: number }) {
       transition={{ duration: 0.5, delay: index * 0.08, ease: smoothEase }}
       className="rounded-xl border border-white/10 bg-white/[0.03] backdrop-blur-sm p-4 sm:p-5"
     >
-      <div className="flex flex-wrap items-baseline justify-between gap-2 mb-3">
-        <div>
+      <div className="flex flex-wrap items-baseline justify-between gap-2 mb-2">
+        <div className="min-w-0 flex-1">
           <h3 className="text-sm sm:text-base font-semibold text-white font-mono">{row.name}</h3>
           {row.name_jp ? <p className="text-xs text-purple-300/90">{row.name_jp}</p> : null}
         </div>
-        <div className="text-right">
+        <div className="text-right shrink-0">
           <span className="text-lg font-bold text-white tabular-nums">{pct}%</span>
           <p className="text-[11px] text-gray-400 tabular-nums">
             {row.completed} / {row.total}
           </p>
         </div>
       </div>
+      {blurb ? <p className="text-xs sm:text-sm text-gray-400 leading-relaxed mb-3">{blurb}</p> : null}
       <div className="h-2.5 rounded-full bg-black/40 overflow-hidden border border-white/5">
         <motion.div
           className="h-full rounded-full bg-gradient-to-r from-fuchsia-500 via-violet-500 to-cyan-400"

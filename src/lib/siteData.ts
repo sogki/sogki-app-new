@@ -137,6 +137,8 @@ export type BinderShowcaseSet = {
   showcase_id: string;
   name: string;
   name_jp: string | null;
+  /** Optional; shown above the progress bar on the collection page */
+  description: string | null;
   completed: number;
   total: number;
   sort_order: number;
@@ -167,7 +169,7 @@ export async function fetchBinderShowcases(): Promise<BinderShowcase[]> {
       description,
       sort_order,
       binder_showcase_images ( id, showcase_id, public_url, storage_path, sort_order ),
-      binder_showcase_sets ( id, showcase_id, name, name_jp, completed, total, sort_order )
+      binder_showcase_sets ( id, showcase_id, name, name_jp, description, completed, total, sort_order )
     `
     )
     .order('sort_order', { ascending: true });
