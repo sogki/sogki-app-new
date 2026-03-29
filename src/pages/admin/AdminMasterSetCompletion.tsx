@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { adminApi } from '../../lib/adminApi';
-import type { CollectionMasterSetEntry } from '../../lib/siteData';
+import { fetchCollectionMasterSetEntries, type CollectionMasterSetEntry } from '../../lib/siteData';
 import AdminPageLayout from './AdminPageLayout';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
 
@@ -16,7 +16,9 @@ export default function AdminMasterSetCompletion() {
     setLoading(true);
     setError(null);
     try {
-      const list = (await adminApi.collectionMasterSets()) as CollectionMasterSetEntry[];
+      // List uses the same public Supabase read as /collection (RLS: SELECT for anon). Edge Function
+      // does not need to be redeployed just to load rows; saves/deletes still go through admin-api.
+      const list = await fetchCollectionMasterSetEntries();
       setEntries(Array.isArray(list) ? list : []);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load');
