@@ -168,8 +168,7 @@ export const PokemonCollection: React.FC<PokemonCollectionProps> = ({ isStandalo
                   transition={{ duration: 0.55, delay: pageIndex * 0.06, ease: smoothEase }}
                   className="rounded-2xl border border-white/15 bg-gradient-to-b from-slate-900/90 to-black/80 backdrop-blur-md p-5 sm:p-8 shadow-xl shadow-purple-950/30 relative overflow-hidden"
                 >
-                  <div className="absolute left-0 top-10 bottom-10 w-3 rounded-r-md bg-gradient-to-b from-zinc-700 via-zinc-600 to-zinc-800 border border-white/10 shadow-inner hidden sm:block" />
-                  <div className="sm:pl-6">
+                  <div>
                     <header className="mb-6 border-b border-white/10 pb-5">
                       <h4 className="text-xl font-bold text-white font-mono">{s.title}</h4>
                       {s.title_jp ? <p className="text-sm text-purple-300/90 mt-1">{s.title_jp}</p> : null}
