@@ -6,13 +6,18 @@ import net.minecraft.world.World;
 
 import java.lang.reflect.Method;
 import java.util.Collection;
+import java.util.UUID;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 
 public final class TemplateEngine {
   private static final Pattern LEGACY_COLOR_CODE = Pattern.compile("(?i)&([0-9A-FK-OR])");
+  private static final long COBBLEMON_CACHE_MS = 2000L;
+  private static final Map<UUID, CachedStats> COBBLEMON_STATS_CACHE = new ConcurrentHashMap<>();
+  private static volatile PlaceholderProvider PLACEHOLDER_PROVIDER;
 
   private TemplateEngine() {
   }
@@ -28,22 +33,77 @@ public final class TemplateEngine {
 
   public static Map<String, String> baseMap(MinecraftServer server, ServerPlayerEntity player, String brand) {
     Map<String, String> values = new HashMap<>();
+    int online = 0;
+    int maxOnline = 0;
+    if (server != null) {
+      try {
+        if (server.getPlayerManager() != null) {
+          online = server.getPlayerManager().getPlayerList().size();
+          maxOnline = server.getMaxPlayerCount();
+        } else {
+          online = server.getCurrentPlayerCount();
+          maxOnline = server.getMaxPlayerCount();
+        }
+      } catch (Exception ignored) {
+        online = 0;
+        maxOnline = 0;
+      }
+    }
+    if (online <= 0 && player != null) {
+      // Defensive fallback so sidebar never shows 0 while player is online.
+      online = 1;
+    }
+    int x = 0;
+    int y = 0;
+    int z = 0;
+    if (player != null) {
+      try {
+        x = player.getBlockPos().getX();
+        y = player.getBlockPos().getY();
+        z = player.getBlockPos().getZ();
+      } catch (Exception ignored) {
+        try {
+          // Older/newer mappings can sometimes behave differently for block-pos access.
+          x = (int) Math.floor(player.getX());
+          y = (int) Math.floor(player.getY());
+          z = (int) Math.floor(player.getZ());
+        } catch (Exception ignoredAgain) {
+          x = 0;
+          y = 0;
+          z = 0;
+        }
+      }
+    }
     values.put("brand", safe(brand));
-    values.put("online", String.valueOf(server.getCurrentPlayerCount()));
-    values.put("maxOnline", String.valueOf(server.getMaxPlayerCount()));
+    values.put("online", String.valueOf(online));
+    values.put("maxOnline", String.valueOf(maxOnline));
     values.put("player", player == null ? "" : safe(player.getGameProfile().getName()));
     World world = player == null ? null : player.getWorld();
     values.put("world", world == null ? "unknown" : safe(world.getRegistryKey().getValue().toString()));
-    values.put("x", player == null ? "0" : String.valueOf(player.getBlockX()));
-    values.put("y", player == null ? "0" : String.valueOf(player.getBlockY()));
-    values.put("z", player == null ? "0" : String.valueOf(player.getBlockZ()));
+    values.put("x", String.valueOf(x));
+    values.put("y", String.valueOf(y));
+    values.put("z", String.valueOf(z));
     CobblemonStats stats = resolveCobblemonStats(player);
-    values.put("pokemonCount", String.valueOf(stats.totalOwned()));
+    values.put("pokemonCount", String.valueOf(stats.pokedexCaught()));
+    values.put("pokemonOwnedCount", String.valueOf(stats.totalOwned()));
+    values.put("pokemonUniqueCaught", String.valueOf(stats.pokedexCaught()));
     values.put("partyCount", String.valueOf(stats.partyCount()));
     values.put("pcCount", String.valueOf(stats.pcCount()));
     values.put("pokedexCaught", String.valueOf(stats.pokedexCaught()));
     values.put("pokedexSeen", String.valueOf(stats.pokedexSeen()));
+    PlaceholderProvider provider = PLACEHOLDER_PROVIDER;
+    if (provider != null) {
+      try {
+        Map<String, String> extra = provider.resolve(server, player);
+        if (extra != null) values.putAll(extra);
+      } catch (Exception ignored) {
+      }
+    }
     return values;
+  }
+
+  public static void setPlaceholderProvider(PlaceholderProvider provider) {
+    PLACEHOLDER_PROVIDER = provider;
   }
 
   private static String safe(String value) {
@@ -57,6 +117,12 @@ public final class TemplateEngine {
 
   private static CobblemonStats resolveCobblemonStats(ServerPlayerEntity player) {
     if (player == null) return new CobblemonStats(0, 0, 0, 0);
+    long now = System.currentTimeMillis();
+    UUID uuid = player.getUuid();
+    CachedStats cached = COBBLEMON_STATS_CACHE.get(uuid);
+    if (cached != null && now - cached.cachedAtMs <= COBBLEMON_CACHE_MS) {
+      return cached.stats;
+    }
     try {
       // Best-effort reflective integration for Cobblemon without a hard compile dependency.
       Class<?> classCobblemon = Class.forName("com.cobblemon.mod.common.Cobblemon");
@@ -68,11 +134,15 @@ public final class TemplateEngine {
       int pcCount = Math.max(0, countPokemonObjects(pc));
       int pokedexCaught = Math.max(0, resolvePokedexCount(instance, player, true));
       int pokedexSeen = Math.max(0, resolvePokedexCount(instance, player, false));
-      return new CobblemonStats(partyCount, pcCount, pokedexCaught, pokedexSeen);
+      CobblemonStats stats = new CobblemonStats(partyCount, pcCount, pokedexCaught, pokedexSeen);
+      COBBLEMON_STATS_CACHE.put(uuid, new CachedStats(stats, now));
+      return stats;
     } catch (Throwable ignored) {
       // Fallback when Cobblemon API/class signatures differ.
     }
-    return new CobblemonStats(0, 0, 0, 0);
+    CobblemonStats fallback = new CobblemonStats(0, 0, 0, 0);
+    COBBLEMON_STATS_CACHE.put(uuid, new CachedStats(fallback, now));
+    return fallback;
   }
 
   private static Object resolvePartyObject(Object storage, ServerPlayerEntity player) {
@@ -89,10 +159,16 @@ public final class TemplateEngine {
   private static Object resolvePcObject(Object storage, ServerPlayerEntity player) {
     Object pc = tryInvoke(storage, "getPC", player.getUuid());
     if (pc == null) pc = tryInvoke(storage, "getPc", player.getUuid());
+    if (pc == null) pc = tryInvoke(storage, "getPCStore", player.getUuid());
+    if (pc == null) pc = tryInvoke(storage, "getPcStore", player.getUuid());
     if (pc == null) pc = tryInvoke(storage, "getPC", player);
     if (pc == null) pc = tryInvoke(storage, "getPc", player);
+    if (pc == null) pc = tryInvoke(storage, "getPCStore", player);
+    if (pc == null) pc = tryInvoke(storage, "getPcStore", player);
     if (pc == null) pc = tryInvoke(storage, "getPC", player.getUuid().toString());
     if (pc == null) pc = tryInvoke(storage, "getPc", player.getUuid().toString());
+    if (pc == null) pc = tryInvoke(storage, "getPCStore", player.getUuid().toString());
+    if (pc == null) pc = tryInvoke(storage, "getPcStore", player.getUuid().toString());
     return pc;
   }
 
@@ -133,6 +209,16 @@ public final class TemplateEngine {
   }
 
   private static Object resolvePokedexObject(Object cobblemonInstance, ServerPlayerEntity player) {
+    Object directDex = firstNonNull(
+      tryInvoke(cobblemonInstance, "getPokedex", player.getUuid()),
+      tryInvoke(cobblemonInstance, "getPokedex", player),
+      tryInvoke(cobblemonInstance, "getPokedex", player.getUuid().toString()),
+      tryInvoke(cobblemonInstance, "getDex", player.getUuid()),
+      tryInvoke(cobblemonInstance, "getDex", player),
+      tryInvoke(cobblemonInstance, "getDex", player.getUuid().toString())
+    );
+    if (directDex != null) return directDex;
+
     Object manager = firstNonNull(
       tryInvokeNoArgs(cobblemonInstance, "getPlayerData"),
       tryInvokeNoArgs(cobblemonInstance, "getPlayerDataManager"),
@@ -327,5 +413,12 @@ public final class TemplateEngine {
     private int totalOwned() {
       return Math.max(0, partyCount) + Math.max(0, pcCount);
     }
+  }
+
+  private record CachedStats(CobblemonStats stats, long cachedAtMs) {
+  }
+
+  public interface PlaceholderProvider {
+    Map<String, String> resolve(MinecraftServer server, ServerPlayerEntity player);
   }
 }

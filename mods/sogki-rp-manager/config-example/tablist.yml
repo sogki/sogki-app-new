@@ -1,5 +1,8 @@
 tablist:
   realtimeCoordinates: true
+  sortByTeam: true
+  sortAlphabetically: true
+  playerFormat: "{teamTabPrefix}{titlePrefix}&f{player}{titleSuffix}"
   header:
     - "&bLoafey's Cobblepals"
     - ""

@@ -1,0 +1,9 @@
+{
+  "testServerRoot": "D:/Minecraft/sogki-cobblemon-dev",
+  "sourceModsPath": "D:/Minecraft/sogki-cobblemon-main/mods",
+  "sourceConfigPath": "D:/Minecraft/sogki-cobblemon-main/config",
+  "serverJarName": "fabric-server-mc.1.21.1-loader.0.16.10-launcher.1.0.1.jar",
+  "javaPath": "C:/Program Files/Eclipse Adoptium/jdk-21.0.10.7-hotspot/bin/java.exe",
+  "jvmArgs": "-Xms2G -Xmx4G",
+  "syncConfigOnInit": true
+}

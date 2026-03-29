@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, User, Code, MessageCircle, Palette, Github, Twitter, FileText } from 'lucide-react';
+import { Home, User, Code, MessageCircle, Palette, Github, Twitter, FileText, Layers } from 'lucide-react';
 
 export const navItems = [
   { 
@@ -36,6 +36,13 @@ export const navItems = [
     labelJp: 'ブログ',
     href: '/blog',
     description: 'Read posts on engineering and design'
+  },
+  {
+    icon: <Layers size={18} />,
+    label: 'Collection',
+    labelJp: 'コレクション',
+    href: '/collection',
+    description: 'Pokemon TCG binders, master sets, and favorite cards'
   },
   { 
     icon: <MessageCircle size={18} />, 

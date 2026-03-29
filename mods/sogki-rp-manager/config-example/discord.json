@@ -1,0 +1,14 @@
+{
+  "enabled": false,
+  "gatewayEnabled": true,
+  "timeoutMs": 3000,
+  "keyCacheSeconds": 300,
+  "supabaseUrl": "https://vwdrdqkzjkfdmycomfvf.supabase.co",
+  "serviceRoleKey": "",
+  "activityText": "Sogki Cobblemon",
+  "maxOnlineOverride": 60,
+  "onlineColor": 5763719,
+  "offlineColor": 15548997,
+  "autoRestartHours": 0,
+  "autoRestartWarningMinutes": 5
+}

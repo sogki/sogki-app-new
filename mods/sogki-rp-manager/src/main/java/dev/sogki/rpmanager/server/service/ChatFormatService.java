@@ -18,13 +18,7 @@ public final class ChatFormatService {
     if (!config.chat.enabled || sender == null) return message.copy();
     String msg = stripExistingSenderPrefix(sender.getGameProfile().getName(), message.getString());
     Map<String, String> values = TemplateEngine.baseMap(server, sender, config.brand);
-    String template = config.chat.format == null ? "{message}" : config.chat.format;
-    if (!config.chat.includePlayerInFormat) {
-      template = template
-        .replace("<{player}> ", "")
-        .replace("{player}: ", "")
-        .replace("{player}", "");
-    }
+    String template = (config.chat.format == null || config.chat.format.isBlank()) ? "{message}" : config.chat.format;
     values.put("message", msg);
     String formatted = TemplateEngine.render(template, values).trim();
     return Text.literal(formatted);

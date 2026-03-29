@@ -1,0 +1,7 @@
+teamScoreboard:
+  title: "&bTeam Scoreboard"
+  blankLineAfterTitle: true
+  rankLine: "&7{rank}. {teamDisplay} &f- {teamPoints} pts"
+  detailLine: "&8Catches: &f{teamTotalCatches} &8Quizzes: &f{teamTotalQuizzes} &8Missions: &f{teamMissionsCompleted}"
+  showDetailLine: true
+  lineSpacing: 0.28

@@ -1,0 +1,9 @@
+{
+  "testServerRoot": "D:/OTHER/Business/Sogki/sogki-app-new/mods/sogki-rp-manager/tools/dev-server/test-server",
+  "sourceModsPath": "D:/OTHER/Business/Sogki/sogki-app-new/mods/sogki-rp-manager/tools/dev-server/test-server/mods",
+  "sourceConfigPath": "D:/OTHER/Business/Sogki/sogki-app-new/mods/sogki-rp-manager/tools/dev-server/test-server/config",
+  "serverJarName": "fabric-server-mc.1.21.1-loader.0.17.3-launcher.1.0.1.jar",
+  "javaPath": "C:/Program Files/Eclipse Adoptium/jdk-21.0.10.7-hotspot/bin/java.exe",
+  "jvmArgs": "-Xms2G -Xmx4G",
+  "syncConfigOnInit": false
+}

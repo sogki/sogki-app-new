@@ -123,3 +123,63 @@ export async function fetchFooterConfig(): Promise<FooterConfig> {
     philosophy: (config.philosophy as { en?: string; jp?: string }) ?? {},
   };
 }
+
+export type BinderShowcaseImage = {
+  id: string;
+  showcase_id: string;
+  public_url: string;
+  storage_path: string | null;
+  sort_order: number;
+};
+
+export type BinderShowcaseSet = {
+  id: string;
+  showcase_id: string;
+  name: string;
+  name_jp: string | null;
+  completed: number;
+  total: number;
+  sort_order: number;
+};
+
+export type BinderShowcase = {
+  id: string;
+  title: string;
+  title_jp: string | null;
+  description: string | null;
+  sort_order: number;
+  binder_showcase_images: BinderShowcaseImage[];
+  binder_showcase_sets: BinderShowcaseSet[];
+};
+
+function sortBinderNested<T extends { sort_order?: number }>(rows: T[] | null | undefined): T[] {
+  return [...(rows ?? [])].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+}
+
+export async function fetchBinderShowcases(): Promise<BinderShowcase[]> {
+  const { data, error } = await supabase
+    .from('binder_showcases')
+    .select(
+      `
+      id,
+      title,
+      title_jp,
+      description,
+      sort_order,
+      binder_showcase_images ( id, showcase_id, public_url, storage_path, sort_order ),
+      binder_showcase_sets ( id, showcase_id, name, name_jp, completed, total, sort_order )
+    `
+    )
+    .order('sort_order', { ascending: true });
+  if (error) throw new Error(`Failed to fetch binder showcases: ${error.message}`);
+  const rows = (data ?? []) as Record<string, unknown>[];
+  return rows.map((row) => ({
+    id: row.id as string,
+    title: row.title as string,
+    title_jp: (row.title_jp as string | null) ?? null,
+    description: (row.description as string | null) ?? null,
+    sort_order: (row.sort_order as number) ?? 0,
+    binder_showcase_images: sortBinderNested(row.binder_showcase_images as BinderShowcaseImage[]),
+    binder_showcase_sets: sortBinderNested(row.binder_showcase_sets as BinderShowcaseSet[]),
+  }));
+}

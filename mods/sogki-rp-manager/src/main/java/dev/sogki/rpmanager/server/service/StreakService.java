@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 import dev.sogki.rpmanager.server.config.ServerFeatureConfig;
+import dev.sogki.rpmanager.server.util.FileWriteUtil;
 import dev.sogki.rpmanager.server.util.TemplateEngine;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.item.Item;
@@ -29,8 +30,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class StreakService {
+  private static final Logger LOGGER = LoggerFactory.getLogger("SogkiCobblemon");
   private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
   private static final Type ROOT_TYPE = new TypeToken<Map<String, PlayerStreak>>() { }.getType();
   private static final Path STORE_PATH = FabricLoader.getInstance()
@@ -49,15 +53,16 @@ public final class StreakService {
         data.clear();
         data.putAll(parsed);
       }
-    } catch (Exception ignored) {
+    } catch (Exception e) {
+      LOGGER.warn("[SogkiCobblemon] Failed to load streak data: {}", e.getMessage());
     }
   }
 
   public void save() {
     try {
-      Files.createDirectories(STORE_PATH.getParent());
-      Files.writeString(STORE_PATH, GSON.toJson(data, ROOT_TYPE), StandardCharsets.UTF_8);
-    } catch (IOException ignored) {
+      FileWriteUtil.writeStringAtomic(STORE_PATH, GSON.toJson(data, ROOT_TYPE));
+    } catch (IOException e) {
+      LOGGER.warn("[SogkiCobblemon] Failed to save streak data: {}", e.getMessage());
     }
   }
 

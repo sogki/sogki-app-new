@@ -131,6 +131,35 @@ export const adminApi = {
   resourcePacks: () => adminApi.get('resourcepacks'),
   updateResourcePack: (id: string, data: unknown) => adminApi.patch(`resourcepacks/${id}`, data),
   deleteResourcePack: (id: string) => adminApi.delete(`resourcepacks/${id}`),
+  binderShowcases: () => adminApi.get('binder_showcases'),
+  createBinderShowcase: (data: unknown) => adminApi.post('binder_showcases', data),
+  updateBinderShowcase: (id: string, data: unknown) => adminApi.patch(`binder_showcases/${id}`, data),
+  deleteBinderShowcase: (id: string) => adminApi.delete(`binder_showcases/${id}`),
+  createBinderShowcaseImage: (data: unknown) => adminApi.post('binder_showcase_images', data),
+  updateBinderShowcaseImage: (id: string, data: unknown) => adminApi.patch(`binder_showcase_images/${id}`, data),
+  deleteBinderShowcaseImage: (id: string) => adminApi.delete(`binder_showcase_images/${id}`),
+  createBinderShowcaseSet: (data: unknown) => adminApi.post('binder_showcase_sets', data),
+  updateBinderShowcaseSet: (id: string, data: unknown) => adminApi.patch(`binder_showcase_sets/${id}`, data),
+  deleteBinderShowcaseSet: (id: string) => adminApi.delete(`binder_showcase_sets/${id}`),
+
+  uploadBinderShowcaseImage: async (file: File): Promise<{ url: string; path: string }> => {
+    const token = getAdminToken();
+    if (!token) throw new Error('Not authenticated');
+    const form = new FormData();
+    form.append('file', file, file.name);
+    form.append('filename', file.name);
+    const res = await fetch(`${FUNCTIONS_URL}/admin-api/binder_showcases/upload`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: form,
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(resolveApiError(data, res.status));
+    }
+    return data as { url: string; path: string };
+  },
+
   uploadResourcePack: async (
     file: File,
     data: {

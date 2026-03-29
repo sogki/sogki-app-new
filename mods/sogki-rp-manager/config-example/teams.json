@@ -1,0 +1,191 @@
+{
+  "enabled": true,
+  "requireSelectionOnJoin": true,
+  "allowSwitching": true,
+  "switchCooldownDays": 7,
+  "buffRefreshTicks": 1,
+  "list": [
+    {
+      "id": "valor",
+      "displayName": "&cValor",
+      "color": "red"
+    },
+    {
+      "id": "mystic",
+      "displayName": "&9Mystic",
+      "color": "blue"
+    },
+    {
+      "id": "instinct",
+      "displayName": "&eInstinct",
+      "color": "yellow"
+    }
+  ],
+  "buffs": [
+    {
+      "teamId": "valor",
+      "effectId": "minecraft:strength",
+      "amplifier": 0,
+      "durationSeconds": 15,
+      "ambient": true,
+      "showParticles": false,
+      "showIcon": false
+    },
+    {
+      "teamId": "mystic",
+      "effectId": "minecraft:night_vision",
+      "amplifier": 0,
+      "durationSeconds": 20,
+      "ambient": true,
+      "showParticles": false,
+      "showIcon": false
+    },
+    {
+      "teamId": "instinct",
+      "effectId": "minecraft:speed",
+      "amplifier": 0,
+      "durationSeconds": 15,
+      "ambient": true,
+      "showParticles": false,
+      "showIcon": false
+    }
+  ],
+  "dailyRewards": [
+    {
+      "teamId": "valor",
+      "items": [
+        {
+          "itemId": "cobblemon:poke_ball",
+          "count": 8,
+          "label": "Pokeballs"
+        },
+        {
+          "itemId": "minecraft:experience_bottle",
+          "count": 4,
+          "label": "EXP Bottles"
+        }
+      ],
+      "commands": []
+    },
+    {
+      "teamId": "mystic",
+      "items": [
+        {
+          "itemId": "cobblemon:great_ball",
+          "count": 4,
+          "label": "Great Balls"
+        },
+        {
+          "itemId": "minecraft:lapis_lazuli",
+          "count": 8,
+          "label": "Lapis"
+        }
+      ],
+      "commands": []
+    },
+    {
+      "teamId": "instinct",
+      "items": [
+        {
+          "itemId": "cobblemon:poke_ball",
+          "count": 6,
+          "label": "Pokeballs"
+        },
+        {
+          "itemId": "minecraft:glowstone_dust",
+          "count": 8,
+          "label": "Training Dust"
+        }
+      ],
+      "commands": []
+    }
+  ],
+  "longTermRewards": [
+    {
+      "teamId": "valor",
+      "daysInTeam": 7,
+      "items": [
+        {
+          "itemId": "minecraft:diamond",
+          "count": 1,
+          "label": "Diamond"
+        }
+      ],
+      "commands": []
+    },
+    {
+      "teamId": "mystic",
+      "daysInTeam": 7,
+      "items": [
+        {
+          "itemId": "minecraft:amethyst_shard",
+          "count": 8,
+          "label": "Amethyst Shards"
+        }
+      ],
+      "commands": []
+    },
+    {
+      "teamId": "instinct",
+      "daysInTeam": 7,
+      "items": [
+        {
+          "itemId": "minecraft:golden_apple",
+          "count": 1,
+          "label": "Golden Apple"
+        }
+      ],
+      "commands": []
+    }
+  ],
+  "missions": {
+    "enabled": true,
+    "catchSampleTicks": 1,
+    "dailyResetHourUtc": 0,
+    "weeklyResetDay": 1,
+    "daily": [
+      {
+        "id": "daily_catches",
+        "type": "catches",
+        "displayName": "Daily catches",
+        "target": 12,
+        "points": 10
+      },
+      {
+        "id": "daily_quizzes",
+        "type": "quiz_wins",
+        "displayName": "Daily quiz wins",
+        "target": 4,
+        "points": 1
+      }
+    ],
+    "weekly": [
+      {
+        "id": "weekly_catches",
+        "type": "catches",
+        "displayName": "Weekly catches",
+        "target": 60,
+        "points": 60
+      },
+      {
+        "id": "weekly_quizzes",
+        "type": "quiz_wins",
+        "displayName": "Weekly quiz wins",
+        "target": 25,
+        "points": 8
+      }
+    ]
+  },
+  "scoreboard": {
+    "enabled": true,
+    "refreshTicks": 1,
+    "objectiveName": "sogki_team_points",
+    "objectiveTitle": "Team Points",
+    "hologramEnabled": true,
+    "hologramTitle": "&bTeam Scoreboard",
+    "hologramDimension": "minecraft:overworld",
+    "hologramX": 0.0,
+    "hologramY": 80.0,
+    "hologramZ": 0.0
+  }
+}

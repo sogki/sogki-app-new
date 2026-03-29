@@ -19,6 +19,7 @@ const FLAG_GROUPS: { label: string; labelJp: string; keys: string[] }[] = [
   { label: 'About', labelJp: '私について', keys: ['feature.show_about'] },
   { label: 'Features', labelJp: '提供する価値', keys: ['feature.show_features'] },
   { label: 'Projects', labelJp: 'プロジェクト', keys: ['feature.show_projects'] },
+  { label: 'TCG Collection', labelJp: 'コレクション', keys: ['feature.show_collection'] },
   { label: 'Contact', labelJp: 'お問い合わせ', keys: ['feature.show_contact'] },
 ];
 

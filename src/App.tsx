@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useLocation, Routes, Route } from "react-router-dom";
+import { useLocation, Routes, Route, Navigate } from "react-router-dom";
 import { MotionConfig } from "framer-motion";
 import { useSiteData } from "./context/SiteDataContext";
 import { getBool } from "./lib/siteContent";
@@ -14,6 +14,7 @@ import { Projects } from "./components/Projects";
 import { Timeline } from "./components/Timeline";
 import { TechStack } from "./components/TechStack";
 import { Contact } from "./components/Contact";
+import { PokemonCollectionPage } from "./pages/PokemonCollectionPage";
 import Footer from "./components/Footer";
 import { KanjiScrollbar } from "./components/KanjiScrollbar";
 import { GraphicDesignPortfolio } from "./components/GraphicDesignPortfolio";
@@ -29,8 +30,9 @@ function App() {
 
   const isGraphicDesignPage = pathname === '/graphic-design';
   const isImageViewerPage = pathname === '/image-viewer';
+  const isCollectionPage = pathname === '/collection';
   const isBlogPage = pathname === '/blog' || pathname.startsWith('/blog/');
-  const isSpecialPage = isGraphicDesignPage || isImageViewerPage || isBlogPage;
+  const isSpecialPage = isGraphicDesignPage || isImageViewerPage || isBlogPage || isCollectionPage;
 
   useEffect(() => {
     if (pathname !== '/graphic-design') return;
@@ -84,6 +86,12 @@ function App() {
             <ImageViewerPage />
           ) : isGraphicDesignPage ? (
             <GraphicDesignPortfolio />
+          ) : isCollectionPage ? (
+            getBool(siteContent, 'feature.show_collection', true) ? (
+              <PokemonCollectionPage />
+            ) : (
+              <Navigate to="/" replace />
+            )
           ) : isBlogPage ? (
             <Routes>
               <Route path="/blog" element={<BlogListPage />} />

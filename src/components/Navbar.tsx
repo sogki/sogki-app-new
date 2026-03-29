@@ -4,10 +4,17 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X } from 'lucide-react';
 import { DesktopNav } from './navbar/DesktopNav';
 import { MobileNav } from './navbar/MobileNav';
+import { navItems as allNavItems } from './navbar/NavbarData';
+import { useSiteData } from '../context/SiteDataContext';
+import { getBool } from '../lib/siteContent';
 import { getMotionAwareScrollBehavior } from '../utils/motion';
 
 export const Navbar: React.FC = () => {
   const navigate = useNavigate();
+  const { siteContent } = useSiteData();
+  const navItems = getBool(siteContent, 'feature.show_collection', true)
+    ? allNavItems
+    : allNavItems.filter((item) => item.href !== '/collection');
   const [isScrolled, setIsScrolled] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -140,6 +147,7 @@ export const Navbar: React.FC = () => {
         activeDropdown={activeDropdown}
         setActiveDropdown={setActiveDropdown}
         handleNavClick={handleNavClick}
+        navItems={navItems}
       />
 
       {/* Mobile Sidebar Menu */}
@@ -149,6 +157,7 @@ export const Navbar: React.FC = () => {
         handleNavClick={handleNavClick}
         isProjectsOpen={isProjectsOpen}
         setIsProjectsOpen={setIsProjectsOpen}
+        navItems={navItems}
       />
     </div>
   );

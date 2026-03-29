@@ -1,0 +1,279 @@
+{
+  "enabled": true,
+  "timezone": "UTC",
+  "cycleStartEpochDay": 0,
+  "rotateEveryDays": 3,
+  "announceOnRotate": true,
+  "rotationAnnouncement": "&6[Event] &eNow active: &f{eventName}&e.",
+  "rotationAnnouncementLines": [
+    "&8&m----------------------------",
+    "&6[Event] &eNow active: &f{eventName}",
+    "",
+    "&7Rotation: every &f{days} &7day(s)",
+    "&8&m----------------------------"
+  ],
+  "startAnnouncementLines": [
+    "&8&m----------------------------",
+    "&aEvent Started: &f{eventName}",
+    "&7Duration: &f{durationText}",
+    "&7Bonuses: &f+{catchRateBonusPercent}% catch &8| &f+{dropRateBonusPercent}% drops &8| &f+{spawnRateBonusPercent}% spawns",
+    "&8&m----------------------------"
+  ],
+  "endAnnouncementLines": [
+    "&8&m----------------------------",
+    "&cEvent Ended: &f{eventName}",
+    "&7See you in the next scheduled window.",
+    "&8&m----------------------------"
+  ],
+  "discordAnnouncements": true,
+  "discordEventColor": 5763719,
+  "discordTitleStart": "Event Started: {eventName}",
+  "discordDescriptionStart": "Duration: {durationText}\nCatch: +{catchRateBonusPercent}%\nDrops: +{dropRateBonusPercent}%\nSpawns: +{spawnRateBonusPercent}%",
+  "discordTitleEnd": "Event Ended: {eventName}",
+  "discordDescriptionEnd": "Window ended. Next events continue by schedule.",
+  "mining": {
+    "enabled": true,
+    "onlyOres": true,
+    "baseLootChancePercent": 6.0,
+    "baseLootRolls": 1
+  },
+  "events": [
+    {
+      "enabled": true,
+      "id": "shiny_rush",
+      "name": "&dShiny Rush",
+      "catchRateBonusPercent": 12.0,
+      "spawnRateBonusPercent": 15.0,
+      "dropRateBonusPercent": 0.0,
+      "schedule": [
+        {
+          "enabled": true,
+          "dayOfWeek": "SATURDAY",
+          "startTimeUtc": "14:00",
+          "durationMinutes": 120
+        },
+        {
+          "enabled": true,
+          "dayOfWeek": "SUNDAY",
+          "startTimeUtc": "14:00",
+          "durationMinutes": 120
+        }
+      ],
+      "startAnnouncementLines": [
+        "&8&m----------------------------",
+        "&dEvent Started: &f{eventName}",
+        "&7Duration: &f{durationText}",
+        "&7Bonuses: &f+{spawnRateBonusPercent}% shiny spawns &8| &f+{catchRateBonusPercent}% catch rate",
+        "&8&m----------------------------"
+      ],
+      "discordTitleStart": "Shiny Rush is live",
+      "discordDescriptionStart": "Duration: {durationText}\nShiny spawns: +{spawnRateBonusPercent}%\nCatch bonus: +{catchRateBonusPercent}%",
+      "miningLootBonusChancePercent": 2.0,
+      "miningLootBonusRolls": 0,
+      "boostedOreBlocks": [],
+      "skillPointChanceBonusPercentBySource": {
+        "capture": 2.0,
+        "shiny_capture": 10.0
+      },
+      "skillPointChanceMultiplierBySource": {},
+      "skillPointFlatBonusBySource": {
+        "shiny_capture": 1
+      },
+      "miningLoot": [
+        {
+          "itemId": "cobblemon:exp_candy_s",
+          "itemIds": [
+            "cobblemon:exp_candy_s",
+            "minecraft:experience_bottle"
+          ],
+          "countMin": 1,
+          "countMax": 1,
+          "weight": 2.0
+        },
+        {
+          "itemId": "cobblemon:star_piece",
+          "itemIds": [
+            "cobblemon:star_piece",
+            "minecraft:amethyst_shard"
+          ],
+          "countMin": 1,
+          "countMax": 1,
+          "weight": 1.0
+        }
+      ]
+    },
+    {
+      "enabled": true,
+      "id": "bounty_week",
+      "name": "&6Bounty Week",
+      "catchRateBonusPercent": 0.0,
+      "spawnRateBonusPercent": 0.0,
+      "dropRateBonusPercent": 25.0,
+      "schedule": [
+        {
+          "enabled": true,
+          "dayOfWeek": "MONDAY",
+          "startTimeUtc": "12:00",
+          "durationMinutes": 30
+        },
+        {
+          "enabled": true,
+          "dayOfWeek": "TUESDAY",
+          "startTimeUtc": "12:00",
+          "durationMinutes": 30
+        },
+        {
+          "enabled": true,
+          "dayOfWeek": "WEDNESDAY",
+          "startTimeUtc": "12:00",
+          "durationMinutes": 30
+        },
+        {
+          "enabled": true,
+          "dayOfWeek": "THURSDAY",
+          "startTimeUtc": "12:00",
+          "durationMinutes": 30
+        },
+        {
+          "enabled": true,
+          "dayOfWeek": "FRIDAY",
+          "startTimeUtc": "12:00",
+          "durationMinutes": 30
+        },
+        {
+          "enabled": true,
+          "dayOfWeek": "SATURDAY",
+          "startTimeUtc": "12:00",
+          "durationMinutes": 30
+        },
+        {
+          "enabled": true,
+          "dayOfWeek": "SUNDAY",
+          "startTimeUtc": "12:00",
+          "durationMinutes": 30
+        }
+      ],
+      "miningLootBonusChancePercent": 6.0,
+      "miningLootBonusRolls": 1,
+      "boostedOreBlocks": [],
+      "skillPointChanceBonusPercentBySource": {
+        "daily_claim": 10.0,
+        "quiz_win": 5.0
+      },
+      "skillPointChanceMultiplierBySource": {},
+      "skillPointFlatBonusBySource": {},
+      "miningLoot": [
+        {
+          "itemId": "cobbledgacha:gacha_coin",
+          "itemIds": [
+            "cobbledgacha:gacha_coin",
+            "pokeblocks:poke_coin",
+            "minecraft:gold_nugget"
+          ],
+          "countMin": 2,
+          "countMax": 6,
+          "weight": 3.0
+        },
+        {
+          "itemId": "waystones:warp_dust",
+          "itemIds": [
+            "waystones:warp_dust",
+            "minecraft:ender_pearl"
+          ],
+          "countMin": 1,
+          "countMax": 2,
+          "weight": 2.0
+        }
+      ]
+    },
+    {
+      "enabled": true,
+      "id": "ore_frenzy",
+      "name": "&bOre Frenzy",
+      "catchRateBonusPercent": 0.0,
+      "spawnRateBonusPercent": 5.0,
+      "dropRateBonusPercent": 40.0,
+      "schedule": [
+        {
+          "enabled": true,
+          "dayOfWeek": "TUESDAY",
+          "startTimeUtc": "14:00",
+          "durationMinutes": 30
+        },
+        {
+          "enabled": true,
+          "dayOfWeek": "MONDAY",
+          "startTimeUtc": "14:00",
+          "durationMinutes": 30
+        },
+        {
+          "enabled": true,
+          "dayOfWeek": "WEDNESDAY",
+          "startTimeUtc": "14:00",
+          "durationMinutes": 30
+        },
+        {
+          "enabled": true,
+          "dayOfWeek": "THURSDAY",
+          "startTimeUtc": "14:00",
+          "durationMinutes": 30
+        },
+        {
+          "enabled": true,
+          "dayOfWeek": "FRIDAY",
+          "startTimeUtc": "14:00",
+          "durationMinutes": 30
+        },
+        {
+          "enabled": true,
+          "dayOfWeek": "SATURDAY",
+          "startTimeUtc": "14:00",
+          "durationMinutes": 30
+        },
+        {
+          "enabled": true,
+          "dayOfWeek": "SUNDAY",
+          "startTimeUtc": "14:00",
+          "durationMinutes": 30
+        }
+      ],
+      "miningLootBonusChancePercent": 10.0,
+      "miningLootBonusRolls": 1,
+      "boostedOreBlocks": [
+        "minecraft:iron_ore",
+        "minecraft:gold_ore",
+        "minecraft:diamond_ore",
+        "minecraft:deepslate_diamond_ore"
+      ],
+      "skillPointChanceBonusPercentBySource": {
+        "mining_ore": 4.0
+      },
+      "skillPointChanceMultiplierBySource": {},
+      "skillPointFlatBonusBySource": {
+        "mining_ore": 1
+      },
+      "miningLoot": [
+        {
+          "itemId": "tmcraft:copper_blank_disc",
+          "itemIds": [
+            "tmcraft:copper_blank_disc",
+            "minecraft:raw_iron"
+          ],
+          "countMin": 1,
+          "countMax": 3,
+          "weight": 3.0
+        },
+        {
+          "itemId": "waystones:attuned_shard",
+          "itemIds": [
+            "waystones:attuned_shard",
+            "minecraft:diamond"
+          ],
+          "countMin": 1,
+          "countMax": 1,
+          "weight": 1.5
+        }
+      ]
+    }
+  ]
+}

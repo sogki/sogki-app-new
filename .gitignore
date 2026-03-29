@@ -19,6 +19,12 @@ mods/**/build/
 mods/**/.gradle-user-home/
 mods/**/.gradle-user-home-*/
 
+# Local Fabric dev server (Minecraft jars, libraries, world — too large for GitHub; max 100 MB per file)
+mods/sogki-rp-manager/tools/dev-server/test-server/
+
+# Supabase CLI local temp
+supabase/.temp/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

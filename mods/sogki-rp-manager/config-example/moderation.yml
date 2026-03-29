@@ -1,0 +1,120 @@
+moderation:
+  reasons:
+    warningReasons:
+      - "Disrespect"
+      - "Excessive Language"
+      - "Spam"
+      - "Toxic Behavior"
+    muteReasons:
+      - "Chat Spam"
+      - "Harassment"
+      - "Excessive Language"
+      - "Argumentative Behavior"
+    banReasons:
+      - "Cheating"
+      - "Bug Abuse"
+      - "X-Ray/Exploit Use"
+      - "Severe Harassment"
+
+  messages:
+    unknownPlayerMessage:
+      - "&cUnknown player."
+      - "&7Ask them to join once so moderation can track their profile."
+    noPermissionMessage:
+      - "&cYou don't have permission to use this command."
+    roleUpdatedMessage:
+      - "&aUpdated role for &f{player} &ato &f{role}&a."
+    roleViewMessage:
+      - "&bRole for &f{player}&b: &f{role}"
+    staffAnnouncementMessage:
+      - "&8[Staff] &b{staff} &7{action} &f{player}"
+      - "&7Reason: &f{reason}"
+      - "&7Duration: &f{duration}"
+    issuerPunishMessage:
+      - "&aApplied &f{type} &ato &f{player}"
+      - "&7Duration: &f{duration}"
+      - "&7Reason: &f{reason}"
+    targetWarnMessage:
+      - "&eYou received a warning from &f{staff}&e."
+      - "&7Reason: &f{reason}"
+    targetMuteMessage:
+      - "&6You have been muted by &f{staff}&6."
+      - "&7Duration: &f{duration}"
+      - "&7Reason: &f{reason}"
+    targetBanMessage:
+      - "&cYou have been banned by &f{staff}&c."
+      - "&7Duration: &f{duration}"
+      - "&7Reason: &f{reason}"
+    muteBlockedMessage:
+      - "&cYou are muted."
+      - "&7Reason: &f{reason}"
+      - "&7Remaining: &f{duration}"
+    banDisconnectMessage:
+      - "&cYou are banned from this server."
+      - ""
+      - "&7Reason: &f{reason}"
+      - "&7Duration: &f{duration}"
+    issuerClearSuccessMessage:
+      - "&aCleared active &f{type} &afor &f{player}&a."
+    issuerClearNotFoundMessage:
+      - "&cNo active &f{type} &cfound for &f{player}&c."
+
+  gui:
+    guiPunishMenuTitle:
+      - "&8Punish &7- &f{player}"
+    guiReasonMenuTitle:
+      - "&8{type} Reason &7- &f{player}"
+    guiDurationMenuTitle:
+      - "&8{type} Duration &7- &f{player} &8| &7{reason}"
+    guiHistoryMenuTitle:
+      - "&8History &7- &f{player}"
+    guiActionWarnName:
+      - "&eIssue Warning"
+    guiActionMuteName:
+      - "&6Issue Mute"
+    guiActionBanName:
+      - "&cIssue Ban"
+    guiActionCloseName:
+      - "&7Close"
+    guiActionBackName:
+      - "&7Back"
+    guiActionPermanentBanName:
+      - "&4Permanent Ban"
+    guiFailureMessage:
+      - "&c{error}"
+
+  commandMessages:
+    commandPlayerOnlyMessage:
+      - "&cThis command is player-only."
+    invalidMuteLengthMessage:
+      - "&cInvalid mute length. Use 2h, 1d, 4d, or 7d."
+    invalidBanLengthMessage:
+      - "&cInvalid ban length. Use 2h, 1d, 4d, 7d, or perm."
+    invalidRoleMessage:
+      - "&cInvalid role. Available: &f{roles}"
+    roleUpdateFailedMessage:
+      - "&cFailed to update role."
+    roleUpdatedTargetMessage:
+      - "&bYour staff role is now: &f{role}"
+
+  banScreen:
+    banScreenLines:
+      - "&4&lBANNED"
+      - "&7"
+      - "&cYou are currently banned from this server."
+      - "&7Reason: &f{reason}"
+      - "&7Duration: &f{duration}"
+      - "&7Until: &f{until}"
+      - "&7Issued by: &f{staff}"
+      - "&7Issued at: &f{issuedAt}"
+      - "&7"
+      - "&8If this is a mistake, contact staff."
+permissions:
+  roleHierarchy:
+    - "player"
+    - "helper"
+    - "moderator"
+    - "admin"
+  moderationMinimumRole: "moderator"
+  staffAnnouncementsMinimumRole: "helper"
+  permissionCommandMinimumRole: "admin"

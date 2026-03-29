@@ -1,0 +1,386 @@
+{
+  "enabled": true,
+  "startingPoints": 3,
+  "resetCostPoints": 3,
+  "tiersPerPage": 4,
+  "pageUnlockRequirement": 2,
+  "autoGenerateLanes": true,
+  "maxLevelPerDirection": 100,
+  "majorNodeEvery": 10,
+  "ui": {
+    "nodeTitleUnlockedColor": "&a",
+    "nodeTitleAvailableColor": "&e",
+    "nodeTitleLockedColor": "&c",
+    "nodeMetaColor": "&7",
+    "nodeDescColor": "&8",
+    "nodeHintColor": "&e",
+    "nodeRequirementColor": "&c",
+    "nodeStatusUnlocked": "Unlocked",
+    "nodeStatusAvailable": "Available",
+    "nodeStatusLocked": "Locked",
+    "chatUnlockSuccess": "&aUnlocked {nodeName}&7. Remaining points: &f{points}&7.",
+    "chatResetSuccess": "&eSkills reset. Points available: &f{points}&e.",
+    "pointGainMessagesEnabled": true,
+    "chatPointGain": "&b+{points} Skill Point(s) &7from &f{source}&7. Unused: &f{unusedPoints}"
+  },
+  "milestones": {
+    "enabled": true,
+    "everyNodes": 10,
+    "titleText": "&bSkill Upgrade",
+    "subtitleText": "&7{lineName} Tier {tier}",
+    "chatAnnouncement": "&6{player}&e has achieved tier &f{tier} &eof &f{lineName}&e.",
+    "soundId": "minecraft:entity.player.levelup",
+    "soundVolume": 1.0,
+    "soundPitch": 1.0,
+    "particleId": "minecraft:totem_of_undying",
+    "particleCount": 24
+  },
+  "pointGains": {
+    "catchesPerPoint": 25,
+    "quizWinsPerPoint": 3,
+    "dailyClaimsPerPoint": 1,
+    "shinyBonusPoints": 1,
+    "legendaryBonusPoints": 2,
+    "globalChanceDailyCap": 8,
+    "captureChance": {
+      "enabled": true,
+      "chancePercent": 4.0,
+      "pointsMin": 1,
+      "pointsMax": 1,
+      "dailyCap": 3
+    },
+    "quizWinChance": {
+      "enabled": true,
+      "chancePercent": 12.0,
+      "pointsMin": 1,
+      "pointsMax": 2,
+      "dailyCap": 4
+    },
+    "dailyClaimChance": {
+      "enabled": true,
+      "chancePercent": 15.0,
+      "pointsMin": 1,
+      "pointsMax": 1,
+      "dailyCap": 1
+    },
+    "shinyCaptureChance": {
+      "enabled": true,
+      "chancePercent": 35.0,
+      "pointsMin": 1,
+      "pointsMax": 2,
+      "dailyCap": 3
+    },
+    "legendaryCaptureChance": {
+      "enabled": true,
+      "chancePercent": 60.0,
+      "pointsMin": 1,
+      "pointsMax": 3,
+      "dailyCap": 4
+    },
+    "miningOreChance": {
+      "enabled": true,
+      "chancePercent": 3.0,
+      "pointsMin": 1,
+      "pointsMax": 1,
+      "dailyCap": 2
+    }
+  },
+  "categories": [
+    {
+      "id": "recon",
+      "name": "Recon",
+      "row": 1,
+      "iconItemId": "minecraft:compass"
+    },
+    {
+      "id": "survival",
+      "name": "Survival",
+      "row": 2,
+      "iconItemId": "minecraft:shield"
+    },
+    {
+      "id": "tactics",
+      "name": "Tactics",
+      "row": 3,
+      "iconItemId": "minecraft:crossbow"
+    },
+    {
+      "id": "creature_ops",
+      "name": "Creature Ops",
+      "row": 4,
+      "iconItemId": "minecraft:lead"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "recon_i",
+      "name": "Signal Basics",
+      "description": "Slightly improves quiz mission gains (+5%).",
+      "category": "recon",
+      "cost": 1,
+      "requires": [],
+      "effectType": "progress_bonus",
+      "progressType": "quiz_wins",
+      "progressMode": "percent",
+      "value": 5,
+      "iconItemId": "minecraft:spyglass"
+    },
+    {
+      "id": "recon_ii",
+      "name": "Target Reading",
+      "description": "Improves quiz mission gains (+8%).",
+      "category": "recon",
+      "cost": 1,
+      "requires": [
+        "recon_i"
+      ],
+      "effectType": "progress_bonus",
+      "progressType": "quiz_wins",
+      "progressMode": "percent",
+      "value": 8,
+      "iconItemId": "minecraft:book"
+    },
+    {
+      "id": "recon_iii",
+      "name": "Scout Vision",
+      "description": "Night Vision I while online.",
+      "category": "recon",
+      "cost": 2,
+      "requires": [
+        "recon_ii"
+      ],
+      "effectType": "passive_status_effect",
+      "statusEffectId": "minecraft:night_vision",
+      "amplifier": 0,
+      "ambient": true,
+      "showParticles": false,
+      "showIcon": false,
+      "iconItemId": "minecraft:ender_eye"
+    },
+    {
+      "id": "recon_iv",
+      "name": "Signal Master",
+      "description": "+1 quiz mission progress per win.",
+      "category": "recon",
+      "cost": 2,
+      "requires": [
+        "recon_iii"
+      ],
+      "effectType": "progress_bonus",
+      "progressType": "quiz_wins",
+      "progressMode": "flat",
+      "value": 1,
+      "iconItemId": "minecraft:amethyst_shard"
+    },
+    {
+      "id": "survival_i",
+      "name": "Route Basics",
+      "description": "Slightly improves catch mission gains (+5%).",
+      "category": "survival",
+      "cost": 1,
+      "requires": [],
+      "effectType": "progress_bonus",
+      "progressType": "catches",
+      "progressMode": "percent",
+      "value": 5,
+      "iconItemId": "minecraft:map"
+    },
+    {
+      "id": "survival_ii",
+      "name": "Route Familiarity",
+      "description": "Improves catch mission gains (+8%).",
+      "category": "survival",
+      "cost": 1,
+      "requires": [
+        "survival_i"
+      ],
+      "effectType": "progress_bonus",
+      "progressType": "catches",
+      "progressMode": "percent",
+      "value": 8,
+      "iconItemId": "minecraft:map"
+    },
+    {
+      "id": "survival_iii",
+      "name": "Field Conditioning",
+      "description": "Jump Boost I while online.",
+      "category": "survival",
+      "cost": 2,
+      "requires": [
+        "survival_ii"
+      ],
+      "effectType": "passive_status_effect",
+      "statusEffectId": "minecraft:jump_boost",
+      "amplifier": 0,
+      "ambient": true,
+      "showParticles": false,
+      "showIcon": false,
+      "iconItemId": "minecraft:rabbit_foot"
+    },
+    {
+      "id": "survival_iv",
+      "name": "Endurance",
+      "description": "+1 catch mission progress per sample.",
+      "category": "survival",
+      "cost": 2,
+      "requires": [
+        "survival_iii"
+      ],
+      "effectType": "progress_bonus",
+      "progressType": "catches",
+      "progressMode": "flat",
+      "value": 1,
+      "iconItemId": "minecraft:totem_of_undying"
+    },
+    {
+      "id": "survival_v",
+      "name": "Angler Instinct",
+      "description": "10% better chance at high-value fishing loot.",
+      "category": "survival",
+      "cost": 3,
+      "requires": [
+        "survival_iv"
+      ],
+      "effectType": "perk_bonus",
+      "perkType": "fishing_good_loot",
+      "perkMode": "percent",
+      "value": 10,
+      "iconItemId": "minecraft:fishing_rod"
+    },
+    {
+      "id": "tactics_i",
+      "name": "Mission Routing",
+      "description": "Improves catch mission gains (+4%).",
+      "category": "tactics",
+      "cost": 1,
+      "requires": [],
+      "effectType": "progress_bonus",
+      "progressType": "catches",
+      "progressMode": "percent",
+      "value": 4,
+      "iconItemId": "minecraft:clock"
+    },
+    {
+      "id": "tactics_ii",
+      "name": "Debrief Loop",
+      "description": "Improves quiz mission gains (+4%).",
+      "category": "tactics",
+      "cost": 1,
+      "requires": [
+        "tactics_i"
+      ],
+      "effectType": "progress_bonus",
+      "progressType": "quiz_wins",
+      "progressMode": "percent",
+      "value": 4,
+      "iconItemId": "minecraft:comparator"
+    },
+    {
+      "id": "tactics_iii",
+      "name": "Tempo",
+      "description": "Speed I while online.",
+      "category": "tactics",
+      "cost": 2,
+      "requires": [
+        "tactics_ii"
+      ],
+      "effectType": "passive_status_effect",
+      "statusEffectId": "minecraft:speed",
+      "amplifier": 0,
+      "ambient": true,
+      "showParticles": false,
+      "showIcon": false,
+      "iconItemId": "minecraft:feather"
+    },
+    {
+      "id": "tactics_iv",
+      "name": "Force Multiplier",
+      "description": "+1 catch mission progress per sample.",
+      "category": "tactics",
+      "cost": 3,
+      "requires": [
+        "tactics_iii"
+      ],
+      "effectType": "progress_bonus",
+      "progressType": "catches",
+      "progressMode": "flat",
+      "value": 1,
+      "iconItemId": "minecraft:netherite_scrap"
+    },
+    {
+      "id": "creature_ops_i",
+      "name": "Capture Study",
+      "description": "Improves catch mission gains (+6%).",
+      "category": "creature_ops",
+      "cost": 1,
+      "requires": [],
+      "effectType": "progress_bonus",
+      "progressType": "catches",
+      "progressMode": "percent",
+      "value": 6,
+      "iconItemId": "minecraft:lead"
+    },
+    {
+      "id": "creature_ops_ii",
+      "name": "Battle Notes",
+      "description": "Improves quiz mission gains (+6%).",
+      "category": "creature_ops",
+      "cost": 1,
+      "requires": [
+        "creature_ops_i"
+      ],
+      "effectType": "progress_bonus",
+      "progressType": "quiz_wins",
+      "progressMode": "percent",
+      "value": 6,
+      "iconItemId": "minecraft:book"
+    },
+    {
+      "id": "creature_ops_iii",
+      "name": "Handler Stance",
+      "description": "Luck I while online.",
+      "category": "creature_ops",
+      "cost": 2,
+      "requires": [
+        "creature_ops_ii"
+      ],
+      "effectType": "passive_status_effect",
+      "statusEffectId": "minecraft:luck",
+      "amplifier": 0,
+      "ambient": true,
+      "showParticles": false,
+      "showIcon": false,
+      "iconItemId": "minecraft:gold_nugget"
+    },
+    {
+      "id": "creature_ops_iv",
+      "name": "Specialist",
+      "description": "+1 catch mission progress per sample.",
+      "category": "creature_ops",
+      "cost": 3,
+      "requires": [
+        "creature_ops_iii"
+      ],
+      "effectType": "progress_bonus",
+      "progressType": "catches",
+      "progressMode": "flat",
+      "value": 1,
+      "iconItemId": "minecraft:nether_star"
+    },
+    {
+      "id": "creature_ops_v",
+      "name": "Quick Capture",
+      "description": "Planned Cobblemon hook: +5% first-try catch chance.",
+      "category": "creature_ops",
+      "cost": 4,
+      "requires": [
+        "creature_ops_iv"
+      ],
+      "effectType": "perk_bonus",
+      "perkType": "cobblemon_first_try_catch",
+      "perkMode": "percent",
+      "value": 5,
+      "iconItemId": "minecraft:ender_pearl"
+    }
+  ]
+}

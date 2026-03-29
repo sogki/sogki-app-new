@@ -76,13 +76,13 @@ public final class QuizService {
     return "Quiz idle: next question in " + (remainTicks / 20) + "s";
   }
 
-  public void onPlayerChat(MinecraftServer server, ServerPlayerEntity player, String rawMessage, ServerFeatureConfig cfg) {
-    if (server == null || player == null || rawMessage == null || cfg == null || cfg.quiz == null || !cfg.quiz.enabled) return;
-    if (active == null) return;
+  public boolean onPlayerChat(MinecraftServer server, ServerPlayerEntity player, String rawMessage, ServerFeatureConfig cfg) {
+    if (server == null || player == null || rawMessage == null || cfg == null || cfg.quiz == null || !cfg.quiz.enabled) return false;
+    if (active == null) return false;
 
     String answer = normalizeOneWord(rawMessage);
-    if (answer == null) return;
-    if (!active.answers.contains(answer)) return;
+    if (answer == null) return false;
+    if (!active.answers.contains(answer)) return false;
 
     List<ServerFeatureConfig.RewardItem> granted = grantRewards(player, active.rewards);
     Map<String, String> values = TemplateEngine.baseMap(server, player, cfg.brand);
@@ -91,6 +91,7 @@ public final class QuizService {
     String msg = TemplateEngine.render(cfg.messages.quizWinner, values);
     server.getPlayerManager().broadcast(Text.literal(msg), false);
     active = null;
+    return true;
   }
 
   private void startQuiz(MinecraftServer server, ServerFeatureConfig cfg, long tick) {

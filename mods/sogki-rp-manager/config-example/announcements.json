@@ -3,8 +3,10 @@
   "cooldownSeconds": 8,
   "catchAnnouncements": true,
   "shinyCatchAnnouncements": true,
+  "legendaryCatchAnnouncements": true,
   "battleAnnouncements": false,
   "catchTemplate": "&a{player} caught &f{pokemon}&a.",
   "shinyCatchTemplate": "&d{player} caught a SHINY {pokemon}!",
+  "legendaryCatchTemplate": "&6{player} caught a LEGENDARY {pokemon}&6!",
   "manualTemplate": "{message}"
 }

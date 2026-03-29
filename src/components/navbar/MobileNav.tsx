@@ -1,7 +1,9 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Briefcase, ChevronDown, ExternalLink, X } from 'lucide-react';
-import { navItems, projects, socialLinks } from './NavbarData';
+import { navItems as defaultNavItems, projects, socialLinks } from './NavbarData';
+
+type NavItem = (typeof defaultNavItems)[number];
 
 interface MobileNavProps {
   isOpen: boolean;
@@ -9,6 +11,7 @@ interface MobileNavProps {
   handleNavClick: (href: string) => void;
   isProjectsOpen: boolean;
   setIsProjectsOpen: (value: boolean) => void;
+  navItems?: NavItem[];
 }
 
 export const MobileNav: React.FC<MobileNavProps> = ({
@@ -16,8 +19,10 @@ export const MobileNav: React.FC<MobileNavProps> = ({
   onClose,
   handleNavClick,
   isProjectsOpen,
-  setIsProjectsOpen
+  setIsProjectsOpen,
+  navItems: navItemsProp,
 }) => {
+  const navItems = navItemsProp ?? defaultNavItems;
   return (
     <AnimatePresence>
       {isOpen && (

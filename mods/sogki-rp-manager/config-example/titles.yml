@@ -1,0 +1,336 @@
+titles:
+  menuTitle: "&8Titles"
+  messageSet: "&aTitle set: {title} &7({position})"
+  messageClear: "&eTitle cleared."
+  messageUnknown: "&cUnknown title: {titleId}"
+  messageNotAvailable: "&cThat title is unavailable for you."
+  messageGrantNotCustom: "&cThat title is not marked as custom."
+  messageGrantAlready: "&ePlayer already has access to {title}."
+  messageGrantSuccessAdmin: "&aGranted {title} &ato player."
+  messageGrantSuccessPlayer: "&aYou unlocked title {title}&a!"
+  messageDropFound: "&dYou found a redeemable nametag for {title}&d!"
+  messageRedeemSuccess: "&aUnlocked title {title}&a!"
+  messageRedeemAlreadyOwned: "&eYou already unlocked {title}&e."
+  messageFallbackDrop: "&bBonus drop: &f{count}x {itemName}"
+  drops:
+    enabled: true
+    requireUnlockForStandardTitles: true
+    chanceOutOf: 300
+    miningChancePercent: 0.75
+    mobKillChancePercent: 1.5
+    pokemonCatchChancePercent: 2.0
+    fallbackEnabled: true
+    fallbackCountMin: 1
+    fallbackCountMax: 4
+    fallbackItemIds:
+      - "cobblemon:relic_coin"
+      - "cobblemon:exp_candy_s"
+      - "cobblemon:poke_ball"
+      - "cobblemon:great_ball"
+      - "minecraft:gold_nugget"
+    itemName: "&dRedeemable: {title}"
+    itemLore:
+      - "&7Unlock this title permanently."
+      - "&eRight-click while holding to redeem."
+      - "&8Title: {titleId}"
+  titles:
+    - id: "rookie"
+      display: "&7Rookie"
+      description: "&7A fresh face in the region."
+      iconItemId: "minecraft:paper"
+      defaultPosition: "prefix"
+      order: 1
+      teamIds: []
+    - id: "route_runner"
+      display: "&fRoute Runner"
+      description: "&7Always one route ahead."
+      iconItemId: "minecraft:leather_boots"
+      defaultPosition: "prefix"
+      order: 2
+      teamIds: []
+    - id: "adventurer"
+      display: "&aAdventurer"
+      description: "&7Explores every corner of the map."
+      iconItemId: "minecraft:map"
+      defaultPosition: "prefix"
+      order: 3
+      teamIds: []
+    - id: "ace_trainer"
+      display: "&bAce Trainer"
+      description: "&7Sharp in battle and steady under pressure."
+      iconItemId: "cobblemon:great_ball"
+      defaultPosition: "prefix"
+      order: 4
+      teamIds: []
+    - id: "collector"
+      display: "&3Collector"
+      description: "&7For players that catch and keep everything."
+      iconItemId: "minecraft:ender_chest"
+      defaultPosition: "suffix"
+      order: 5
+      teamIds: []
+    - id: "fisher"
+      display: "&9Deepwater Angler"
+      description: "&7Patient, lucky, and always near water."
+      iconItemId: "minecraft:fishing_rod"
+      defaultPosition: "suffix"
+      order: 6
+      teamIds: []
+    - id: "crafter"
+      display: "&6Master Crafter"
+      description: "&7Turns raw loot into real power."
+      iconItemId: "minecraft:crafting_table"
+      defaultPosition: "suffix"
+      order: 7
+      teamIds: []
+    - id: "merchant"
+      display: "&eDeal Maker"
+      description: "&7Knows value, trades smart."
+      iconItemId: "minecraft:emerald"
+      defaultPosition: "prefix"
+      order: 8
+      teamIds: []
+    - id: "ranger"
+      display: "&2Ranger"
+      description: "&7Tracks movement and controls space."
+      iconItemId: "minecraft:bow"
+      defaultPosition: "prefix"
+      order: 9
+      teamIds: []
+    - id: "gym_hopeful"
+      display: "&dGym Hopeful"
+      description: "&7Climbing toward elite status."
+      iconItemId: "cobblemon:poke_ball"
+      defaultPosition: "suffix"
+      order: 10
+      teamIds: []
+    - id: "battlemaster"
+      display: "&cBattle Master"
+      description: "&7Built for fights, not excuses."
+      iconItemId: "minecraft:diamond_sword"
+      defaultPosition: "prefix"
+      order: 11
+      teamIds: []
+    - id: "relic_hunter"
+      display: "&5Relic Hunter"
+      description: "&7Digs up the rarest finds."
+      iconItemId: "minecraft:brush"
+      defaultPosition: "suffix"
+      order: 12
+      teamIds: []
+    - id: "berry_farmer"
+      display: "&aBerry Farmer"
+      description: "&7Keeps the supply chain alive."
+      iconItemId: "minecraft:sweet_berries"
+      defaultPosition: "suffix"
+      order: 13
+      teamIds: []
+    - id: "quest_runner"
+      display: "&bQuest Runner"
+      description: "&7Always has an objective active."
+      iconItemId: "minecraft:compass"
+      defaultPosition: "prefix"
+      order: 14
+      teamIds: []
+    - id: "lucky"
+      display: "&eLucky"
+      description: "&7Crits, drops, and odds all line up."
+      iconItemId: "minecraft:rabbit_foot"
+      defaultPosition: "suffix"
+      order: 15
+      teamIds: []
+    - id: "speedster"
+      display: "&fSpeedster"
+      description: "&7Fast routes, faster decisions."
+      iconItemId: "minecraft:sugar"
+      defaultPosition: "prefix"
+      order: 16
+      teamIds: []
+    - id: "strategist"
+      display: "&1Strategist"
+      description: "&7Wins with planning, not panic."
+      iconItemId: "minecraft:book"
+      defaultPosition: "prefix"
+      order: 17
+      teamIds: []
+    - id: "wayfarer"
+      display: "&6Wayfarer"
+      description: "&7Master of routes, waystones, and shortcuts."
+      iconItemId: "waystones:waystone"
+      defaultPosition: "suffix"
+      order: 18
+      teamIds: []
+    - id: "champion"
+      display: "&6Champion"
+      description: "&7A title worthy of the best."
+      iconItemId: "minecraft:nether_star"
+      defaultPosition: "suffix"
+      order: 19
+      teamIds: []
+    - id: "legend_making"
+      display: "&dLegend in the Making"
+      description: "&7You are not done yet."
+      iconItemId: "cobblemon:ultra_ball"
+      defaultPosition: "prefix"
+      order: 20
+      teamIds: []
+    - id: "valor_elite"
+      display: "&cValor Elite"
+      description: "&7Exclusive to Team Valor."
+      iconItemId: "minecraft:blaze_powder"
+      defaultPosition: "prefix"
+      order: 30
+      teamIds:
+        - "valor"
+    - id: "valor_frontline"
+      display: "&4Frontline"
+      description: "&7Valor only - always first into battle."
+      iconItemId: "minecraft:iron_sword"
+      defaultPosition: "suffix"
+      order: 31
+      teamIds:
+        - "valor"
+    - id: "valor_warlord"
+      display: "&4Warlord"
+      description: "&7Valor only - commands the tempo."
+      iconItemId: "minecraft:shield"
+      defaultPosition: "prefix"
+      order: 32
+      teamIds:
+        - "valor"
+    - id: "valor_pyre"
+      display: "&cPyrebrand"
+      description: "&7Valor only - burns through resistance."
+      iconItemId: "minecraft:fire_charge"
+      defaultPosition: "suffix"
+      order: 33
+      teamIds:
+        - "valor"
+    - id: "mystic_scholar"
+      display: "&9Mystic Scholar"
+      description: "&7Exclusive to Team Mystic."
+      iconItemId: "minecraft:lapis_lazuli"
+      defaultPosition: "prefix"
+      order: 40
+      teamIds:
+        - "mystic"
+    - id: "mystic_oracle"
+      display: "&1Oracle"
+      description: "&7Mystic only - sees every angle."
+      iconItemId: "minecraft:book"
+      defaultPosition: "suffix"
+      order: 41
+      teamIds:
+        - "mystic"
+    - id: "mystic_archivist"
+      display: "&3Archivist"
+      description: "&7Mystic only - knowledge keeper."
+      iconItemId: "minecraft:bookshelf"
+      defaultPosition: "prefix"
+      order: 42
+      teamIds:
+        - "mystic"
+    - id: "mystic_tide"
+      display: "&9Tidecaller"
+      description: "&7Mystic only - calm, precise, inevitable."
+      iconItemId: "minecraft:heart_of_the_sea"
+      defaultPosition: "suffix"
+      order: 43
+      teamIds:
+        - "mystic"
+    - id: "instinct_hunter"
+      display: "&eInstinct Hunter"
+      description: "&7Exclusive to Team Instinct."
+      iconItemId: "minecraft:gold_ingot"
+      defaultPosition: "prefix"
+      order: 50
+      teamIds:
+        - "instinct"
+    - id: "instinct_vanguard"
+      display: "&6Vanguard"
+      description: "&7Instinct only - quick, bold, relentless."
+      iconItemId: "minecraft:lightning_rod"
+      defaultPosition: "suffix"
+      order: 51
+      teamIds:
+        - "instinct"
+    - id: "instinct_spark"
+      display: "&eSparkstrike"
+      description: "&7Instinct only - reacts before others think."
+      iconItemId: "minecraft:glowstone_dust"
+      defaultPosition: "prefix"
+      order: 52
+      teamIds:
+        - "instinct"
+    - id: "instinct_scout"
+      display: "&6Pathfinder"
+      description: "&7Instinct only - tracks the fastest win line."
+      iconItemId: "minecraft:spyglass"
+      defaultPosition: "suffix"
+      order: 53
+      teamIds:
+        - "instinct"
+    - id: "event_legend"
+      display: "&dEvent Legend"
+      description: "&7Admin-granted for standout event performance."
+      iconItemId: "minecraft:dragon_head"
+      defaultPosition: "prefix"
+      order: 90
+      teamIds:
+        - "custom"
+    - id: "staff_pick"
+      display: "&5Staff Pick"
+      description: "&7Admin-granted recognition title."
+      iconItemId: "minecraft:amethyst_shard"
+      defaultPosition: "prefix"
+      order: 91
+      teamIds:
+        - "custom"
+    - id: "founder"
+      display: "&6Founder"
+      description: "&7Admin-granted legacy supporter title."
+      iconItemId: "minecraft:bell"
+      defaultPosition: "prefix"
+      order: 92
+      teamIds:
+        - "custom"
+    - id: "beta_tester"
+      display: "&bBeta Tester"
+      description: "&7Admin-granted for pre-release testing."
+      iconItemId: "minecraft:comparator"
+      defaultPosition: "suffix"
+      order: 93
+      teamIds:
+        - "custom"
+    - id: "mvp_season"
+      display: "&eSeason MVP"
+      description: "&7Admin-granted seasonal honor."
+      iconItemId: "minecraft:totem_of_undying"
+      defaultPosition: "prefix"
+      order: 94
+      teamIds:
+        - "custom"
+    - id: "tournament_winner"
+      display: "&6Tournament Winner"
+      description: "&7Admin-granted competitive title."
+      iconItemId: "minecraft:golden_helmet"
+      defaultPosition: "suffix"
+      order: 95
+      teamIds:
+        - "custom"
+    - id: "community_star"
+      display: "&dCommunity Star"
+      description: "&7Admin-granted for positive community impact."
+      iconItemId: "minecraft:firework_star"
+      defaultPosition: "prefix"
+      order: 96
+      teamIds:
+        - "custom"
+    - id: "heart"
+      display: "&d<3"
+      description: "&7A cute custom title."
+      iconItemId: "cobblemon:love_ball"
+      defaultPosition: "suffix"
+      order: 97
+      teamIds:
+        - "custom"

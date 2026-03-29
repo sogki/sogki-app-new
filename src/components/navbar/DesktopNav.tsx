@@ -1,23 +1,28 @@
 import React, { useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Briefcase, ChevronDown, Share2 } from 'lucide-react';
-import { navItems } from './NavbarData';
+import { navItems as defaultNavItems } from './NavbarData';
 import { ProjectsDropdown } from './ProjectsDropdown';
 import { SocialDropdown } from './SocialDropdown';
+
+type NavItem = (typeof defaultNavItems)[number];
 
 interface DesktopNavProps {
   isScrolled: boolean;
   activeDropdown: string | null;
   setActiveDropdown: (value: string | null) => void;
   handleNavClick: (href: string) => void;
+  navItems?: NavItem[];
 }
 
 export const DesktopNav: React.FC<DesktopNavProps> = ({
   isScrolled,
   activeDropdown,
   setActiveDropdown,
-  handleNavClick
+  handleNavClick,
+  navItems: navItemsProp,
 }) => {
+  const navItems = navItemsProp ?? defaultNavItems;
   const navRef = useRef<HTMLElement>(null);
 
   const handleGlowMove = (event: React.MouseEvent<HTMLElement>) => {

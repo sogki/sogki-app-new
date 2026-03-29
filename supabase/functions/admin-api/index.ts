@@ -1,6 +1,6 @@
 // Supabase Edge Function: Admin API
 // Verifies admin JWT, uses service role for all DB operations
-// Handles: graphics, blogs, projects, social, footer, resource packs
+// Handles: graphics, blogs, projects, social, footer, resource packs, binder showcases
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import * as jose from 'https://deno.land/x/jose@v5.2.0/index.ts';
@@ -15,6 +15,7 @@ const corsHeaders = {
 const BUCKET_BLOG_IMAGES = 'blog-images';
 const BUCKET_RESOURCEPACKS = 'resourcepacks';
 const MAX_BLOG_IMAGE_BYTES = 10 * 1024 * 1024; // 10 MB
+const MAX_BINDER_IMAGE_BYTES = 10 * 1024 * 1024;
 const MAX_RESOURCEPACK_BYTES = 200 * 1024 * 1024; // 200 MB
 
 Deno.serve(async (req) => {
@@ -83,6 +84,9 @@ Deno.serve(async (req) => {
       if (parts[0] === 'resourcepacks' && parts[1] === 'upload' && req.method === 'POST') {
         return await handleResourcePackUpload(supabase, req);
       }
+      if (parts[0] === 'binder_showcases' && parts[1] === 'upload' && req.method === 'POST') {
+        return await handleBinderShowcaseImageUpload(supabase, req);
+      }
       const body = req.method !== 'DELETE' ? await req.json().catch(() => ({})) : {};
       return await handleMutate(supabase, req.method, parts, body);
     }
@@ -135,6 +139,31 @@ async function handleGet(supabase: any, parts: string[], url: URL) {
         .select('*')
         .order('created_at', { ascending: false });
       return json(packs ?? []);
+    case 'binder_showcases': {
+      const { data: binders, error: bindersErr } = await supabase
+        .from('binder_showcases')
+        .select(
+          `
+          *,
+          binder_showcase_images ( id, showcase_id, public_url, storage_path, sort_order ),
+          binder_showcase_sets ( id, showcase_id, name, name_jp, completed, total, sort_order )
+        `
+        )
+        .order('sort_order', { ascending: true });
+      if (bindersErr) throw bindersErr;
+      const rows = (binders ?? []).map((row: Record<string, unknown>) => ({
+        ...row,
+        binder_showcase_images: [...((row.binder_showcase_images as unknown[]) ?? [])].sort(
+          (a: { sort_order?: number }, b: { sort_order?: number }) =>
+            (a.sort_order ?? 0) - (b.sort_order ?? 0)
+        ),
+        binder_showcase_sets: [...((row.binder_showcase_sets as unknown[]) ?? [])].sort(
+          (a: { sort_order?: number }, b: { sort_order?: number }) =>
+            (a.sort_order ?? 0) - (b.sort_order ?? 0)
+        ),
+      }));
+      return json(rows);
+    }
     default:
       return json({ error: 'Unknown resource' }, 404);
   }
@@ -225,6 +254,25 @@ async function handleResourcePackUpload(supabase: any, req: Request) {
   }
 
   return json(data);
+}
+
+async function handleBinderShowcaseImageUpload(supabase: any, req: Request) {
+  const parsed = await parseUploadRequest(req);
+  const { fileBytes, filename, mimeType } = parsed;
+  if (!fileBytes || !filename) return json({ error: 'file and filename required' }, 400);
+  if (fileBytes.byteLength > MAX_BINDER_IMAGE_BYTES) {
+    return json({ error: 'Image too large. Max size is 10 MB.' }, 413);
+  }
+  const ext = filename.split('.').pop() || 'png';
+  const safeExt = ['png', 'jpg', 'jpeg', 'gif', 'webp'].includes(ext.toLowerCase()) ? ext : 'png';
+  const path = `binder-showcase/${Date.now()}-${Math.random().toString(36).slice(2, 9)}.${safeExt}`;
+  const contentType = mimeType && mimeType.startsWith('image/') ? mimeType : `image/${safeExt}`;
+  const { data: upload, error: uploadErr } = await supabase.storage
+    .from(BUCKET_BLOG_IMAGES)
+    .upload(path, fileBytes, { contentType, upsert: false });
+  if (uploadErr) return json({ error: uploadErr.message }, 400);
+  const { data: urlData } = supabase.storage.from(BUCKET_BLOG_IMAGES).getPublicUrl(upload.path);
+  return json({ url: urlData.publicUrl, path: upload.path });
 }
 
 async function parseUploadRequest(req: Request) {
@@ -349,6 +397,32 @@ async function handleMutate(supabase: any, method: string, parts: string[], body
     return json({ error: 'Method not allowed' }, 405);
   }
 
+  if (resource === 'binder_showcases' && method === 'DELETE' && id) {
+    const { data: imgs } = await supabase
+      .from('binder_showcase_images')
+      .select('storage_path')
+      .eq('showcase_id', id);
+    const paths = (imgs ?? []).map((r: { storage_path: string | null }) => r.storage_path).filter(Boolean);
+    if (paths.length) {
+      const { error: storageErr } = await supabase.storage.from(BUCKET_BLOG_IMAGES).remove(paths as string[]);
+      if (storageErr) throw storageErr;
+    }
+    const { error: delErr } = await supabase.from('binder_showcases').delete().eq('id', id);
+    if (delErr) throw delErr;
+    return json({ ok: true });
+  }
+
+  if (resource === 'binder_showcase_images' && method === 'DELETE' && id) {
+    const { data: row } = await supabase.from('binder_showcase_images').select('storage_path').eq('id', id).single();
+    if (row?.storage_path) {
+      const { error: storageErr } = await supabase.storage.from(BUCKET_BLOG_IMAGES).remove([row.storage_path]);
+      if (storageErr) throw storageErr;
+    }
+    const { error: delImgErr } = await supabase.from('binder_showcase_images').delete().eq('id', id);
+    if (delImgErr) throw delImgErr;
+    return json({ ok: true });
+  }
+
   const tableMap: Record<string, string> = {
     collections: 'graphics_design_collections',
     assets: 'graphics_design_assets',
@@ -357,6 +431,9 @@ async function handleMutate(supabase: any, method: string, parts: string[], body
     social: 'social_links',
     footer: 'footer_config',
     site_content: 'site_content',
+    binder_showcases: 'binder_showcases',
+    binder_showcase_images: 'binder_showcase_images',
+    binder_showcase_sets: 'binder_showcase_sets',
   };
 
   const table = tableMap[resource];

@@ -1,0 +1,53 @@
+skillPoints:
+  messages:
+    pointGainMessagesEnabled: true
+    pointGain: "&b+{points} Skill Point(s) &7from &f{source}&7. Unused: &f{unusedPoints}"
+  chanceOutOf: 300
+  catchesPerPoint: 25
+  quizWinsPerPoint: 3
+  dailyClaimsPerPoint: 1
+  shinyBonusPoints: 1
+  legendaryBonusPoints: 2
+  globalChanceDailyCap: 8
+  captureChance:
+    enabled: true
+    chancePercent: 4.0
+    pointsMin: 1
+    pointsMax: 1
+    dailyCap: 3
+  shinyCaptureChance:
+    enabled: true
+    chancePercent: 35.0
+    pointsMin: 1
+    pointsMax: 2
+    dailyCap: 3
+  legendaryCaptureChance:
+    enabled: true
+    chancePercent: 60.0
+    pointsMin: 1
+    pointsMax: 3
+    dailyCap: 4
+  miningOreChance:
+    enabled: true
+    chancePercent: 3.0
+    pointsMin: 1
+    pointsMax: 1
+    dailyCap: 2
+  mobKillChance:
+    enabled: true
+    chancePercent: 2.5
+    pointsMin: 1
+    pointsMax: 1
+    dailyCap: 3
+  quizWinChance:
+    enabled: true
+    chancePercent: 12.0
+    pointsMin: 1
+    pointsMax: 2
+    dailyCap: 4
+  dailyClaimChance:
+    enabled: true
+    chancePercent: 15.0
+    pointsMin: 1
+    pointsMax: 1
+    dailyCap: 1
