@@ -7,7 +7,13 @@ import { useSiteData } from '../context/SiteDataContext';
 import { getString } from '../lib/siteContent';
 import { sectionRevealTransition, sectionViewport, smoothEase } from '../lib/motionPresets';
 import { collectionStats, masterSets, type MasterSetProgress } from '../data/pokemonCollection';
-import { fetchBinderShowcases, type BinderShowcase, type BinderShowcaseSet } from '../lib/siteData';
+import {
+  fetchBinderShowcases,
+  fetchCollectionMasterSetEntries,
+  type BinderShowcase,
+  type BinderShowcaseSet,
+  type CollectionMasterSetEntry,
+} from '../lib/siteData';
 
 type SetRow = MasterSetProgress | BinderShowcaseSet;
 
@@ -55,6 +61,42 @@ function MasterSetBar({ row, index }: { row: SetRow; index: number }) {
   );
 }
 
+function DirectPercentMasterSetCard({ entry, index }: { entry: CollectionMasterSetEntry; index: number }) {
+  const pct = Math.min(100, Math.max(0, Math.round(Number(entry.progress_percent) || 0)));
+  const blurb = entry.description?.trim() || null;
+  const sub = entry.subtitle?.trim() || null;
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: -12 }}
+      whileInView={{ opacity: 1, x: 0 }}
+      viewport={{ once: true, amount: 0.35 }}
+      transition={{ duration: 0.5, delay: index * 0.08, ease: smoothEase }}
+      className="rounded-xl border border-white/10 bg-white/[0.03] backdrop-blur-sm p-4 sm:p-5"
+    >
+      <div className="flex flex-wrap items-baseline justify-between gap-2 mb-2">
+        <div className="min-w-0 flex-1">
+          <h3 className="text-sm sm:text-base font-semibold text-white font-mono">{entry.title}</h3>
+          {entry.title_jp ? <p className="text-xs text-purple-300/90">{entry.title_jp}</p> : null}
+        </div>
+        <div className="text-right shrink-0">
+          <span className="text-lg font-bold text-white tabular-nums">{pct}%</span>
+          {sub ? <p className="text-[11px] text-gray-400 tabular-nums mt-0.5">{sub}</p> : null}
+        </div>
+      </div>
+      {blurb ? <p className="text-xs sm:text-sm text-gray-400 leading-relaxed mb-3">{blurb}</p> : null}
+      <div className="h-2.5 rounded-full bg-black/40 overflow-hidden border border-white/5">
+        <motion.div
+          className="h-full rounded-full bg-gradient-to-r from-fuchsia-500 via-violet-500 to-cyan-400"
+          initial={{ width: 0 }}
+          whileInView={{ width: `${pct}%` }}
+          viewport={{ once: true, amount: 0.5 }}
+          transition={{ duration: 1.1, ease: smoothEase, delay: 0.15 + index * 0.06 }}
+        />
+      </div>
+    </motion.div>
+  );
+}
+
 type PokemonCollectionProps = {
   isStandalonePage?: boolean;
 };
@@ -62,15 +104,22 @@ type PokemonCollectionProps = {
 export const PokemonCollection: React.FC<PokemonCollectionProps> = ({ isStandalonePage = false }) => {
   const { siteContent } = useSiteData();
   const [binderShowcases, setBinderShowcases] = useState<BinderShowcase[]>([]);
+  const [collectionMasterSets, setCollectionMasterSets] = useState<CollectionMasterSetEntry[]>([]);
 
   useEffect(() => {
     let cancelled = false;
-    fetchBinderShowcases()
-      .then((rows) => {
-        if (!cancelled) setBinderShowcases(rows);
+    Promise.all([fetchBinderShowcases(), fetchCollectionMasterSetEntries()])
+      .then(([binders, masterRows]) => {
+        if (!cancelled) {
+          setBinderShowcases(binders);
+          setCollectionMasterSets(masterRows);
+        }
       })
       .catch(() => {
-        if (!cancelled) setBinderShowcases([]);
+        if (!cancelled) {
+          setBinderShowcases([]);
+          setCollectionMasterSets([]);
+        }
       });
     return () => {
       cancelled = true;
@@ -131,6 +180,35 @@ export const PokemonCollection: React.FC<PokemonCollectionProps> = ({ isStandalo
               </div>
             ))}
           </motion.div>
+        )}
+
+        {collectionMasterSets.length > 0 && (
+          <div className="mb-14 sm:mb-16">
+            <motion.div
+              className="mb-6 text-center sm:text-left"
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              viewport={{ once: true }}
+            >
+              <h3 className="text-xl sm:text-2xl font-bold font-mono text-white flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                <span className="h-px flex-1 max-w-12 bg-gradient-to-r from-violet-500 to-transparent hidden sm:block" />
+                {getString(siteContent, 'collection.master_sets_completion_title', 'Master set completion')}
+                <span className="text-sm font-normal text-purple-300/90">
+                  {getString(siteContent, 'collection.master_sets_completion_title_jp', 'マスターセット完成度')}
+                </span>
+              </h3>
+              {getString(siteContent, 'collection.master_sets_completion_intro', '').trim() ? (
+                <p className="text-sm text-gray-400 mt-3 max-w-3xl mx-auto sm:mx-0 leading-relaxed">
+                  {getString(siteContent, 'collection.master_sets_completion_intro', '')}
+                </p>
+              ) : null}
+            </motion.div>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {collectionMasterSets.map((entry, index) => (
+                <DirectPercentMasterSetCard key={entry.id} entry={entry} index={index} />
+              ))}
+            </div>
+          </div>
         )}
 
         {masterSets.length > 0 && (

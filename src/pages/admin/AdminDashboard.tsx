@@ -1,6 +1,18 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Palette, FileText, FolderGit2, Share2, PanelLeft, ChevronRight, Home, MessageCircle, Settings, Layers } from 'lucide-react';
+import {
+  Palette,
+  FileText,
+  FolderGit2,
+  Share2,
+  PanelLeft,
+  ChevronRight,
+  Home,
+  MessageCircle,
+  Settings,
+  Layers,
+  Percent,
+} from 'lucide-react';
 
 export default function AdminDashboard() {
   const sections = [
@@ -8,7 +20,14 @@ export default function AdminDashboard() {
     { to: '/admin/projects', icon: FolderGit2, label: 'Projects', labelJp: 'プロジェクト', desc: 'Add and update featured projects' },
     { to: '/admin/contact', icon: MessageCircle, label: 'Contact', labelJp: 'お問い合わせ', desc: 'Contact section text and links' },
     { to: '/admin/settings', icon: Settings, label: 'Settings', labelJp: '設定', desc: 'Feature flags and visibility toggles' },
-    { to: '/admin/binder-showcase', icon: Layers, label: 'Binder showcase', labelJp: 'バインダー', desc: 'TCG collection page: photos, copy, master set rows' },
+    { to: '/admin/binder-showcase', icon: Layers, label: 'Binder showcase', labelJp: 'バインダー', desc: 'TCG collection page: binder carousels and per-binder set rows' },
+    {
+      to: '/admin/master-set-completion',
+      icon: Percent,
+      label: 'Master set completion',
+      labelJp: 'マスター完成度',
+      desc: 'Collection page: custom %, titles, and copy (not binder-specific)',
+    },
     { to: '/admin/graphics', icon: Palette, label: 'Graphics Portfolio', labelJp: 'グラフィックデザイン', desc: 'Upload and manage graphic design assets' },
     { to: '/admin/blogs', icon: FileText, label: 'Blogs', labelJp: 'ブログ', desc: 'Create and edit blog posts with markdown' },
     { to: '/admin/social', icon: Share2, label: 'Social Links', labelJp: 'ソーシャルリンク', desc: 'Manage global social media links' },

@@ -17,6 +17,7 @@ import {
   Settings,
   Package,
   Layers,
+  Percent,
 } from 'lucide-react';
 import AdminLogin from './AdminLogin';
 import AdminDashboard from './AdminDashboard';
@@ -30,6 +31,7 @@ import AdminContact from './AdminContact';
 import AdminSettings from './AdminSettings';
 import AdminResourcePacks from './AdminResourcePacks';
 import AdminBinderShowcase from './AdminBinderShowcase';
+import AdminMasterSetCompletion from './AdminMasterSetCompletion';
 
 function AdminRoutes() {
   const { isAuthenticated, isLoading, handleCallback, logout, login } = useAdminAuth();
@@ -111,6 +113,9 @@ function AdminRoutes() {
           <AdminNavLink to="/admin/binder-showcase" icon={Layers}>
             Binder showcase
           </AdminNavLink>
+          <AdminNavLink to="/admin/master-set-completion" icon={Percent}>
+            Master set completion
+          </AdminNavLink>
           <AdminNavLink to="/admin/social" icon={Share2}>
             Social Links
           </AdminNavLink>
@@ -159,6 +164,7 @@ function AdminRoutes() {
               <Route path="blogs" element={<AdminBlogs />} />
               <Route path="resourcepacks" element={<AdminResourcePacks />} />
               <Route path="binder-showcase" element={<AdminBinderShowcase />} />
+              <Route path="master-set-completion" element={<AdminMasterSetCompletion />} />
               <Route path="social" element={<AdminSocial />} />
               <Route path="footer" element={<AdminFooter />} />
               <Route path="settings" element={<AdminSettings />} />

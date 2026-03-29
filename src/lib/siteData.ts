@@ -124,6 +124,26 @@ export async function fetchFooterConfig(): Promise<FooterConfig> {
   };
 }
 
+export type CollectionMasterSetEntry = {
+  id: string;
+  title: string;
+  title_jp: string | null;
+  description: string | null;
+  progress_percent: number;
+  /** Shown under the % (e.g. "182 / 198 cards") */
+  subtitle: string | null;
+  sort_order: number;
+};
+
+export async function fetchCollectionMasterSetEntries(): Promise<CollectionMasterSetEntry[]> {
+  const { data, error } = await supabase
+    .from('collection_master_set_entries')
+    .select('*')
+    .order('sort_order', { ascending: true });
+  if (error) throw new Error(`Failed to fetch master set completion: ${error.message}`);
+  return (data ?? []) as CollectionMasterSetEntry[];
+}
+
 export type BinderShowcaseImage = {
   id: string;
   showcase_id: string;

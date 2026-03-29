@@ -164,6 +164,14 @@ async function handleGet(supabase: any, parts: string[], url: URL) {
       }));
       return json(rows);
     }
+    case 'collection_master_sets': {
+      const { data: msRows, error: msErr } = await supabase
+        .from('collection_master_set_entries')
+        .select('*')
+        .order('sort_order', { ascending: true });
+      if (msErr) throw msErr;
+      return json(msRows ?? []);
+    }
     default:
       return json({ error: 'Unknown resource' }, 404);
   }
@@ -434,6 +442,7 @@ async function handleMutate(supabase: any, method: string, parts: string[], body
     binder_showcases: 'binder_showcases',
     binder_showcase_images: 'binder_showcase_images',
     binder_showcase_sets: 'binder_showcase_sets',
+    collection_master_sets: 'collection_master_set_entries',
   };
 
   const table = tableMap[resource];

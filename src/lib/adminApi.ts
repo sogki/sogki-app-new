@@ -142,6 +142,12 @@ export const adminApi = {
   updateBinderShowcaseSet: (id: string, data: unknown) => adminApi.patch(`binder_showcase_sets/${id}`, data),
   deleteBinderShowcaseSet: (id: string) => adminApi.delete(`binder_showcase_sets/${id}`),
 
+  collectionMasterSets: () => adminApi.get('collection_master_sets'),
+  createCollectionMasterSet: (data: unknown) => adminApi.post('collection_master_sets', data),
+  updateCollectionMasterSet: (id: string, data: unknown) =>
+    adminApi.patch(`collection_master_sets/${id}`, data),
+  deleteCollectionMasterSet: (id: string) => adminApi.delete(`collection_master_sets/${id}`),
+
   uploadBinderShowcaseImage: async (file: File): Promise<{ url: string; path: string }> => {
     const token = getAdminToken();
     if (!token) throw new Error('Not authenticated');
