@@ -6,6 +6,7 @@ import net.minecraft.world.World;
 
 import java.lang.reflect.Method;
 import java.util.Collection;
+import java.util.Locale;
 import java.util.UUID;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -29,6 +30,23 @@ public final class TemplateEngine {
       out = out.replace("{" + entry.getKey() + "}", entry.getValue() == null ? "" : entry.getValue());
     }
     return applyLegacyColorCodes(out);
+  }
+
+  /** Integer block coordinate (floor), for chat/UI without long decimal tails. */
+  public static String formatBlockCoord(double pos) {
+    return String.valueOf((int) Math.floor(pos));
+  }
+
+  /**
+   * Human-readable position: whole numbers when close to an integer, otherwise up to {@code decimals} places.
+   */
+  public static String formatCoord(double pos, int decimals) {
+    int d = Math.max(0, Math.min(6, decimals));
+    double r = Math.rint(pos);
+    if (d > 0 && Math.abs(pos - r) < 1e-4) {
+      return String.valueOf((long) r);
+    }
+    return String.format(Locale.ROOT, "%." + d + "f", pos);
   }
 
   public static Map<String, String> baseMap(MinecraftServer server, ServerPlayerEntity player, String brand) {
@@ -83,6 +101,24 @@ public final class TemplateEngine {
     values.put("x", String.valueOf(x));
     values.put("y", String.valueOf(y));
     values.put("z", String.valueOf(z));
+    if (player != null) {
+      values.put("bx", formatBlockCoord(player.getX()));
+      values.put("by", formatBlockCoord(player.getY()));
+      values.put("bz", formatBlockCoord(player.getZ()));
+    } else {
+      values.put("bx", "0");
+      values.put("by", "0");
+      values.put("bz", "0");
+    }
+    int pingMs = 0;
+    if (player != null) {
+      try {
+        pingMs = player.networkHandler.getLatency();
+      } catch (Exception ignored) {
+        pingMs = 0;
+      }
+    }
+    values.put("ping", String.valueOf(pingMs));
     CobblemonStats stats = resolveCobblemonStats(player);
     values.put("pokemonCount", String.valueOf(stats.pokedexCaught()));
     values.put("pokemonOwnedCount", String.valueOf(stats.totalOwned()));
@@ -416,6 +452,17 @@ public final class TemplateEngine {
   }
 
   private record CachedStats(CobblemonStats stats, long cachedAtMs) {
+  }
+
+  public record CobblemonSummary(int partyCount, int pcCount, int pokedexCaught, int pokedexSeen) {
+    public int totalOwned() {
+      return Math.max(0, partyCount) + Math.max(0, pcCount);
+    }
+  }
+
+  public static CobblemonSummary cobblemonSummary(ServerPlayerEntity player) {
+    CobblemonStats s = resolveCobblemonStats(player);
+    return new CobblemonSummary(s.partyCount(), s.pcCount(), s.pokedexCaught(), s.pokedexSeen());
   }
 
   public interface PlaceholderProvider {

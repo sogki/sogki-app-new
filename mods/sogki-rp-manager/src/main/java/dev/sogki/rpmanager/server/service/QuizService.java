@@ -17,12 +17,19 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public final class QuizService {
   private final Random random = new Random();
 
   private ActiveQuiz active;
   private long nextQuizAtTick = -1L;
+  /**
+   * Winning answer (normalized) for a player; the matching outgoing chat line is suppressed so the guess
+   * does not appear in addition to the quiz winner broadcast.
+   */
+  private final Map<UUID, String> pendingSuppressAnswer = new ConcurrentHashMap<>();
 
   public void tick(MinecraftServer server, ServerFeatureConfig cfg, long tick) {
     if (cfg == null || cfg.quiz == null || !cfg.quiz.enabled) {
@@ -90,8 +97,26 @@ public final class QuizService {
     values.put("rewards", summarizeRewards(granted));
     String msg = TemplateEngine.render(cfg.messages.quizWinner, values);
     server.getPlayerManager().broadcast(Text.literal(msg), false);
+    pendingSuppressAnswer.put(player.getUuid(), answer);
     active = null;
     return true;
+  }
+
+  /**
+   * If this outgoing chat line is the winning quiz guess, return true and clear state so vanilla/custom chat
+   * broadcast can be skipped (winner announcement was already sent in the decorator).
+   */
+  public boolean shouldSuppressChatLine(ServerPlayerEntity player, String rawMessage) {
+    if (player == null || rawMessage == null) return false;
+    String expected = pendingSuppressAnswer.get(player.getUuid());
+    if (expected == null) return false;
+    String got = normalizeOneWord(rawMessage);
+    if (expected.equals(got)) {
+      pendingSuppressAnswer.remove(player.getUuid());
+      return true;
+    }
+    pendingSuppressAnswer.remove(player.getUuid());
+    return false;
   }
 
   private void startQuiz(MinecraftServer server, ServerFeatureConfig cfg, long tick) {

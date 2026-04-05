@@ -2,48 +2,1333 @@
   "enabled": true,
   "graceDays": 1,
   "autoNotifyOnJoin": true,
-  "rewards": [
+  "resumeRewards": [
     {
       "day": 1,
-      "itemId": "minecraft:experience_bottle",
-      "count": 8,
-      "label": "EXP Bottles",
       "items": [
         {
           "itemId": "minecraft:experience_bottle",
           "count": 8,
           "label": "EXP Bottles"
+        },
+        {
+          "itemId": "cobblemon:poke_ball",
+          "count": 10,
+          "label": "Starter Pokeballs"
+        },
+        {
+          "itemId": "minecraft:cooked_beef",
+          "count": 32,
+          "label": "Steak"
+        },
+        {
+          "itemId": "waystones:waystone",
+          "count": 1,
+          "label": "A free waystone"
+        }
+      ]
+    }
+  ],
+  "rewards": [
+    {
+      "day": 1,
+      "items": [
+        {
+          "itemId": "minecraft:experience_bottle",
+          "count": 8,
+          "label": "EXP Bottles"
+        },
+        {
+          "itemId": "cobblemon:poke_ball",
+          "count": 10,
+          "label": "Starter Pokeballs"
+        },
+        {
+          "itemId": "minecraft:cooked_beef",
+          "count": 32,
+          "label": "Steak"
+        },
+        {
+          "itemId": "cobblemon:pokedex_red",
+          "count": 1,
+          "label": "Standard Red Pokedex"
+        },
+        {
+          "itemId": "waystones:waystone",
+          "count": 1,
+          "label": "A free waystone"
         }
       ]
     },
     {
       "day": 2,
-      "itemId": "cobblemon:exp_candy_s",
-      "count": 2,
-      "label": "EXP Candy S",
       "items": [
         {
           "itemId": "cobblemon:exp_candy_s",
           "count": 2,
           "label": "EXP Candy S"
+        },
+        {
+          "itemId": "cobblemon:oran_berry",
+          "count": 5,
+          "label": "Oran Berries"
         }
       ]
     },
     {
       "day": 3,
-      "itemId": "cobblemon:evolution_stone_fire",
-      "count": 1,
-      "label": "Fire Stone",
       "items": [
+        {
+          "itemId": "cobblemon:potion",
+          "count": 3,
+          "label": "Potions"
+        },
+        {
+          "itemId": "cobblemon:exp_candy_s",
+          "count": 4,
+          "label": "Bonus EXP Candy S"
+        }
+      ]
+    },
+    {
+      "day": 4,
+      "items": [
+        {
+          "itemId": "minecraft:experience_bottle",
+          "count": 16,
+          "label": "EXP Bottles"
+        },
+        {
+          "itemId": "cobblemon:exp_candy_m",
+          "count": 2,
+          "label": "EXP Candy M"
+        },
+        {
+          "itemId": "cobblemon:red_apricorn",
+          "count": 10,
+          "label": "Red Apricorn"
+        }
+      ]
+    },
+    {
+      "day": 5,
+      "items": [
+        {
+          "itemId": "cobblemon:potion",
+          "count": 3,
+          "label": "Potions"
+        },
+        {
+          "itemId": "cobblemon:razz_berry",
+          "count": 5,
+          "label": "Razz Berries"
+        }
+      ]
+    },
+    {
+      "day": 6,
+      "items": [
+        {
+          "itemId": "cobblemon:poke_ball",
+          "count": 12,
+          "label": "Pokeballs"
+        },
+        {
+          "itemId": "cobblemon:exp_candy_s",
+          "count": 2,
+          "label": "EXP Candy S"
+        },
+        {
+          "itemId": "minecraft:bread",
+          "count": 16,
+          "label": "Bread"
+        }
+      ]
+    },
+    {
+      "day": 7,
+      "items": [
+        {
+          "itemId": "minecraft:experience_bottle",
+          "count": 24,
+          "label": "EXP Bottles"
+        },
+        {
+          "itemId": "cobblemon:exp_candy_m",
+          "count": 2,
+          "label": "EXP Candy M"
+        },
+        {
+          "itemId": "minecraft:iron_ingot",
+          "count": 8,
+          "label": "Iron Ingots"
+        },
+        {
+          "itemId": "minecraft:golden_apple",
+          "count": 1,
+          "label": "Golden Apple"
+        }
+      ]
+    },
+    {
+      "day": 8,
+      "items": [
+        {
+          "itemId": "cobblemon:oran_berry",
+          "count": 6,
+          "label": "Oran Berries"
+        },
+        {
+          "itemId": "cobblemon:potion",
+          "count": 4,
+          "label": "Potions"
+        },
+        {
+          "itemId": "minecraft:coal",
+          "count": 16,
+          "label": "Coal"
+        }
+      ]
+    },
+    {
+      "day": 9,
+      "items": [
+        {
+          "itemId": "cobblemon:poke_ball",
+          "count": 12,
+          "label": "Pokeballs"
+        },
+        {
+          "itemId": "cobblemon:exp_candy_s",
+          "count": 3,
+          "label": "EXP Candy S"
+        },
+        {
+          "itemId": "minecraft:lapis_lazuli",
+          "count": 16,
+          "label": "Lapis Lazuli"
+        }
+      ]
+    },
+    {
+      "day": 10,
+      "items": [
+        {
+          "itemId": "minecraft:cooked_beef",
+          "count": 32,
+          "label": "Steak"
+        },
+        {
+          "itemId": "minecraft:experience_bottle",
+          "count": 12,
+          "label": "EXP Bottles"
+        },
+        {
+          "itemId": "cobblemon:red_apricorn",
+          "count": 10,
+          "label": "Red Apricorn"
+        }
+      ]
+    },
+    {
+      "day": 11,
+      "items": [
+        {
+          "itemId": "cobblemon:razz_berry",
+          "count": 6,
+          "label": "Razz Berries"
+        },
+        {
+          "itemId": "cobblemon:potion",
+          "count": 4,
+          "label": "Potions"
+        },
+        {
+          "itemId": "minecraft:bread",
+          "count": 20,
+          "label": "Bread"
+        }
+      ]
+    },
+    {
+      "day": 12,
+      "items": [
+        {
+          "itemId": "cobblemon:exp_candy_m",
+          "count": 2,
+          "label": "EXP Candy M"
+        },
+        {
+          "itemId": "cobblemon:poke_ball",
+          "count": 16,
+          "label": "Pokeballs"
+        },
+        {
+          "itemId": "minecraft:amethyst_shard",
+          "count": 4,
+          "label": "Amethyst Shards"
+        }
+      ]
+    },
+    {
+      "day": 13,
+      "items": [
+        {
+          "itemId": "cobblemon:sitrus_berry",
+          "count": 4,
+          "label": "Sitrus Berries"
+        },
+        {
+          "itemId": "cobblemon:exp_candy_s",
+          "count": 4,
+          "label": "EXP Candy S"
+        },
+        {
+          "itemId": "minecraft:redstone",
+          "count": 24,
+          "label": "Redstone"
+        }
+      ]
+    },
+    {
+      "day": 14,
+      "items": [
+        {
+          "itemId": "minecraft:experience_bottle",
+          "count": 32,
+          "label": "EXP Bottles"
+        },
+        {
+          "itemId": "cobblemon:exp_candy_m",
+          "count": 3,
+          "label": "EXP Candy M"
+        },
+        {
+          "itemId": "minecraft:diamond",
+          "count": 1,
+          "label": "Diamond"
+        },
+        {
+          "itemId": "cobblemon:evolution_stone_fire",
+          "count": 1,
+          "label": "Fire Stone"
+        }
+      ]
+    },
+    {
+      "day": 15,
+      "items": [
+        {
+          "itemId": "cobblemon:poke_ball",
+          "count": 16,
+          "label": "Pokeballs"
+        },
+        {
+          "itemId": "cobblemon:potion",
+          "count": 4,
+          "label": "Potions"
+        },
+        {
+          "itemId": "minecraft:iron_ingot",
+          "count": 12,
+          "label": "Iron Ingots"
+        }
+      ]
+    },
+    {
+      "day": 16,
+      "items": [
+        {
+          "itemId": "cobblemon:oran_berry",
+          "count": 8,
+          "label": "Oran Berries"
+        },
+        {
+          "itemId": "cobblemon:exp_candy_s",
+          "count": 4,
+          "label": "EXP Candy S"
+        },
+        {
+          "itemId": "cobblemon:blue_apricorn",
+          "count": 10,
+          "label": "Blue Apricorn"
+        }
+      ]
+    },
+    {
+      "day": 17,
+      "items": [
+        {
+          "itemId": "cobblemon:great_ball",
+          "count": 8,
+          "label": "Great Balls"
+        },
+        {
+          "itemId": "cobblemon:exp_candy_m",
+          "count": 2,
+          "label": "EXP Candy M"
+        },
+        {
+          "itemId": "minecraft:cooked_beef",
+          "count": 32,
+          "label": "Steak"
+        }
+      ]
+    },
+    {
+      "day": 18,
+      "items": [
+        {
+          "itemId": "cobblemon:potion",
+          "count": 5,
+          "label": "Potions"
+        },
+        {
+          "itemId": "cobblemon:razz_berry",
+          "count": 6,
+          "label": "Razz Berries"
+        },
+        {
+          "itemId": "minecraft:gold_ingot",
+          "count": 8,
+          "label": "Gold Ingots"
+        }
+      ]
+    },
+    {
+      "day": 19,
+      "items": [
+        {
+          "itemId": "minecraft:experience_bottle",
+          "count": 16,
+          "label": "EXP Bottles"
+        },
+        {
+          "itemId": "cobblemon:exp_candy_s",
+          "count": 5,
+          "label": "EXP Candy S"
+        },
+        {
+          "itemId": "cobblemon:black_apricorn",
+          "count": 10,
+          "label": "Black Apricorn"
+        }
+      ]
+    },
+    {
+      "day": 20,
+      "items": [
+        {
+          "itemId": "cobblemon:poke_ball",
+          "count": 20,
+          "label": "Pokeballs"
+        },
+        {
+          "itemId": "cobblemon:sitrus_berry",
+          "count": 5,
+          "label": "Sitrus Berries"
+        },
+        {
+          "itemId": "minecraft:lapis_lazuli",
+          "count": 24,
+          "label": "Lapis Lazuli"
+        }
+      ]
+    },
+    {
+      "day": 21,
+      "items": [
+        {
+          "itemId": "cobblemon:great_ball",
+          "count": 12,
+          "label": "Great Balls"
+        },
+        {
+          "itemId": "cobblemon:exp_candy_l",
+          "count": 1,
+          "label": "EXP Candy L"
+        },
+        {
+          "itemId": "minecraft:diamond",
+          "count": 2,
+          "label": "Diamonds"
+        },
+        {
+          "itemId": "minecraft:golden_apple",
+          "count": 1,
+          "label": "Golden Apple"
+        }
+      ]
+    },
+    {
+      "day": 22,
+      "items": [
+        {
+          "itemId": "cobblemon:potion",
+          "count": 6,
+          "label": "Potions"
+        },
+        {
+          "itemId": "cobblemon:oran_berry",
+          "count": 8,
+          "label": "Oran Berries"
+        },
+        {
+          "itemId": "minecraft:iron_ingot",
+          "count": 16,
+          "label": "Iron Ingots"
+        }
+      ]
+    },
+    {
+      "day": 23,
+      "items": [
+        {
+          "itemId": "cobblemon:poke_ball",
+          "count": 20,
+          "label": "Pokeballs"
+        },
+        {
+          "itemId": "cobblemon:exp_candy_m",
+          "count": 2,
+          "label": "EXP Candy M"
+        },
+        {
+          "itemId": "minecraft:bread",
+          "count": 24,
+          "label": "Bread"
+        }
+      ]
+    },
+    {
+      "day": 24,
+      "items": [
+        {
+          "itemId": "minecraft:experience_bottle",
+          "count": 20,
+          "label": "EXP Bottles"
+        },
+        {
+          "itemId": "cobblemon:razz_berry",
+          "count": 8,
+          "label": "Razz Berries"
+        },
+        {
+          "itemId": "minecraft:redstone",
+          "count": 32,
+          "label": "Redstone"
+        }
+      ]
+    },
+    {
+      "day": 25,
+      "items": [
+        {
+          "itemId": "cobblemon:great_ball",
+          "count": 10,
+          "label": "Great Balls"
+        },
+        {
+          "itemId": "cobblemon:exp_candy_s",
+          "count": 6,
+          "label": "EXP Candy S"
+        },
+        {
+          "itemId": "cobblemon:green_apricorn",
+          "count": 10,
+          "label": "Green Apricorn"
+        }
+      ]
+    },
+    {
+      "day": 26,
+      "items": [
+        {
+          "itemId": "cobblemon:potion",
+          "count": 6,
+          "label": "Potions"
+        },
+        {
+          "itemId": "cobblemon:sitrus_berry",
+          "count": 6,
+          "label": "Sitrus Berries"
+        },
+        {
+          "itemId": "minecraft:cooked_beef",
+          "count": 40,
+          "label": "Steak"
+        }
+      ]
+    },
+    {
+      "day": 27,
+      "items": [
+        {
+          "itemId": "cobblemon:poke_ball",
+          "count": 24,
+          "label": "Pokeballs"
+        },
+        {
+          "itemId": "cobblemon:exp_candy_m",
+          "count": 3,
+          "label": "EXP Candy M"
+        },
+        {
+          "itemId": "minecraft:gold_ingot",
+          "count": 12,
+          "label": "Gold Ingots"
+        }
+      ]
+    },
+    {
+      "day": 28,
+      "items": [
+        {
+          "itemId": "cobblemon:ultra_ball",
+          "count": 8,
+          "label": "Ultra Balls"
+        },
+        {
+          "itemId": "cobblemon:exp_candy_l",
+          "count": 1,
+          "label": "EXP Candy L"
+        },
+        {
+          "itemId": "cobblemon:evolution_stone_water",
+          "count": 1,
+          "label": "Water Stone"
+        },
+        {
+          "itemId": "minecraft:emerald",
+          "count": 4,
+          "label": "Emeralds"
+        }
+      ]
+    },
+    {
+      "day": 29,
+      "items": [
+        {
+          "itemId": "cobblemon:potion",
+          "count": 7,
+          "label": "Potions"
+        },
+        {
+          "itemId": "cobblemon:oran_berry",
+          "count": 10,
+          "label": "Oran Berries"
+        },
+        {
+          "itemId": "minecraft:amethyst_shard",
+          "count": 6,
+          "label": "Amethyst Shards"
+        }
+      ]
+    },
+    {
+      "day": 30,
+      "items": [
+        {
+          "itemId": "minecraft:experience_bottle",
+          "count": 40,
+          "label": "EXP Bottles"
+        },
+        {
+          "itemId": "cobblemon:exp_candy_l",
+          "count": 1,
+          "label": "EXP Candy L"
+        },
+        {
+          "itemId": "minecraft:diamond",
+          "count": 3,
+          "label": "Diamonds"
+        },
+        {
+          "itemId": "cobblemon:evolution_stone_thunder",
+          "count": 1,
+          "label": "Thunder Stone"
+        },
+        {
+          "itemId": "minecraft:golden_apple",
+          "count": 2,
+          "label": "Golden Apples"
+        }
+      ]
+    },
+    {
+      "day": 31,
+      "items": [
+        {
+          "itemId": "cobblemon:poke_ball",
+          "count": 24,
+          "label": "Pokeballs"
+        },
+        {
+          "itemId": "cobblemon:exp_candy_s",
+          "count": 6,
+          "label": "EXP Candy S"
+        },
+        {
+          "itemId": "cobblemon:red_apricorn",
+          "count": 12,
+          "label": "Red Apricorn"
+        }
+      ]
+    },
+    {
+      "day": 32,
+      "items": [
+        {
+          "itemId": "cobblemon:great_ball",
+          "count": 12,
+          "label": "Great Balls"
+        },
+        {
+          "itemId": "cobblemon:potion",
+          "count": 7,
+          "label": "Potions"
+        },
+        {
+          "itemId": "minecraft:cooked_beef",
+          "count": 40,
+          "label": "Steak"
+        }
+      ]
+    },
+    {
+      "day": 33,
+      "items": [
+        {
+          "itemId": "cobblemon:sitrus_berry",
+          "count": 8,
+          "label": "Sitrus Berries"
+        },
+        {
+          "itemId": "cobblemon:exp_candy_m",
+          "count": 3,
+          "label": "EXP Candy M"
+        },
+        {
+          "itemId": "minecraft:iron_ingot",
+          "count": 20,
+          "label": "Iron Ingots"
+        }
+      ]
+    },
+    {
+      "day": 34,
+      "items": [
+        {
+          "itemId": "cobblemon:poke_ball",
+          "count": 28,
+          "label": "Pokeballs"
+        },
+        {
+          "itemId": "cobblemon:razz_berry",
+          "count": 10,
+          "label": "Razz Berries"
+        },
+        {
+          "itemId": "minecraft:lapis_lazuli",
+          "count": 32,
+          "label": "Lapis Lazuli"
+        }
+      ]
+    },
+    {
+      "day": 35,
+      "items": [
+        {
+          "itemId": "cobblemon:ultra_ball",
+          "count": 10,
+          "label": "Ultra Balls"
+        },
+        {
+          "itemId": "cobblemon:exp_candy_l",
+          "count": 1,
+          "label": "EXP Candy L"
+        },
+        {
+          "itemId": "minecraft:diamond",
+          "count": 2,
+          "label": "Diamonds"
+        },
+        {
+          "itemId": "minecraft:ender_pearl",
+          "count": 4,
+          "label": "Ender Pearls"
+        }
+      ]
+    },
+    {
+      "day": 36,
+      "items": [
+        {
+          "itemId": "cobblemon:potion",
+          "count": 8,
+          "label": "Potions"
+        },
+        {
+          "itemId": "cobblemon:oran_berry",
+          "count": 10,
+          "label": "Oran Berries"
+        },
+        {
+          "itemId": "minecraft:gold_ingot",
+          "count": 16,
+          "label": "Gold Ingots"
+        }
+      ]
+    },
+    {
+      "day": 37,
+      "items": [
+        {
+          "itemId": "cobblemon:great_ball",
+          "count": 14,
+          "label": "Great Balls"
+        },
+        {
+          "itemId": "cobblemon:exp_candy_m",
+          "count": 3,
+          "label": "EXP Candy M"
+        },
+        {
+          "itemId": "cobblemon:blue_apricorn",
+          "count": 12,
+          "label": "Blue Apricorn"
+        }
+      ]
+    },
+    {
+      "day": 38,
+      "items": [
+        {
+          "itemId": "cobblemon:poke_ball",
+          "count": 28,
+          "label": "Pokeballs"
+        },
+        {
+          "itemId": "cobblemon:exp_candy_s",
+          "count": 8,
+          "label": "EXP Candy S"
+        },
+        {
+          "itemId": "minecraft:bread",
+          "count": 32,
+          "label": "Bread"
+        }
+      ]
+    },
+    {
+      "day": 39,
+      "items": [
+        {
+          "itemId": "cobblemon:sitrus_berry",
+          "count": 8,
+          "label": "Sitrus Berries"
+        },
+        {
+          "itemId": "cobblemon:potion",
+          "count": 8,
+          "label": "Potions"
+        },
+        {
+          "itemId": "minecraft:redstone",
+          "count": 40,
+          "label": "Redstone"
+        }
+      ]
+    },
+    {
+      "day": 40,
+      "items": [
+        {
+          "itemId": "cobblemon:ultra_ball",
+          "count": 8,
+          "label": "Ultra Balls"
+        },
+        {
+          "itemId": "cobblemon:exp_candy_m",
+          "count": 4,
+          "label": "EXP Candy M"
+        },
+        {
+          "itemId": "cobblemon:black_apricorn",
+          "count": 12,
+          "label": "Black Apricorn"
+        }
+      ]
+    },
+    {
+      "day": 41,
+      "items": [
+        {
+          "itemId": "cobblemon:poke_ball",
+          "count": 30,
+          "label": "Pokeballs"
+        },
+        {
+          "itemId": "cobblemon:oran_berry",
+          "count": 12,
+          "label": "Oran Berries"
+        },
+        {
+          "itemId": "minecraft:cooked_beef",
+          "count": 48,
+          "label": "Steak"
+        }
+      ]
+    },
+    {
+      "day": 42,
+      "items": [
+        {
+          "itemId": "cobblemon:ultra_ball",
+          "count": 12,
+          "label": "Ultra Balls"
+        },
+        {
+          "itemId": "cobblemon:exp_candy_l",
+          "count": 2,
+          "label": "EXP Candy L"
+        },
+        {
+          "itemId": "cobblemon:evolution_stone_leaf",
+          "count": 1,
+          "label": "Leaf Stone"
+        },
+        {
+          "itemId": "minecraft:diamond",
+          "count": 3,
+          "label": "Diamonds"
+        }
+      ]
+    },
+    {
+      "day": 43,
+      "items": [
+        {
+          "itemId": "cobblemon:great_ball",
+          "count": 16,
+          "label": "Great Balls"
+        },
+        {
+          "itemId": "cobblemon:potion",
+          "count": 9,
+          "label": "Potions"
+        },
+        {
+          "itemId": "minecraft:iron_ingot",
+          "count": 24,
+          "label": "Iron Ingots"
+        }
+      ]
+    },
+    {
+      "day": 44,
+      "items": [
+        {
+          "itemId": "cobblemon:poke_ball",
+          "count": 30,
+          "label": "Pokeballs"
+        },
+        {
+          "itemId": "cobblemon:exp_candy_s",
+          "count": 8,
+          "label": "EXP Candy S"
+        },
+        {
+          "itemId": "cobblemon:green_apricorn",
+          "count": 12,
+          "label": "Green Apricorn"
+        }
+      ]
+    },
+    {
+      "day": 45,
+      "items": [
+        {
+          "itemId": "minecraft:experience_bottle",
+          "count": 48,
+          "label": "EXP Bottles"
+        },
+        {
+          "itemId": "cobblemon:exp_candy_l",
+          "count": 2,
+          "label": "EXP Candy L"
+        },
+        {
+          "itemId": "minecraft:diamond",
+          "count": 4,
+          "label": "Diamonds"
+        },
         {
           "itemId": "cobblemon:evolution_stone_fire",
           "count": 1,
           "label": "Fire Stone"
         },
         {
-          "itemId": "cobblemon:exp_candy_s",
+          "itemId": "minecraft:golden_apple",
           "count": 2,
-          "label": "Bonus EXP Candy S"
+          "label": "Golden Apples"
+        }
+      ]
+    },
+    {
+      "day": 46,
+      "items": [
+        {
+          "itemId": "cobblemon:ultra_ball",
+          "count": 10,
+          "label": "Ultra Balls"
+        },
+        {
+          "itemId": "cobblemon:sitrus_berry",
+          "count": 10,
+          "label": "Sitrus Berries"
+        },
+        {
+          "itemId": "minecraft:lapis_lazuli",
+          "count": 40,
+          "label": "Lapis Lazuli"
+        }
+      ]
+    },
+    {
+      "day": 47,
+      "items": [
+        {
+          "itemId": "cobblemon:great_ball",
+          "count": 16,
+          "label": "Great Balls"
+        },
+        {
+          "itemId": "cobblemon:exp_candy_m",
+          "count": 4,
+          "label": "EXP Candy M"
+        },
+        {
+          "itemId": "minecraft:gold_ingot",
+          "count": 20,
+          "label": "Gold Ingots"
+        }
+      ]
+    },
+    {
+      "day": 48,
+      "items": [
+        {
+          "itemId": "cobblemon:poke_ball",
+          "count": 32,
+          "label": "Pokeballs"
+        },
+        {
+          "itemId": "cobblemon:potion",
+          "count": 10,
+          "label": "Potions"
+        },
+        {
+          "itemId": "minecraft:bread",
+          "count": 40,
+          "label": "Bread"
+        }
+      ]
+    },
+    {
+      "day": 49,
+      "items": [
+        {
+          "itemId": "cobblemon:ultra_ball",
+          "count": 14,
+          "label": "Ultra Balls"
+        },
+        {
+          "itemId": "cobblemon:exp_candy_l",
+          "count": 2,
+          "label": "EXP Candy L"
+        },
+        {
+          "itemId": "minecraft:emerald",
+          "count": 8,
+          "label": "Emeralds"
+        },
+        {
+          "itemId": "minecraft:ender_pearl",
+          "count": 6,
+          "label": "Ender Pearls"
+        }
+      ]
+    },
+    {
+      "day": 50,
+      "items": [
+        {
+          "itemId": "cobblemon:great_ball",
+          "count": 18,
+          "label": "Great Balls"
+        },
+        {
+          "itemId": "cobblemon:oran_berry",
+          "count": 12,
+          "label": "Oran Berries"
+        },
+        {
+          "itemId": "cobblemon:red_apricorn",
+          "count": 14,
+          "label": "Red Apricorn"
+        }
+      ]
+    },
+    {
+      "day": 51,
+      "items": [
+        {
+          "itemId": "cobblemon:poke_ball",
+          "count": 32,
+          "label": "Pokeballs"
+        },
+        {
+          "itemId": "cobblemon:exp_candy_s",
+          "count": 10,
+          "label": "EXP Candy S"
+        },
+        {
+          "itemId": "minecraft:cooked_beef",
+          "count": 48,
+          "label": "Steak"
+        }
+      ]
+    },
+    {
+      "day": 52,
+      "items": [
+        {
+          "itemId": "cobblemon:ultra_ball",
+          "count": 10,
+          "label": "Ultra Balls"
+        },
+        {
+          "itemId": "cobblemon:potion",
+          "count": 10,
+          "label": "Potions"
+        },
+        {
+          "itemId": "cobblemon:blue_apricorn",
+          "count": 14,
+          "label": "Blue Apricorn"
+        }
+      ]
+    },
+    {
+      "day": 53,
+      "items": [
+        {
+          "itemId": "cobblemon:great_ball",
+          "count": 18,
+          "label": "Great Balls"
+        },
+        {
+          "itemId": "cobblemon:exp_candy_m",
+          "count": 4,
+          "label": "EXP Candy M"
+        },
+        {
+          "itemId": "minecraft:redstone",
+          "count": 48,
+          "label": "Redstone"
+        }
+      ]
+    },
+    {
+      "day": 54,
+      "items": [
+        {
+          "itemId": "cobblemon:poke_ball",
+          "count": 34,
+          "label": "Pokeballs"
+        },
+        {
+          "itemId": "cobblemon:sitrus_berry",
+          "count": 10,
+          "label": "Sitrus Berries"
+        },
+        {
+          "itemId": "minecraft:iron_ingot",
+          "count": 28,
+          "label": "Iron Ingots"
+        }
+      ]
+    },
+    {
+      "day": 55,
+      "items": [
+        {
+          "itemId": "cobblemon:ultra_ball",
+          "count": 12,
+          "label": "Ultra Balls"
+        },
+        {
+          "itemId": "cobblemon:exp_candy_l",
+          "count": 2,
+          "label": "EXP Candy L"
+        },
+        {
+          "itemId": "cobblemon:evolution_stone_leaf",
+          "count": 1,
+          "label": "Leaf Stone"
+        },
+        {
+          "itemId": "minecraft:diamond",
+          "count": 3,
+          "label": "Diamonds"
+        }
+      ]
+    },
+    {
+      "day": 56,
+      "items": [
+        {
+          "itemId": "cobblemon:ultra_ball",
+          "count": 16,
+          "label": "Ultra Balls"
+        },
+        {
+          "itemId": "cobblemon:exp_candy_l",
+          "count": 2,
+          "label": "EXP Candy L"
+        },
+        {
+          "itemId": "minecraft:diamond",
+          "count": 4,
+          "label": "Diamonds"
+        },
+        {
+          "itemId": "minecraft:golden_apple",
+          "count": 3,
+          "label": "Golden Apples"
+        }
+      ]
+    },
+    {
+      "day": 57,
+      "items": [
+        {
+          "itemId": "cobblemon:great_ball",
+          "count": 20,
+          "label": "Great Balls"
+        },
+        {
+          "itemId": "cobblemon:potion",
+          "count": 12,
+          "label": "Potions"
+        },
+        {
+          "itemId": "cobblemon:black_apricorn",
+          "count": 14,
+          "label": "Black Apricorn"
+        }
+      ]
+    },
+    {
+      "day": 58,
+      "items": [
+        {
+          "itemId": "cobblemon:poke_ball",
+          "count": 36,
+          "label": "Pokeballs"
+        },
+        {
+          "itemId": "cobblemon:exp_candy_m",
+          "count": 5,
+          "label": "EXP Candy M"
+        },
+        {
+          "itemId": "minecraft:gold_ingot",
+          "count": 24,
+          "label": "Gold Ingots"
+        }
+      ]
+    },
+    {
+      "day": 59,
+      "items": [
+        {
+          "itemId": "cobblemon:ultra_ball",
+          "count": 14,
+          "label": "Ultra Balls"
+        },
+        {
+          "itemId": "cobblemon:sitrus_berry",
+          "count": 12,
+          "label": "Sitrus Berries"
+        },
+        {
+          "itemId": "minecraft:amethyst_shard",
+          "count": 10,
+          "label": "Amethyst Shards"
+        }
+      ]
+    },
+    {
+      "day": 60,
+      "items": [
+        {
+          "itemId": "minecraft:experience_bottle",
+          "count": 64,
+          "label": "EXP Bottles"
+        },
+        {
+          "itemId": "cobblemon:exp_candy_l",
+          "count": 3,
+          "label": "EXP Candy L"
+        },
+        {
+          "itemId": "minecraft:diamond",
+          "count": 5,
+          "label": "Diamonds"
+        },
+        {
+          "itemId": "cobblemon:evolution_stone_fire",
+          "count": 1,
+          "label": "Fire Stone"
+        },
+        {
+          "itemId": "cobblemon:evolution_stone_water",
+          "count": 1,
+          "label": "Water Stone"
+        },
+        {
+          "itemId": "cobblemon:evolution_stone_thunder",
+          "count": 1,
+          "label": "Thunder Stone"
+        }
+      ]
+    }
+  ],
+  "resumeRewards": [
+    {
+      "day": 1,
+      "items": [
+        {
+          "itemId": "minecraft:experience_bottle",
+          "count": 8,
+          "label": "EXP Bottles"
+        },
+        {
+          "itemId": "cobblemon:poke_ball",
+          "count": 10,
+          "label": "Starter Pokeballs"
+        },
+        {
+          "itemId": "minecraft:cooked_beef",
+          "count": 32,
+          "label": "Steak"
+        },
+        {
+          "itemId": "waystones:waystone",
+          "count": 1,
+          "label": "A free waystone"
         }
       ]
     }

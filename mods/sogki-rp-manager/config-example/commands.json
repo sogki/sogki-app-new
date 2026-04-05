@@ -1,0 +1,16 @@
+{
+  "enabled": true,
+  "tpaCooldownSeconds": 60,
+  "tpahereCooldownSeconds": 60,
+  "nearCooldownSeconds": 15,
+  "nearDefaultRadius": 48,
+  "nearMaxRadius": 96,
+  "msgCooldownSeconds": 2,
+  "backCooldownSeconds": 90,
+  "rtpCooldownSeconds": 180,
+  "rtpMinRadiusBlocks": 250,
+  "rtpMaxRadiusBlocks": 8000,
+  "rtpMaxAttempts": 80,
+  "playtimeCooldownSeconds": 5,
+  "statsCooldownSeconds": 8
+}

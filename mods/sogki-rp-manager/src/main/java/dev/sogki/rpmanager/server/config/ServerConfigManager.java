@@ -39,6 +39,7 @@ public final class ServerConfigManager {
   private static final Path COBBLETOWN_JSON_PATH = BASE_DIR.resolve("cobbletown.json");
   private static final Path TEAMS_JSON_PATH = BASE_DIR.resolve("teams.json");
   private static final Path MESSAGES_JSON_PATH = BASE_DIR.resolve("messages.json");
+  private static final Path COMMANDS_JSON_PATH = BASE_DIR.resolve("commands.json");
 
   private ServerFeatureConfig config;
 
@@ -92,6 +93,7 @@ public final class ServerConfigManager {
     cfg.cobbletown = loadJsonSection(COBBLETOWN_JSON_PATH, defaults.cobbletown, ServerFeatureConfig.CobbletownConfig.class);
     cfg.teams = loadJsonSection(TEAMS_JSON_PATH, defaults.teams, ServerFeatureConfig.TeamsConfig.class);
     cfg.messages = loadJsonSection(MESSAGES_JSON_PATH, defaults.messages, ServerFeatureConfig.MessagesConfig.class);
+    cfg.commands = loadJsonSection(COMMANDS_JSON_PATH, defaults.commands, ServerFeatureConfig.CommandsConfig.class);
   }
 
   private <T> T loadJsonSection(Path path, T defaults, Class<T> type) {
@@ -523,10 +525,16 @@ public final class ServerConfigManager {
     if (cfg.tablist == null) cfg.tablist = new ServerFeatureConfig.TablistConfig();
     if (cfg.sidebar == null) cfg.sidebar = new ServerFeatureConfig.SidebarConfig();
     if (cfg.messages == null) cfg.messages = new ServerFeatureConfig.MessagesConfig();
+    if (cfg.commands == null) cfg.commands = new ServerFeatureConfig.CommandsConfig();
     if (cfg.remoteConfig == null) cfg.remoteConfig = new ServerFeatureConfig.RemoteConfig();
     if (cfg.streak.rewards == null) cfg.streak.rewards = new java.util.ArrayList<>();
     if (cfg.streak.rewards.isEmpty()) cfg.streak.rewards = defaultsWithRewards().streak.rewards;
     for (ServerFeatureConfig.RewardRule reward : cfg.streak.rewards) {
+      if (reward == null) continue;
+      if (reward.items == null) reward.items = new java.util.ArrayList<>();
+    }
+    if (cfg.streak.resumeRewards == null) cfg.streak.resumeRewards = new java.util.ArrayList<>();
+    for (ServerFeatureConfig.RewardRule reward : cfg.streak.resumeRewards) {
       if (reward == null) continue;
       if (reward.items == null) reward.items = new java.util.ArrayList<>();
     }
@@ -615,6 +623,190 @@ public final class ServerConfigManager {
     if (cfg.messages.teamMissionRerollSuccess == null) cfg.messages.teamMissionRerollSuccess = messageDefaults.teamMissionRerollSuccess;
     if (cfg.messages.teamScoreboardAdminHelp == null) cfg.messages.teamScoreboardAdminHelp = messageDefaults.teamScoreboardAdminHelp;
     if (cfg.messages.teamScoreboardPlayerOnlySetup == null) cfg.messages.teamScoreboardPlayerOnlySetup = messageDefaults.teamScoreboardPlayerOnlySetup;
+    if (cfg.messages.pingSuccess == null || cfg.messages.pingSuccess.isBlank()) {
+      cfg.messages.pingSuccess = messageDefaults.pingSuccess;
+    }
+    if (cfg.messages.pingPlayerOnly == null || cfg.messages.pingPlayerOnly.isBlank()) {
+      cfg.messages.pingPlayerOnly = messageDefaults.pingPlayerOnly;
+    }
+    if (cfg.messages.tpaCannotSelf == null || cfg.messages.tpaCannotSelf.isBlank()) {
+      cfg.messages.tpaCannotSelf = messageDefaults.tpaCannotSelf;
+    }
+    if (cfg.messages.tpaRequestSent == null || cfg.messages.tpaRequestSent.isBlank()) {
+      cfg.messages.tpaRequestSent = messageDefaults.tpaRequestSent;
+    }
+    if (cfg.messages.tpaIncomingLead == null || cfg.messages.tpaIncomingLead.isBlank()) {
+      cfg.messages.tpaIncomingLead = messageDefaults.tpaIncomingLead;
+    }
+    if (cfg.messages.tpaIncomingTail == null || cfg.messages.tpaIncomingTail.isBlank()) {
+      cfg.messages.tpaIncomingTail = messageDefaults.tpaIncomingTail;
+    }
+    if (cfg.messages.tpaAcceptButton == null || cfg.messages.tpaAcceptButton.isBlank()) {
+      cfg.messages.tpaAcceptButton = messageDefaults.tpaAcceptButton;
+    }
+    if (cfg.messages.tpaDenyButton == null || cfg.messages.tpaDenyButton.isBlank()) {
+      cfg.messages.tpaDenyButton = messageDefaults.tpaDenyButton;
+    }
+    if (cfg.messages.tpaAcceptHover == null || cfg.messages.tpaAcceptHover.isBlank()) {
+      cfg.messages.tpaAcceptHover = messageDefaults.tpaAcceptHover;
+    }
+    if (cfg.messages.tpaDenyHover == null || cfg.messages.tpaDenyHover.isBlank()) {
+      cfg.messages.tpaDenyHover = messageDefaults.tpaDenyHover;
+    }
+    if (cfg.messages.tpaNoPending == null || cfg.messages.tpaNoPending.isBlank()) {
+      cfg.messages.tpaNoPending = messageDefaults.tpaNoPending;
+    }
+    if (cfg.messages.tpaRequesterOffline == null || cfg.messages.tpaRequesterOffline.isBlank()) {
+      cfg.messages.tpaRequesterOffline = messageDefaults.tpaRequesterOffline;
+    }
+    if (cfg.messages.tpaAcceptedTarget == null || cfg.messages.tpaAcceptedTarget.isBlank()) {
+      cfg.messages.tpaAcceptedTarget = messageDefaults.tpaAcceptedTarget;
+    }
+    if (cfg.messages.tpaAcceptedRequester == null || cfg.messages.tpaAcceptedRequester.isBlank()) {
+      cfg.messages.tpaAcceptedRequester = messageDefaults.tpaAcceptedRequester;
+    }
+    if (cfg.messages.tpaDeniedTarget == null || cfg.messages.tpaDeniedTarget.isBlank()) {
+      cfg.messages.tpaDeniedTarget = messageDefaults.tpaDeniedTarget;
+    }
+    if (cfg.messages.tpaDeniedRequester == null || cfg.messages.tpaDeniedRequester.isBlank()) {
+      cfg.messages.tpaDeniedRequester = messageDefaults.tpaDeniedRequester;
+    }
+    if (cfg.messages.tpaPlayerOnlyRequest == null || cfg.messages.tpaPlayerOnlyRequest.isBlank()) {
+      cfg.messages.tpaPlayerOnlyRequest = messageDefaults.tpaPlayerOnlyRequest;
+    }
+    if (cfg.messages.tpaPlayerOnlyAccept == null || cfg.messages.tpaPlayerOnlyAccept.isBlank()) {
+      cfg.messages.tpaPlayerOnlyAccept = messageDefaults.tpaPlayerOnlyAccept;
+    }
+    if (cfg.messages.tpaPlayerOnlyDeny == null || cfg.messages.tpaPlayerOnlyDeny.isBlank()) {
+      cfg.messages.tpaPlayerOnlyDeny = messageDefaults.tpaPlayerOnlyDeny;
+    }
+    if (cfg.messages.tpaHereRequestSent == null || cfg.messages.tpaHereRequestSent.isBlank()) {
+      cfg.messages.tpaHereRequestSent = messageDefaults.tpaHereRequestSent;
+    }
+    if (cfg.messages.tpaHereIncomingLead == null || cfg.messages.tpaHereIncomingLead.isBlank()) {
+      cfg.messages.tpaHereIncomingLead = messageDefaults.tpaHereIncomingLead;
+    }
+    if (cfg.messages.tpaHereAcceptedTarget == null || cfg.messages.tpaHereAcceptedTarget.isBlank()) {
+      cfg.messages.tpaHereAcceptedTarget = messageDefaults.tpaHereAcceptedTarget;
+    }
+    if (cfg.messages.tpaHereAcceptedRequester == null || cfg.messages.tpaHereAcceptedRequester.isBlank()) {
+      cfg.messages.tpaHereAcceptedRequester = messageDefaults.tpaHereAcceptedRequester;
+    }
+    if (cfg.messages.commandCooldown == null || cfg.messages.commandCooldown.isBlank()) {
+      cfg.messages.commandCooldown = messageDefaults.commandCooldown;
+    }
+    if (cfg.messages.commandsDisabled == null || cfg.messages.commandsDisabled.isBlank()) {
+      cfg.messages.commandsDisabled = messageDefaults.commandsDisabled;
+    }
+    if (cfg.messages.msgUsage == null || cfg.messages.msgUsage.isBlank()) {
+      cfg.messages.msgUsage = messageDefaults.msgUsage;
+    }
+    if (cfg.messages.msgPlayerOnly == null || cfg.messages.msgPlayerOnly.isBlank()) {
+      cfg.messages.msgPlayerOnly = messageDefaults.msgPlayerOnly;
+    }
+    if (cfg.messages.msgMuted == null || cfg.messages.msgMuted.isBlank()) {
+      cfg.messages.msgMuted = messageDefaults.msgMuted;
+    }
+    if (cfg.messages.msgTargetOffline == null || cfg.messages.msgTargetOffline.isBlank()) {
+      cfg.messages.msgTargetOffline = messageDefaults.msgTargetOffline;
+    }
+    if (cfg.messages.msgSelf == null || cfg.messages.msgSelf.isBlank()) {
+      cfg.messages.msgSelf = messageDefaults.msgSelf;
+    }
+    if (cfg.messages.msgSent == null || cfg.messages.msgSent.isBlank()) {
+      cfg.messages.msgSent = messageDefaults.msgSent;
+    }
+    if (cfg.messages.msgReceived == null || cfg.messages.msgReceived.isBlank()) {
+      cfg.messages.msgReceived = messageDefaults.msgReceived;
+    }
+    if (cfg.messages.replyUsage == null || cfg.messages.replyUsage.isBlank()) {
+      cfg.messages.replyUsage = messageDefaults.replyUsage;
+    }
+    if (cfg.messages.replyNoOne == null || cfg.messages.replyNoOne.isBlank()) {
+      cfg.messages.replyNoOne = messageDefaults.replyNoOne;
+    }
+    if (cfg.messages.replyTargetOffline == null || cfg.messages.replyTargetOffline.isBlank()) {
+      cfg.messages.replyTargetOffline = messageDefaults.replyTargetOffline;
+    }
+    if (cfg.messages.nearHeader == null || cfg.messages.nearHeader.isBlank()) {
+      cfg.messages.nearHeader = messageDefaults.nearHeader;
+    }
+    if (cfg.messages.nearLinePlayer == null || cfg.messages.nearLinePlayer.isBlank()) {
+      cfg.messages.nearLinePlayer = messageDefaults.nearLinePlayer;
+    }
+    if (cfg.messages.nearLinePokemon == null || cfg.messages.nearLinePokemon.isBlank()) {
+      cfg.messages.nearLinePokemon = messageDefaults.nearLinePokemon;
+    }
+    if (cfg.messages.nearEmpty == null || cfg.messages.nearEmpty.isBlank()) {
+      cfg.messages.nearEmpty = messageDefaults.nearEmpty;
+    }
+    if (cfg.messages.nearPlayerOnly == null || cfg.messages.nearPlayerOnly.isBlank()) {
+      cfg.messages.nearPlayerOnly = messageDefaults.nearPlayerOnly;
+    }
+    if (cfg.messages.backNoDeath == null || cfg.messages.backNoDeath.isBlank()) {
+      cfg.messages.backNoDeath = messageDefaults.backNoDeath;
+    }
+    if (cfg.messages.backDimensionMissing == null || cfg.messages.backDimensionMissing.isBlank()) {
+      cfg.messages.backDimensionMissing = messageDefaults.backDimensionMissing;
+    }
+    if (cfg.messages.backSuccess == null || cfg.messages.backSuccess.isBlank()) {
+      cfg.messages.backSuccess = messageDefaults.backSuccess;
+    }
+    if (cfg.messages.backPlayerOnly == null || cfg.messages.backPlayerOnly.isBlank()) {
+      cfg.messages.backPlayerOnly = messageDefaults.backPlayerOnly;
+    }
+    if (cfg.messages.rtpSearching == null || cfg.messages.rtpSearching.isBlank()) {
+      cfg.messages.rtpSearching = messageDefaults.rtpSearching;
+    }
+    if (cfg.messages.rtpFailed == null || cfg.messages.rtpFailed.isBlank()) {
+      cfg.messages.rtpFailed = messageDefaults.rtpFailed;
+    }
+    if (cfg.messages.rtpSuccess == null || cfg.messages.rtpSuccess.isBlank()) {
+      cfg.messages.rtpSuccess = messageDefaults.rtpSuccess;
+    }
+    if (cfg.messages.rtpPlayerOnly == null || cfg.messages.rtpPlayerOnly.isBlank()) {
+      cfg.messages.rtpPlayerOnly = messageDefaults.rtpPlayerOnly;
+    }
+    if (cfg.messages.rtpWrongDimension == null || cfg.messages.rtpWrongDimension.isBlank()) {
+      cfg.messages.rtpWrongDimension = messageDefaults.rtpWrongDimension;
+    }
+    if (cfg.messages.playtimeSelf == null || cfg.messages.playtimeSelf.isBlank()) {
+      cfg.messages.playtimeSelf = messageDefaults.playtimeSelf;
+    }
+    if (cfg.messages.playtimeOther == null || cfg.messages.playtimeOther.isBlank()) {
+      cfg.messages.playtimeOther = messageDefaults.playtimeOther;
+    }
+    if (cfg.messages.playtimePlayerOnly == null || cfg.messages.playtimePlayerOnly.isBlank()) {
+      cfg.messages.playtimePlayerOnly = messageDefaults.playtimePlayerOnly;
+    }
+    if (cfg.messages.statsHeader == null || cfg.messages.statsHeader.isBlank()) {
+      cfg.messages.statsHeader = messageDefaults.statsHeader;
+    }
+    if (cfg.messages.statsSkills == null || cfg.messages.statsSkills.isBlank()) {
+      cfg.messages.statsSkills = messageDefaults.statsSkills;
+    }
+    if (cfg.messages.statsPokemon == null || cfg.messages.statsPokemon.isBlank()) {
+      cfg.messages.statsPokemon = messageDefaults.statsPokemon;
+    }
+    if (cfg.messages.statsPlayerOnly == null || cfg.messages.statsPlayerOnly.isBlank()) {
+      cfg.messages.statsPlayerOnly = messageDefaults.statsPlayerOnly;
+    }
+    if (cfg.messages.statsTargetOffline == null || cfg.messages.statsTargetOffline.isBlank()) {
+      cfg.messages.statsTargetOffline = messageDefaults.statsTargetOffline;
+    }
+    cfg.commands.tpaCooldownSeconds = Math.max(0, cfg.commands.tpaCooldownSeconds);
+    cfg.commands.tpahereCooldownSeconds = Math.max(0, cfg.commands.tpahereCooldownSeconds);
+    cfg.commands.nearCooldownSeconds = Math.max(0, cfg.commands.nearCooldownSeconds);
+    cfg.commands.nearDefaultRadius = Math.max(8, Math.min(256, cfg.commands.nearDefaultRadius));
+    cfg.commands.nearMaxRadius = Math.max(cfg.commands.nearDefaultRadius, Math.min(256, cfg.commands.nearMaxRadius));
+    cfg.commands.msgCooldownSeconds = Math.max(0, cfg.commands.msgCooldownSeconds);
+    cfg.commands.backCooldownSeconds = Math.max(0, cfg.commands.backCooldownSeconds);
+    cfg.commands.rtpCooldownSeconds = Math.max(0, cfg.commands.rtpCooldownSeconds);
+    cfg.commands.rtpMinRadiusBlocks = Math.max(0, cfg.commands.rtpMinRadiusBlocks);
+    cfg.commands.rtpMaxRadiusBlocks = Math.max(cfg.commands.rtpMinRadiusBlocks, cfg.commands.rtpMaxRadiusBlocks);
+    cfg.commands.rtpMaxAttempts = Math.max(8, Math.min(512, cfg.commands.rtpMaxAttempts));
+    cfg.commands.playtimeCooldownSeconds = Math.max(0, cfg.commands.playtimeCooldownSeconds);
+    cfg.commands.statsCooldownSeconds = Math.max(0, cfg.commands.statsCooldownSeconds);
     cfg.teams.scoreboard.hologramLineSpacing = Math.max(0.05D, cfg.teams.scoreboard.hologramLineSpacing);
     if (cfg.teams.scoreboard.hologramRankLine == null || cfg.teams.scoreboard.hologramRankLine.isBlank()) {
       cfg.teams.scoreboard.hologramRankLine = "&7{rank}. {teamDisplay} &f- {teamPoints} pts";

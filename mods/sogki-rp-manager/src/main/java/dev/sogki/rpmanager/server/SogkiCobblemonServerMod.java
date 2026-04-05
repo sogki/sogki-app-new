@@ -10,12 +10,15 @@ import com.google.gson.GsonBuilder;
 import dev.sogki.rpmanager.server.config.ServerConfigManager;
 import dev.sogki.rpmanager.server.config.ServerFeatureConfig;
 import dev.sogki.rpmanager.server.service.AreaService;
+import dev.sogki.rpmanager.server.service.CommandCooldownService;
+import dev.sogki.rpmanager.server.service.DirectMessageService;
 import dev.sogki.rpmanager.server.service.ChatFormatService;
 import dev.sogki.rpmanager.server.service.CobblemonAnnouncementService;
 import dev.sogki.rpmanager.server.service.ModerationMenuService;
 import dev.sogki.rpmanager.server.service.ModerationService;
 import dev.sogki.rpmanager.server.service.RegionProtectionService;
 import dev.sogki.rpmanager.server.service.StreakService;
+import dev.sogki.rpmanager.server.service.TeleportRequestService;
 import dev.sogki.rpmanager.server.service.TablistSidebarService;
 import dev.sogki.rpmanager.server.service.QuizService;
 import dev.sogki.rpmanager.server.service.DiscordStatusService;
@@ -29,8 +32,10 @@ import dev.sogki.rpmanager.server.service.TeamScoreboardService;
 import dev.sogki.rpmanager.server.service.TeamSelectionMenuService;
 import dev.sogki.rpmanager.server.service.TeamService;
 import dev.sogki.rpmanager.server.service.WorldEventService;
+import dev.sogki.rpmanager.server.util.CobblemonEntityLabels;
 import dev.sogki.rpmanager.server.util.FileWriteUtil;
 import dev.sogki.rpmanager.server.util.MessageDisplay;
+import dev.sogki.rpmanager.server.util.SafeRandomTeleport;
 import dev.sogki.rpmanager.server.util.TemplateEngine;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
@@ -55,6 +60,7 @@ import net.minecraft.block.TrapdoorBlock;
 import net.minecraft.command.argument.IdentifierArgumentType;
 import net.minecraft.command.argument.EntityArgumentType;
 import net.minecraft.entity.ai.brain.MemoryModuleType;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.mob.EndermanEntity;
 import net.minecraft.entity.mob.MobEntity;
@@ -68,12 +74,18 @@ import net.minecraft.registry.RegistryKeys;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.stat.Stat;
+import net.minecraft.stat.StatFormatter;
+import net.minecraft.stat.Stats;
 import net.minecraft.text.ClickEvent;
 import net.minecraft.text.HoverEvent;
 import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Box;
+import net.minecraft.util.math.GlobalPos;
 import net.minecraft.util.TypedActionResult;
 import net.minecraft.world.World;
 import org.slf4j.Logger;
@@ -84,9 +96,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Locale;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 public final class SogkiCobblemonServerMod implements ModInitializer {
@@ -117,6 +131,9 @@ public final class SogkiCobblemonServerMod implements ModInitializer {
   private static final TitleMenuService TITLE_MENU_SERVICE = new TitleMenuService();
   private static final ModerationService MODERATION_SERVICE = new ModerationService(LOGGER);
   private static final ModerationMenuService MODERATION_MENU_SERVICE = new ModerationMenuService();
+  private static final TeleportRequestService TP_REQUEST_SERVICE = new TeleportRequestService();
+  private static final CommandCooldownService COMMAND_COOLDOWNS = new CommandCooldownService();
+  private static final DirectMessageService DM_SERVICE = new DirectMessageService();
 
   private static long ticks;
 
@@ -189,6 +206,7 @@ public final class SogkiCobblemonServerMod implements ModInitializer {
       SKILL_TREE_SERVICE.tick(server, ticks);
       WORLD_EVENT_SERVICE.tick(server, cfg, ticks, SKILL_TREE_SERVICE, DISCORD_STATUS);
       MODERATION_SERVICE.tickCleanup(ticks);
+      TP_REQUEST_SERVICE.tick(ticks);
       enforceMobSpawnRules(server, cfg);
       enforceExplosiveRegionSafety(server, cfg);
       suppressVillagerZombiePanic(server, cfg);
@@ -416,13 +434,14 @@ public final class SogkiCobblemonServerMod implements ModInitializer {
   public static boolean tryOverridePlayerChat(net.minecraft.network.message.SignedMessage signedMessage,
                                               net.minecraft.server.network.ServerPlayerEntity sender) {
     if (sender == null || sender.getServer() == null) return false;
+    String raw = signedMessage == null || signedMessage.getContent() == null
+      ? ""
+      : signedMessage.getContent().getString();
+    if (QUIZ_SERVICE.shouldSuppressChatLine(sender, raw)) return true;
     if (MODERATION_SERVICE.blockMutedChat(sender)) return true;
     ServerFeatureConfig cfg = CONFIG_MANAGER.get();
     if (cfg == null || cfg.chat == null || !cfg.chat.enabled) return false;
     try {
-      String raw = signedMessage == null || signedMessage.getContent() == null
-        ? ""
-        : signedMessage.getContent().getString();
       Text formatted = CHAT_SERVICE.format(sender.getServer(), sender, Text.literal(raw), cfg);
       sender.getServer().getPlayerManager().broadcast(formatted, false);
       return true;
@@ -442,6 +461,70 @@ public final class SogkiCobblemonServerMod implements ModInitializer {
 
       dispatcher.register(CommandManager.literal("spawn")
         .executes(ctx -> runSpawn(ctx.getSource())));
+
+      dispatcher.register(CommandManager.literal("ping")
+        .executes(ctx -> runPing(ctx.getSource())));
+
+      dispatcher.register(CommandManager.literal("tpa")
+        .then(CommandManager.argument("target", EntityArgumentType.player())
+          .executes(ctx -> runTeleportAsk(ctx.getSource(), EntityArgumentType.getPlayer(ctx, "target")))));
+
+      dispatcher.register(CommandManager.literal("tp")
+        .then(CommandManager.argument("target", EntityArgumentType.player())
+          .executes(ctx -> runTeleportAsk(ctx.getSource(), EntityArgumentType.getPlayer(ctx, "target")))));
+
+      dispatcher.register(CommandManager.literal("tpaccept")
+        .executes(ctx -> runTpAccept(ctx.getSource())));
+
+      dispatcher.register(CommandManager.literal("tpdeny")
+        .executes(ctx -> runTpDeny(ctx.getSource())));
+
+      dispatcher.register(CommandManager.literal("tpahere")
+        .then(CommandManager.argument("target", EntityArgumentType.player())
+          .executes(ctx -> runTpahere(ctx.getSource(), EntityArgumentType.getPlayer(ctx, "target")))));
+
+      dispatcher.register(CommandManager.literal("msg")
+        .then(CommandManager.argument("target", EntityArgumentType.player())
+          .then(CommandManager.argument("message", StringArgumentType.greedyString())
+            .executes(ctx -> runMsg(ctx.getSource(),
+              EntityArgumentType.getPlayer(ctx, "target"),
+              StringArgumentType.getString(ctx, "message"))))));
+
+      dispatcher.register(CommandManager.literal("tell")
+        .then(CommandManager.argument("target", EntityArgumentType.player())
+          .then(CommandManager.argument("message", StringArgumentType.greedyString())
+            .executes(ctx -> runMsg(ctx.getSource(),
+              EntityArgumentType.getPlayer(ctx, "target"),
+              StringArgumentType.getString(ctx, "message"))))));
+
+      dispatcher.register(CommandManager.literal("r")
+        .then(CommandManager.argument("message", StringArgumentType.greedyString())
+          .executes(ctx -> runReply(ctx.getSource(), StringArgumentType.getString(ctx, "message")))));
+
+      dispatcher.register(CommandManager.literal("reply")
+        .then(CommandManager.argument("message", StringArgumentType.greedyString())
+          .executes(ctx -> runReply(ctx.getSource(), StringArgumentType.getString(ctx, "message")))));
+
+      dispatcher.register(CommandManager.literal("near")
+        .executes(ctx -> runNear(ctx.getSource(), null))
+        .then(CommandManager.argument("radius", IntegerArgumentType.integer(8, 256))
+          .executes(ctx -> runNear(ctx.getSource(), IntegerArgumentType.getInteger(ctx, "radius")))));
+
+      dispatcher.register(CommandManager.literal("back")
+        .executes(ctx -> runBack(ctx.getSource())));
+
+      dispatcher.register(CommandManager.literal("rtp")
+        .executes(ctx -> runRtp(ctx.getSource())));
+
+      dispatcher.register(CommandManager.literal("playtime")
+        .executes(ctx -> runPlaytime(ctx.getSource(), null))
+        .then(CommandManager.argument("target", EntityArgumentType.player())
+          .executes(ctx -> runPlaytime(ctx.getSource(), EntityArgumentType.getPlayer(ctx, "target")))));
+
+      dispatcher.register(CommandManager.literal("stats")
+        .executes(ctx -> runStats(ctx.getSource(), null))
+        .then(CommandManager.argument("target", EntityArgumentType.player())
+          .executes(ctx -> runStats(ctx.getSource(), EntityArgumentType.getPlayer(ctx, "target")))));
 
       dispatcher.register(CommandManager.literal("team")
         .executes(ctx -> runTeamRoot(ctx.getSource()))
@@ -911,9 +994,7 @@ public final class SogkiCobblemonServerMod implements ModInitializer {
 
       Map<String, String> values = TemplateEngine.baseMap(source.getServer(), player, CONFIG_MANAGER.get().brand);
       values.put("world", spawn.dimension);
-      values.put("x", String.valueOf((int) Math.floor(spawn.x)));
-      values.put("y", String.valueOf((int) Math.floor(spawn.y)));
-      values.put("z", String.valueOf((int) Math.floor(spawn.z)));
+      putSpawnBlockCoords(values, spawn);
       String msg = TemplateEngine.render(CONFIG_MANAGER.get().messages.setSpawnSuccess, values);
       source.sendFeedback(() -> Text.literal(msg), true);
       return 1;
@@ -951,9 +1032,7 @@ public final class SogkiCobblemonServerMod implements ModInitializer {
       player.teleport(target, spawn.x, spawn.y, spawn.z, spawn.yaw, spawn.pitch);
       Map<String, String> values = TemplateEngine.baseMap(source.getServer(), player, CONFIG_MANAGER.get().brand);
       values.put("world", spawn.dimension);
-      values.put("x", String.valueOf((int) Math.floor(spawn.x)));
-      values.put("y", String.valueOf((int) Math.floor(spawn.y)));
-      values.put("z", String.valueOf((int) Math.floor(spawn.z)));
+      putSpawnBlockCoords(values, spawn);
       String msg = TemplateEngine.render(CONFIG_MANAGER.get().messages.spawnTeleported, values);
       source.sendFeedback(() -> Text.literal(msg), false);
       return 1;
@@ -962,6 +1041,419 @@ public final class SogkiCobblemonServerMod implements ModInitializer {
       source.sendError(Text.literal(msg));
       return 0;
     }
+  }
+
+  private static int runPing(ServerCommandSource source) {
+    ServerFeatureConfig cfg = CONFIG_MANAGER.get();
+    try {
+      var player = source.getPlayerOrThrow();
+      int ms = player.networkHandler.getLatency();
+      Map<String, String> values = TemplateEngine.baseMap(source.getServer(), player, cfg.brand);
+      values.put("ping", String.valueOf(ms));
+      String msg = TemplateEngine.render(cfg.messages.pingSuccess, values);
+      source.sendFeedback(() -> Text.literal(msg), false);
+      return 1;
+    } catch (Exception e) {
+      String msg = TemplateEngine.render(cfg.messages.pingPlayerOnly, Map.of());
+      source.sendError(Text.literal(msg));
+      return 0;
+    }
+  }
+
+  private static boolean playerCommandsEnabled(ServerCommandSource source, ServerFeatureConfig cfg) {
+    if (cfg.commands != null && !cfg.commands.enabled) {
+      source.sendError(Text.literal(TemplateEngine.render(cfg.messages.commandsDisabled, Map.of())));
+      return false;
+    }
+    return true;
+  }
+
+  private static boolean passCooldown(ServerCommandSource source, ServerFeatureConfig cfg,
+                                      net.minecraft.server.network.ServerPlayerEntity player,
+                                      String key, int cooldownSeconds) {
+    int left = COMMAND_COOLDOWNS.remainingSeconds(player.getUuid(), key);
+    if (left > 0) {
+      Map<String, String> v = TemplateEngine.baseMap(source.getServer(), player, cfg.brand);
+      v.put("seconds", String.valueOf(left));
+      source.sendError(Text.literal(TemplateEngine.render(cfg.messages.commandCooldown, v)));
+      return false;
+    }
+    return true;
+  }
+
+  private static void useCooldown(net.minecraft.server.network.ServerPlayerEntity player, String key, int cooldownSeconds) {
+    COMMAND_COOLDOWNS.startCooldown(player.getUuid(), key, cooldownSeconds);
+  }
+
+  private static int runTeleportAsk(ServerCommandSource source,
+                                    net.minecraft.server.network.ServerPlayerEntity target) {
+    ServerFeatureConfig cfg = CONFIG_MANAGER.get();
+    try {
+      var requester = source.getPlayerOrThrow();
+      if (!playerCommandsEnabled(source, cfg)) return 0;
+      if (requester.getUuid().equals(target.getUuid())) {
+        TP_REQUEST_SERVICE.sendRequest(requester, target, ticks, cfg,
+          TeleportRequestService.TeleportAskKind.REQUESTER_TO_TARGET);
+        return 0;
+      }
+      if (!passCooldown(source, cfg, requester, "tpa", cfg.commands.tpaCooldownSeconds)) return 0;
+      TP_REQUEST_SERVICE.sendRequest(requester, target, ticks, cfg,
+        TeleportRequestService.TeleportAskKind.REQUESTER_TO_TARGET);
+      useCooldown(requester, "tpa", cfg.commands.tpaCooldownSeconds);
+      return 1;
+    } catch (Exception e) {
+      String msg = TemplateEngine.render(cfg.messages.tpaPlayerOnlyRequest, Map.of());
+      source.sendError(Text.literal(msg));
+      return 0;
+    }
+  }
+
+  private static int runTpahere(ServerCommandSource source,
+                                net.minecraft.server.network.ServerPlayerEntity target) {
+    ServerFeatureConfig cfg = CONFIG_MANAGER.get();
+    try {
+      var requester = source.getPlayerOrThrow();
+      if (!playerCommandsEnabled(source, cfg)) return 0;
+      if (requester.getUuid().equals(target.getUuid())) {
+        TP_REQUEST_SERVICE.sendRequest(requester, target, ticks, cfg,
+          TeleportRequestService.TeleportAskKind.TARGET_TO_REQUESTER);
+        return 0;
+      }
+      if (!passCooldown(source, cfg, requester, "tpahere", cfg.commands.tpahereCooldownSeconds)) return 0;
+      TP_REQUEST_SERVICE.sendRequest(requester, target, ticks, cfg,
+        TeleportRequestService.TeleportAskKind.TARGET_TO_REQUESTER);
+      useCooldown(requester, "tpahere", cfg.commands.tpahereCooldownSeconds);
+      return 1;
+    } catch (Exception e) {
+      String msg = TemplateEngine.render(cfg.messages.tpaPlayerOnlyRequest, Map.of());
+      source.sendError(Text.literal(msg));
+      return 0;
+    }
+  }
+
+  private static int runTpAccept(ServerCommandSource source) {
+    ServerFeatureConfig cfg = CONFIG_MANAGER.get();
+    try {
+      var player = source.getPlayerOrThrow();
+      if (!playerCommandsEnabled(source, cfg)) return 0;
+      TP_REQUEST_SERVICE.accept(player, source.getServer(), cfg);
+      return 1;
+    } catch (Exception e) {
+      String msg = TemplateEngine.render(cfg.messages.tpaPlayerOnlyAccept, Map.of());
+      source.sendError(Text.literal(msg));
+      return 0;
+    }
+  }
+
+  private static int runTpDeny(ServerCommandSource source) {
+    ServerFeatureConfig cfg = CONFIG_MANAGER.get();
+    try {
+      var player = source.getPlayerOrThrow();
+      if (!playerCommandsEnabled(source, cfg)) return 0;
+      TP_REQUEST_SERVICE.deny(player, cfg);
+      return 1;
+    } catch (Exception e) {
+      String msg = TemplateEngine.render(cfg.messages.tpaPlayerOnlyDeny, Map.of());
+      source.sendError(Text.literal(msg));
+      return 0;
+    }
+  }
+
+  private static int runMsg(ServerCommandSource source,
+                            net.minecraft.server.network.ServerPlayerEntity target,
+                            String message) {
+    ServerFeatureConfig cfg = CONFIG_MANAGER.get();
+    try {
+      var from = source.getPlayerOrThrow();
+      if (!playerCommandsEnabled(source, cfg)) return 0;
+      if (MODERATION_SERVICE.blockMutedChat(from)) {
+        source.sendError(Text.literal(TemplateEngine.render(cfg.messages.msgMuted, Map.of())));
+        return 0;
+      }
+      String body = message == null ? "" : message.trim();
+      if (body.isEmpty()) {
+        source.sendError(Text.literal(TemplateEngine.render(cfg.messages.msgUsage, Map.of())));
+        return 0;
+      }
+      if (!passCooldown(source, cfg, from, "msg", cfg.commands.msgCooldownSeconds)) return 0;
+      if (from.getUuid().equals(target.getUuid())) {
+        source.sendError(Text.literal(TemplateEngine.render(cfg.messages.msgSelf, Map.of())));
+        return 0;
+      }
+      DM_SERVICE.onMessage(from.getUuid(), target.getUuid());
+      Map<String, String> toVals = TemplateEngine.baseMap(source.getServer(), target, cfg.brand);
+      toVals.put("sender", from.getGameProfile().getName());
+      toVals.put("message", body);
+      target.sendMessage(Text.literal(TemplateEngine.render(cfg.messages.msgReceived, toVals)));
+      Map<String, String> fromVals = TemplateEngine.baseMap(source.getServer(), from, cfg.brand);
+      fromVals.put("target", target.getGameProfile().getName());
+      fromVals.put("message", body);
+      from.sendMessage(Text.literal(TemplateEngine.render(cfg.messages.msgSent, fromVals)));
+      useCooldown(from, "msg", cfg.commands.msgCooldownSeconds);
+      return 1;
+    } catch (Exception e) {
+      source.sendError(Text.literal(TemplateEngine.render(cfg.messages.msgPlayerOnly, Map.of())));
+      return 0;
+    }
+  }
+
+  private static int runReply(ServerCommandSource source, String message) {
+    ServerFeatureConfig cfg = CONFIG_MANAGER.get();
+    try {
+      var from = source.getPlayerOrThrow();
+      if (!playerCommandsEnabled(source, cfg)) return 0;
+      if (MODERATION_SERVICE.blockMutedChat(from)) {
+        source.sendError(Text.literal(TemplateEngine.render(cfg.messages.msgMuted, Map.of())));
+        return 0;
+      }
+      String body = message == null ? "" : message.trim();
+      if (body.isEmpty()) {
+        source.sendError(Text.literal(TemplateEngine.render(cfg.messages.replyUsage, Map.of())));
+        return 0;
+      }
+      if (!passCooldown(source, cfg, from, "msg", cfg.commands.msgCooldownSeconds)) return 0;
+      java.util.UUID partnerId = DM_SERVICE.lastMessengerFor(from.getUuid());
+      if (partnerId == null) {
+        source.sendError(Text.literal(TemplateEngine.render(cfg.messages.replyNoOne, Map.of())));
+        return 0;
+      }
+      net.minecraft.server.network.ServerPlayerEntity target = source.getServer().getPlayerManager().getPlayer(partnerId);
+      if (target == null) {
+        source.sendError(Text.literal(TemplateEngine.render(cfg.messages.replyTargetOffline, Map.of())));
+        return 0;
+      }
+      if (from.getUuid().equals(target.getUuid())) {
+        source.sendError(Text.literal(TemplateEngine.render(cfg.messages.msgSelf, Map.of())));
+        return 0;
+      }
+      DM_SERVICE.onMessage(from.getUuid(), target.getUuid());
+      Map<String, String> toVals = TemplateEngine.baseMap(source.getServer(), target, cfg.brand);
+      toVals.put("sender", from.getGameProfile().getName());
+      toVals.put("message", body);
+      target.sendMessage(Text.literal(TemplateEngine.render(cfg.messages.msgReceived, toVals)));
+      Map<String, String> fromVals = TemplateEngine.baseMap(source.getServer(), from, cfg.brand);
+      fromVals.put("target", target.getGameProfile().getName());
+      fromVals.put("message", body);
+      from.sendMessage(Text.literal(TemplateEngine.render(cfg.messages.msgSent, fromVals)));
+      useCooldown(from, "msg", cfg.commands.msgCooldownSeconds);
+      return 1;
+    } catch (Exception e) {
+      source.sendError(Text.literal(TemplateEngine.render(cfg.messages.msgPlayerOnly, Map.of())));
+      return 0;
+    }
+  }
+
+  private static int runNear(ServerCommandSource source, Integer radiusArg) {
+    ServerFeatureConfig cfg = CONFIG_MANAGER.get();
+    try {
+      var player = source.getPlayerOrThrow();
+      if (!playerCommandsEnabled(source, cfg)) return 0;
+      if (!passCooldown(source, cfg, player, "near", cfg.commands.nearCooldownSeconds)) return 0;
+      int r = radiusArg == null ? cfg.commands.nearDefaultRadius : radiusArg;
+      r = Math.min(r, cfg.commands.nearMaxRadius);
+      ServerWorld world = player.getServerWorld();
+      Box box = player.getBoundingBox().expand(r);
+      List<Entity> found = world.getOtherEntities(player, box, e ->
+        e instanceof net.minecraft.server.network.ServerPlayerEntity || CobblemonEntityLabels.isCobblemonPokemon(e));
+      found.sort(Comparator.comparingDouble(e -> e.squaredDistanceTo(player)));
+      Map<String, String> header = TemplateEngine.baseMap(source.getServer(), player, cfg.brand);
+      header.put("radius", String.valueOf(r));
+      player.sendMessage(Text.literal(TemplateEngine.render(cfg.messages.nearHeader, header)));
+      if (found.isEmpty()) {
+        player.sendMessage(Text.literal(TemplateEngine.render(cfg.messages.nearEmpty, Map.of())));
+      } else {
+        for (Entity e : found) {
+          double d = Math.sqrt(e.squaredDistanceTo(player));
+          Map<String, String> line = TemplateEngine.baseMap(source.getServer(), player, cfg.brand);
+          line.put("distance", String.valueOf((int) Math.floor(d)));
+          if (e instanceof net.minecraft.server.network.ServerPlayerEntity sp) {
+            line.put("player", sp.getGameProfile().getName());
+            player.sendMessage(Text.literal(TemplateEngine.render(cfg.messages.nearLinePlayer, line)));
+          } else {
+            line.put("name", CobblemonEntityLabels.pokemonLabel(e));
+            player.sendMessage(Text.literal(TemplateEngine.render(cfg.messages.nearLinePokemon, line)));
+          }
+        }
+      }
+      useCooldown(player, "near", cfg.commands.nearCooldownSeconds);
+      return 1;
+    } catch (Exception e) {
+      source.sendError(Text.literal(TemplateEngine.render(cfg.messages.nearPlayerOnly, Map.of())));
+      return 0;
+    }
+  }
+
+  private static int runBack(ServerCommandSource source) {
+    ServerFeatureConfig cfg = CONFIG_MANAGER.get();
+    try {
+      var player = source.getPlayerOrThrow();
+      if (!playerCommandsEnabled(source, cfg)) return 0;
+      if (!passCooldown(source, cfg, player, "back", cfg.commands.backCooldownSeconds)) return 0;
+      Optional<GlobalPos> death = player.getLastDeathPos();
+      if (death.isEmpty()) {
+        source.sendError(Text.literal(TemplateEngine.render(cfg.messages.backNoDeath, Map.of())));
+        return 0;
+      }
+      GlobalPos g = death.get();
+      ServerWorld dest = source.getServer().getWorld(g.dimension());
+      if (dest == null) {
+        source.sendError(Text.literal(TemplateEngine.render(cfg.messages.backDimensionMissing, Map.of())));
+        return 0;
+      }
+      BlockPos p = g.pos();
+      double x = p.getX() + 0.5;
+      double z = p.getZ() + 0.5;
+      double y = p.getY();
+      BlockPos feet = BlockPos.ofFloored(x, y, z);
+      for (int i = 0; i < 16; i++) {
+        BlockPos tryFeet = feet.up(i);
+        if (tryFeet.getY() >= dest.getLogicalHeight() - 2) break;
+        if (dest.getBlockState(tryFeet).getCollisionShape(dest, tryFeet).isEmpty()
+          && dest.getBlockState(tryFeet.up()).getCollisionShape(dest, tryFeet.up()).isEmpty()) {
+          feet = tryFeet;
+          break;
+        }
+      }
+      player.teleport(dest, feet.getX() + 0.5, feet.getY(), feet.getZ() + 0.5, player.getYaw(), player.getPitch());
+      Map<String, String> v = TemplateEngine.baseMap(source.getServer(), player, cfg.brand);
+      v.put("world", dest.getRegistryKey().getValue().toString());
+      v.put("bx", TemplateEngine.formatBlockCoord(feet.getX()));
+      v.put("by", TemplateEngine.formatBlockCoord(feet.getY()));
+      v.put("bz", TemplateEngine.formatBlockCoord(feet.getZ()));
+      v.put("x", v.get("bx"));
+      v.put("y", v.get("by"));
+      v.put("z", v.get("bz"));
+      source.sendFeedback(() -> Text.literal(TemplateEngine.render(cfg.messages.backSuccess, v)), false);
+      useCooldown(player, "back", cfg.commands.backCooldownSeconds);
+      return 1;
+    } catch (Exception e) {
+      source.sendError(Text.literal(TemplateEngine.render(cfg.messages.backPlayerOnly, Map.of())));
+      return 0;
+    }
+  }
+
+  private static int runRtp(ServerCommandSource source) {
+    ServerFeatureConfig cfg = CONFIG_MANAGER.get();
+    try {
+      var player = source.getPlayerOrThrow();
+      if (!playerCommandsEnabled(source, cfg)) return 0;
+      if (!passCooldown(source, cfg, player, "rtp", cfg.commands.rtpCooldownSeconds)) return 0;
+      ServerWorld world = player.getServerWorld();
+      if (!SafeRandomTeleport.isOverworld(world)) {
+        source.sendError(Text.literal(TemplateEngine.render(cfg.messages.rtpWrongDimension, Map.of())));
+        return 0;
+      }
+      player.sendMessage(Text.literal(TemplateEngine.render(cfg.messages.rtpSearching, Map.of())));
+      BlockPos origin = player.getBlockPos();
+      BlockPos feet = SafeRandomTeleport.findSafeFeet(
+        world,
+        origin,
+        cfg.commands.rtpMinRadiusBlocks,
+        cfg.commands.rtpMaxRadiusBlocks,
+        cfg.commands.rtpMaxAttempts,
+        world.random);
+      if (feet == null) {
+        source.sendError(Text.literal(TemplateEngine.render(cfg.messages.rtpFailed, Map.of())));
+        return 0;
+      }
+      float yaw = world.random.nextFloat() * 360f;
+      player.teleport(world, feet.getX() + 0.5, feet.getY(), feet.getZ() + 0.5, yaw, 0f);
+      Map<String, String> v = TemplateEngine.baseMap(source.getServer(), player, cfg.brand);
+      v.put("world", world.getRegistryKey().getValue().toString());
+      v.put("bx", TemplateEngine.formatBlockCoord(feet.getX()));
+      v.put("by", TemplateEngine.formatBlockCoord(feet.getY()));
+      v.put("bz", TemplateEngine.formatBlockCoord(feet.getZ()));
+      v.put("x", v.get("bx"));
+      v.put("y", v.get("by"));
+      v.put("z", v.get("bz"));
+      source.sendFeedback(() -> Text.literal(TemplateEngine.render(cfg.messages.rtpSuccess, v)), false);
+      useCooldown(player, "rtp", cfg.commands.rtpCooldownSeconds);
+      return 1;
+    } catch (Exception e) {
+      source.sendError(Text.literal(TemplateEngine.render(cfg.messages.rtpPlayerOnly, Map.of())));
+      return 0;
+    }
+  }
+
+  private static int runPlaytime(ServerCommandSource source,
+                                 net.minecraft.server.network.ServerPlayerEntity targetOpt) {
+    ServerFeatureConfig cfg = CONFIG_MANAGER.get();
+    try {
+      var viewer = source.getPlayerOrThrow();
+      if (!playerCommandsEnabled(source, cfg)) return 0;
+      if (!passCooldown(source, cfg, viewer, "playtime", cfg.commands.playtimeCooldownSeconds)) return 0;
+      net.minecraft.server.network.ServerPlayerEntity subject = targetOpt == null ? viewer : targetOpt;
+      Stat<?> playStat = Stats.CUSTOM.getOrCreateStat(Identifier.ofVanilla("play_time"), StatFormatter.DEFAULT);
+      int ticksStat = subject.getStatHandler().getStat(playStat);
+      long t = Math.max(0, ticksStat);
+      long days = t / (20L * 60 * 60 * 24);
+      long rem = t % (20L * 60 * 60 * 24);
+      long hours = rem / (20L * 60 * 60);
+      rem = rem % (20L * 60 * 60);
+      long minutes = rem / (20L * 60);
+      Map<String, String> v = TemplateEngine.baseMap(source.getServer(), viewer, cfg.brand);
+      v.put("days", String.valueOf(days));
+      v.put("hours", String.valueOf(hours));
+      v.put("minutes", String.valueOf(minutes));
+      v.put("ticks", String.valueOf(t));
+      v.put("player", subject.getGameProfile().getName());
+      String tpl = targetOpt == null ? cfg.messages.playtimeSelf : cfg.messages.playtimeOther;
+      viewer.sendMessage(Text.literal(TemplateEngine.render(tpl, v)));
+      useCooldown(viewer, "playtime", cfg.commands.playtimeCooldownSeconds);
+      return 1;
+    } catch (Exception e) {
+      source.sendError(Text.literal(TemplateEngine.render(cfg.messages.playtimePlayerOnly, Map.of())));
+      return 0;
+    }
+  }
+
+  private static int runStats(ServerCommandSource source,
+                              net.minecraft.server.network.ServerPlayerEntity targetOpt) {
+    ServerFeatureConfig cfg = CONFIG_MANAGER.get();
+    try {
+      var viewer = source.getPlayerOrThrow();
+      if (!playerCommandsEnabled(source, cfg)) return 0;
+      if (!passCooldown(source, cfg, viewer, "stats", cfg.commands.statsCooldownSeconds)) return 0;
+      net.minecraft.server.network.ServerPlayerEntity subject = targetOpt == null ? viewer : targetOpt;
+      if (subject == null) {
+        source.sendError(Text.literal(TemplateEngine.render(cfg.messages.statsTargetOffline, Map.of())));
+        return 0;
+      }
+      TemplateEngine.CobblemonSummary c = TemplateEngine.cobblemonSummary(subject);
+      int unlocked = SKILL_TREE_SERVICE.totalUnlocked(subject.getUuid());
+      int totalNodes = SKILL_TREE_SERVICE.nodes().size();
+      int skillPoints = SKILL_TREE_SERVICE.points(subject.getUuid());
+      Map<String, String> base = TemplateEngine.baseMap(source.getServer(), subject, cfg.brand);
+      viewer.sendMessage(Text.literal(TemplateEngine.render(cfg.messages.statsHeader, base)));
+      Map<String, String> sk = new java.util.HashMap<>(base);
+      sk.put("skillsUnlocked", String.valueOf(unlocked));
+      sk.put("skillsTotal", String.valueOf(Math.max(0, totalNodes)));
+      sk.put("skillPoints", String.valueOf(skillPoints));
+      viewer.sendMessage(Text.literal(TemplateEngine.render(cfg.messages.statsSkills, sk)));
+      Map<String, String> pk = new java.util.HashMap<>(base);
+      pk.put("party", String.valueOf(c.partyCount()));
+      pk.put("pc", String.valueOf(c.pcCount()));
+      pk.put("dexCaught", String.valueOf(c.pokedexCaught()));
+      pk.put("dexSeen", String.valueOf(c.pokedexSeen()));
+      viewer.sendMessage(Text.literal(TemplateEngine.render(cfg.messages.statsPokemon, pk)));
+      useCooldown(viewer, "stats", cfg.commands.statsCooldownSeconds);
+      return 1;
+    } catch (Exception e) {
+      source.sendError(Text.literal(TemplateEngine.render(cfg.messages.statsPlayerOnly, Map.of())));
+      return 0;
+    }
+  }
+
+  private static void putSpawnBlockCoords(Map<String, String> values, SpawnPoint spawn) {
+    String bx = TemplateEngine.formatBlockCoord(spawn.x);
+    String by = TemplateEngine.formatBlockCoord(spawn.y);
+    String bz = TemplateEngine.formatBlockCoord(spawn.z);
+    values.put("bx", bx);
+    values.put("by", by);
+    values.put("bz", bz);
+    values.put("x", bx);
+    values.put("y", by);
+    values.put("z", bz);
   }
 
   private static int runTeamRoot(ServerCommandSource source) {

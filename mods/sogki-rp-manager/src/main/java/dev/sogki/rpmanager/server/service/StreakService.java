@@ -102,9 +102,14 @@ public final class StreakService {
       return ClaimResult.error(config.messages.claimAlreadyClaimed);
     }
 
-    if (streak.lastClaimDay <= 0) {
+    long previousClaimDay = streak.lastClaimDay;
+    boolean firstEverClaim = previousClaimDay <= 0;
+    boolean streakBrokenByAbsence =
+      previousClaimDay > 0 && today - previousClaimDay > config.streak.graceDays + 1L;
+
+    if (firstEverClaim) {
       streak.currentStreak = 1;
-    } else if (today - streak.lastClaimDay > config.streak.graceDays + 1L) {
+    } else if (streakBrokenByAbsence) {
       streak.currentStreak = 1;
     } else {
       streak.currentStreak++;
@@ -112,7 +117,13 @@ public final class StreakService {
     streak.lastSeenDay = today;
     streak.lastClaimDay = today;
 
-    ServerFeatureConfig.RewardRule reward = pickReward(config.streak.rewards, streak.currentStreak);
+    boolean useResumeDay1 =
+      streak.currentStreak == 1 && streakBrokenByAbsence
+        && config.streak.resumeRewards != null
+        && !config.streak.resumeRewards.isEmpty();
+    ServerFeatureConfig.RewardRule reward = useResumeDay1
+      ? pickReward(config.streak.resumeRewards, 1)
+      : pickReward(config.streak.rewards, streak.currentStreak);
     Map<String, String> values = TemplateEngine.baseMap(player.getServer(), player, config.brand);
     values.put("day", String.valueOf(streak.currentStreak));
     if (reward == null) {

@@ -18,6 +18,7 @@ public final class ServerFeatureConfig {
   public TablistConfig tablist = new TablistConfig();
   public SidebarConfig sidebar = new SidebarConfig();
   public MessagesConfig messages = new MessagesConfig();
+  public CommandsConfig commands = new CommandsConfig();
 
   public static final class RemoteConfig {
     public boolean enabled = false;
@@ -68,6 +69,12 @@ public final class ServerFeatureConfig {
     public int graceDays = 1;
     public boolean autoNotifyOnJoin = true;
     public List<RewardRule> rewards = new ArrayList<>();
+    /**
+     * Optional rewards for the first claim after a streak is lost (missed more than grace days).
+     * When non-empty, day 1 after a break uses this table instead of {@link #rewards} day 1.
+     * First-time players (never claimed) still use {@link #rewards} day 1.
+     */
+    public List<RewardRule> resumeRewards = new ArrayList<>();
   }
 
   public static final class RewardRule {
@@ -394,9 +401,66 @@ public final class ServerFeatureConfig {
     public String streakMenuStatusAvailable = "Status: claim available";
     public String spawnPlayerOnly = "Spawn is player-only.";
     public String spawnNotSet = "Spawn is not set yet.";
-    public String spawnTeleported = "Teleported to spawn ({world} @ {x}, {y}, {z}).";
+    public String spawnTeleported = "Teleported to spawn ({world} @ {bx}, {by}, {bz}).";
     public String setSpawnPlayerOnly = "Setspawn is player-only.";
-    public String setSpawnSuccess = "Spawn set to {world} @ {x}, {y}, {z}.";
+    public String setSpawnSuccess = "Spawn set to {world} @ {bx}, {by}, {bz}.";
+    public String pingSuccess = "&7Your ping: &f{ping} ms";
+    public String pingPlayerOnly = "&cOnly players can check ping.";
+    public String tpaCannotSelf = "&cYou cannot send a teleport request to yourself.";
+    public String tpaRequestSent = "&aRequest sent to &f{target}&a. They have &f{seconds}&a seconds to accept.";
+    public String tpaIncomingLead = "&b{requester} &7wants to teleport to you. ";
+    public String tpaIncomingTail = " &8(&f{seconds}s&8)";
+    public String tpaAcceptButton = "&a[Accept]";
+    public String tpaDenyButton = "&c[Deny]";
+    public String tpaAcceptHover = "&aRun /tpaccept";
+    public String tpaDenyHover = "&cRun /tpdeny";
+    public String tpaNoPending = "&cYou have no pending teleport request.";
+    public String tpaRequesterOffline = "&cThat player is no longer online.";
+    public String tpaAcceptedTarget = "&aYou accepted &f{requester}&a's teleport request.";
+    public String tpaAcceptedRequester = "&aTeleported to &f{target}&7 @ {world} &8({bx}, {by}, {bz})";
+    public String tpaDeniedTarget = "&7Teleport request denied.";
+    public String tpaDeniedRequester = "&c{target} denied your teleport request.";
+    public String tpaPlayerOnlyRequest = "&cOnly players may send teleport requests.";
+    public String tpaPlayerOnlyAccept = "&cOnly players may accept teleport requests.";
+    public String tpaPlayerOnlyDeny = "&cOnly players may deny teleport requests.";
+    public String tpaHereRequestSent = "&aAsked &f{target} &ato come to you. They have &f{seconds}&a seconds to accept.";
+    public String tpaHereIncomingLead = "&b{requester} &7wants you to teleport to them. ";
+    public String tpaHereAcceptedTarget = "&aTeleporting to &f{requester}&7 @ {world} &8({bx}, {by}, {bz})";
+    public String tpaHereAcceptedRequester = "&a{target} &aaccepted — they are warping to you.";
+    public String commandCooldown = "&7[&eCobblepals&7] &cWait &f{seconds}&c second(s) before using that again.";
+    public String commandsDisabled = "&7[&eCobblepals&7] &cPlayer commands are disabled.";
+    public String msgUsage = "&7Usage: &f/msg <player> <message>";
+    public String msgPlayerOnly = "&cOnly players can message.";
+    public String msgMuted = "&cYou cannot send messages while muted.";
+    public String msgTargetOffline = "&cThat player is not online.";
+    public String msgSelf = "&cYou cannot message yourself.";
+    public String msgSent = "&7[&eCobblepals&7] &7to &f{target}&7: &f{message}";
+    public String msgReceived = "&7[&eCobblepals&7] &ffrom &b{sender}&7: &f{message}";
+    public String replyUsage = "&7Usage: &f/r <message>";
+    public String replyNoOne = "&cNo one has messaged you recently.";
+    public String replyTargetOffline = "&cThat player went offline.";
+    public String nearHeader = "&7[&eCobblepals&7] &eNearby &8(&f{radius}m&8)&e:";
+    public String nearLinePlayer = "&7- &f{player} &8({distance}m)";
+    public String nearLinePokemon = "&7- &d{name} &8({distance}m)";
+    public String nearEmpty = "&7Nobody and no wild Pokémon nearby.";
+    public String nearPlayerOnly = "&cOnly players can use /near.";
+    public String backNoDeath = "&7[&eCobblepals&7] &cNo last death position found (matches vanilla / Waystones recovery).";
+    public String backDimensionMissing = "&cYour last death world is not loaded.";
+    public String backSuccess = "&7[&eCobblepals&7] &aReturned to last death &8(&7{world} @ {bx}, {by}, {bz}&8)";
+    public String backPlayerOnly = "&cOnly players can use /back.";
+    public String rtpSearching = "&7[&eCobblepals&7] &eSearching for a safe spot...";
+    public String rtpFailed = "&cCould not find a safe random spot. Try again later.";
+    public String rtpSuccess = "&7[&eCobblepals&7] &aRandom teleport &8(&7{world} @ {bx}, {by}, {bz}&8)";
+    public String rtpPlayerOnly = "&cOnly players can use /rtp.";
+    public String rtpWrongDimension = "&cRandom teleport is only available in the Overworld.";
+    public String playtimeSelf = "&7[&eCobblepals&7] &ePlaytime&8: &f{days}d {hours}h {minutes}m &8(&f{ticks} ticks&8)";
+    public String playtimeOther = "&7[&eCobblepals&7] &f{player}&e's playtime&8: &f{days}d {hours}h {minutes}m";
+    public String playtimePlayerOnly = "&cOnly players can check playtime.";
+    public String statsHeader = "&7[&eCobblepals&7] &a&lProfile &8— &f{player}";
+    public String statsSkills = "&7Skills &8▶ &funlocked &f{skillsUnlocked}&7/&f{skillsTotal} &8| &7points &f{skillPoints}";
+    public String statsPokemon = "&7Pokémon &8▶ &7party &f{party}&7, PC &f{pc}&7, dex caught &f{dexCaught}&7, seen &f{dexSeen}";
+    public String statsPlayerOnly = "&cOnly players can view stats.";
+    public String statsTargetOffline = "&cThat player is not online.";
     public String quizStart = "[Quiz] {question} ({seconds}s) - one-word answer only!";
     public String quizWinner = "[Quiz] {player} got it right ({answer}) and won {rewards}.";
     public String quizNoWinner = "[Quiz] Time's up! Correct answer: {answer}.";
@@ -444,6 +508,23 @@ public final class ServerFeatureConfig {
     public String teamMissionRerollSuccess = "Team missions rerolled.";
     public String teamScoreboardAdminHelp = "Admin team scoreboard: /sogkiadmin scoreboard team setup|refresh|delete|reset CONFIRM";
     public String teamScoreboardPlayerOnlySetup = "Run setup in-game so hologram position can be captured.";
+  }
+
+  public static final class CommandsConfig {
+    public boolean enabled = true;
+    public int tpaCooldownSeconds = 60;
+    public int tpahereCooldownSeconds = 60;
+    public int nearCooldownSeconds = 15;
+    public int nearDefaultRadius = 48;
+    public int nearMaxRadius = 96;
+    public int msgCooldownSeconds = 2;
+    public int backCooldownSeconds = 90;
+    public int rtpCooldownSeconds = 180;
+    public int rtpMinRadiusBlocks = 250;
+    public int rtpMaxRadiusBlocks = 8000;
+    public int rtpMaxAttempts = 80;
+    public int playtimeCooldownSeconds = 5;
+    public int statsCooldownSeconds = 8;
   }
 
   public static final class DisplayRoute {
