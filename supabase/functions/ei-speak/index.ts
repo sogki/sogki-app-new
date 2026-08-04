@@ -1,14 +1,15 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import * as jose from 'https://deno.land/x/jose@v5.2.0/index.ts';
 
-const corsHeaders = {
+const corsHeaders: Record<string, string> = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Expose-Headers': 'X-Ei-Voice-Provider, X-Ei-Voice-Id',
 };
 
 const MAX_CHARS = 800;
-/** Default ElevenLabs "Sarah" — clear female conversational voice */
+/** Default ElevenLabs "Sarah" — only used if ELEVENLABS_VOICE_ID is missing */
 const DEFAULT_ELEVEN_VOICE = 'EXAVITQu4vr4xnSDxMaL';
 
 Deno.serve(async (req) => {
@@ -33,7 +34,7 @@ async function handleSpeak(req: Request) {
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
   );
 
-  const { data: keys } = await supabase
+  const { data: keys, error: keysErr } = await supabase
     .from('keys')
     .select('key, value')
     .in('key', [
@@ -45,7 +46,14 @@ async function handleSpeak(req: Request) {
       'ELEVENLABS_VOICE_ID',
     ]);
 
-  const keyMap = Object.fromEntries((keys ?? []).map((row) => [row.key, row.value]));
+  if (keysErr) {
+    console.error('keys lookup failed:', keysErr);
+    return json({ error: 'Failed to load keys' }, 500);
+  }
+
+  const keyMap = Object.fromEntries(
+    (keys ?? []).map((row) => [row.key, typeof row.value === 'string' ? row.value.trim() : row.value])
+  );
   const authErr = await verifyAdmin(req, token, keyMap);
   if (authErr) return authErr;
 
@@ -58,27 +66,38 @@ async function handleSpeak(req: Request) {
 
   const elevenKey = usable(keyMap['ELEVENLABS_API_KEY']);
   const openaiKey = usable(keyMap['OPENAI_API_KEY']);
+  const voiceId = usable(keyMap['ELEVENLABS_VOICE_ID']) ?? DEFAULT_ELEVEN_VOICE;
 
+  // Prefer ElevenLabs when configured — do NOT silently fall back to OpenAI
+  // (OpenAI ignores ELEVENLABS_VOICE_ID, which looked like the voice "not taking effect").
   if (elevenKey) {
-    const voiceId =
-      usable(keyMap['ELEVENLABS_VOICE_ID']) ?? DEFAULT_ELEVEN_VOICE;
-    const audio = await elevenLabsSpeak(elevenKey, voiceId, spoken);
-    if (audio) {
-      return audioResponse(audio, 'elevenlabs');
+    const result = await elevenLabsSpeak(elevenKey, voiceId, spoken);
+    if (result.ok) {
+      console.log('ei-speak elevenlabs ok', { voiceId, bytes: result.audio.byteLength });
+      return audioResponse(result.audio, 'elevenlabs', voiceId);
     }
+    console.error('ei-speak elevenlabs failed', { voiceId, detail: result.error });
+    return json(
+      {
+        error: `ElevenLabs failed for voice ${voiceId}: ${result.error}`,
+        voiceId,
+        hint: 'Check ELEVENLABS_VOICE_ID is a voice your account can use, and the API key is valid.',
+      },
+      502
+    );
   }
 
   if (openaiKey) {
     const audio = await openAiSpeak(openaiKey, spoken);
     if (audio) {
-      return audioResponse(audio, 'openai');
+      return audioResponse(audio, 'openai', 'openai-default');
     }
   }
 
   return json(
     {
       error:
-        'No neural TTS configured. Add ELEVENLABS_API_KEY (best) or OPENAI_API_KEY to the keys table, then redeploy ei-speak.',
+        'No neural TTS configured. Set ELEVENLABS_API_KEY (and ELEVENLABS_VOICE_ID) in the keys table.',
     },
     400
   );
@@ -110,18 +129,43 @@ async function verifyAdmin(
 
 function usable(value: string | undefined): string | null {
   if (!value || value === 'REPLACE_ME') return null;
-  return value;
+  const trimmed = value.trim();
+  return trimmed || null;
 }
+
+type ElevenResult =
+  | { ok: true; audio: ArrayBuffer }
+  | { ok: false; error: string };
 
 async function elevenLabsSpeak(
   apiKey: string,
   voiceId: string,
   text: string
-): Promise<ArrayBuffer | null> {
-  // eleven_turbo_v2_5 is fast + natural; fall back to multilingual v2
-  const models = ['eleven_turbo_v2_5', 'eleven_multilingual_v2'];
-  for (const model_id of models) {
-    const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+): Promise<ElevenResult> {
+  // Prefer turbo; fall back to multilingual. Avoid unsupported `style` on turbo.
+  const attempts: Array<{ model_id: string; voice_settings: Record<string, unknown> }> = [
+    {
+      model_id: 'eleven_turbo_v2_5',
+      voice_settings: {
+        stability: 0.35,
+        similarity_boost: 0.8,
+        use_speaker_boost: true,
+      },
+    },
+    {
+      model_id: 'eleven_multilingual_v2',
+      voice_settings: {
+        stability: 0.35,
+        similarity_boost: 0.8,
+        style: 0.4,
+        use_speaker_boost: true,
+      },
+    },
+  ];
+
+  const errors: string[] = [];
+  for (const attempt of attempts) {
+    const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(voiceId)}`, {
       method: 'POST',
       headers: {
         'xi-api-key': apiKey,
@@ -130,20 +174,17 @@ async function elevenLabsSpeak(
       },
       body: JSON.stringify({
         text,
-        model_id,
-        voice_settings: {
-          // Lower stability = more human variation; too high sounds flat/robotic
-          stability: 0.32,
-          similarity_boost: 0.75,
-          style: 0.45,
-          use_speaker_boost: true,
-        },
+        model_id: attempt.model_id,
+        voice_settings: attempt.voice_settings,
       }),
     });
-    if (res.ok) return res.arrayBuffer();
-    console.error('ElevenLabs TTS failed:', model_id, res.status, await res.text().catch(() => ''));
+    if (res.ok) {
+      return { ok: true, audio: await res.arrayBuffer() };
+    }
+    const detail = await res.text().catch(() => '');
+    errors.push(`${attempt.model_id}: HTTP ${res.status} ${detail.slice(0, 240)}`);
   }
-  return null;
+  return { ok: false, error: errors.join(' | ') };
 }
 
 async function openAiSpeak(apiKey: string, text: string): Promise<ArrayBuffer | null> {
@@ -158,7 +199,7 @@ async function openAiSpeak(apiKey: string, text: string): Promise<ArrayBuffer | 
       voice: 'coral',
       input: text,
       instructions:
-        'Warm clear young woman. Natural conversational pacing with soft pauses. Not robotic. Pronounce Aye like the English word aye (rhymes with day).',
+        'Warm clear young woman. Natural conversational pacing with soft pauses. Not robotic.',
       response_format: 'mp3',
     }),
   });
@@ -184,13 +225,14 @@ async function openAiSpeak(apiKey: string, text: string): Promise<ArrayBuffer | 
   return fallback.arrayBuffer();
 }
 
-function audioResponse(audio: ArrayBuffer, provider: string) {
+function audioResponse(audio: ArrayBuffer, provider: string, voiceId: string) {
   return new Response(audio, {
     headers: {
       ...corsHeaders,
       'Content-Type': 'audio/mpeg',
       'Cache-Control': 'no-store',
       'X-Ei-Voice-Provider': provider,
+      'X-Ei-Voice-Id': voiceId,
     },
   });
 }

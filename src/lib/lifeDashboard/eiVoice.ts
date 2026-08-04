@@ -151,15 +151,15 @@ export async function speakAsEi(
   handlers: SpeakHandlers,
   fetchAudio?: (
     spokenText: string
-  ) => Promise<{ buffer: ArrayBuffer; provider: string }>
-): Promise<SpeakController & { provider: string; warning?: string }> {
+  ) => Promise<{ buffer: ArrayBuffer; provider: string; voiceId?: string }>
+): Promise<SpeakController & { provider: string; voiceId?: string; warning?: string }> {
   const spoken = toSpokenText(text);
 
   if (fetchAudio) {
     try {
-      const { buffer, provider } = await fetchAudio(spoken);
+      const { buffer, provider, voiceId } = await fetchAudio(spoken);
       const ctrl = await playNeuralBuffer(buffer, handlers);
-      return { ...ctrl, provider };
+      return { ...ctrl, provider, voiceId };
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Neural TTS unavailable';
       console.warn('[Ei]', msg, '— using browser voice');

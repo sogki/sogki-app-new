@@ -33,6 +33,7 @@ export default function LifeAssistant({ payload, expanded }: LifeAssistantProps)
   const [micError, setMicError] = useState<string | null>(null);
   const [voiceHint, setVoiceHint] = useState<string | null>(null);
   const [voiceProvider, setVoiceProvider] = useState<string | null>(null);
+  const [voiceIdUsed, setVoiceIdUsed] = useState<string | null>(null);
   const [overviewLoading, setOverviewLoading] = useState(false);
 
   const streamRef = useRef<MediaStream | null>(null);
@@ -165,6 +166,7 @@ export default function LifeAssistant({ payload, expanded }: LifeAssistantProps)
 
     speakCtrlRef.current = result;
     setVoiceProvider(result.provider);
+    setVoiceIdUsed(result.voiceId ?? null);
     setVoiceHint(result.warning ?? null);
   };
 
@@ -253,7 +255,12 @@ export default function LifeAssistant({ payload, expanded }: LifeAssistantProps)
             />
             {statusLabel}
             {providerLabel && (
-              <span className="normal-case tracking-normal text-gray-500">· {providerLabel}</span>
+              <span className="normal-case tracking-normal text-gray-500">
+                · {providerLabel}
+                {voiceIdUsed && voiceProvider === 'elevenlabs'
+                  ? ` · ${voiceIdUsed.slice(0, 6)}…`
+                  : ''}
+              </span>
             )}
           </span>
         </div>

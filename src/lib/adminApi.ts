@@ -270,10 +270,10 @@ export const adminApi = {
     return data;
   },
 
-  /** Neural TTS for Ei — returns mp3 + provider name. */
+  /** Neural TTS for Ei — returns mp3 + provider + voice id. */
   eiSpeakAudio: async (
     text: string
-  ): Promise<{ buffer: ArrayBuffer; provider: string }> => {
+  ): Promise<{ buffer: ArrayBuffer; provider: string; voiceId?: string }> => {
     const token = getAdminToken();
     if (!token) throw new Error('Not authenticated');
     let res: Response;
@@ -296,7 +296,8 @@ export const adminApi = {
       throw new Error(resolveApiError(data, res.status));
     }
     const provider = res.headers.get('X-Ei-Voice-Provider') || 'neural';
-    return { buffer: await res.arrayBuffer(), provider };
+    const voiceId = res.headers.get('X-Ei-Voice-Id') || undefined;
+    return { buffer: await res.arrayBuffer(), provider, voiceId };
   },
 
   lifeInvestment: (symbol = 'VUAG.L') =>
