@@ -1,6 +1,6 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation, Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { AdminAuthProvider, useAdminAuth } from '../../context/AdminAuthContext';
 import { AdminToastProvider } from '../../context/AdminToastContext';
 import { useKeys } from '../../context/KeysContext';
@@ -23,6 +23,8 @@ import {
   Percent,
   Briefcase,
   ExternalLink,
+  Menu,
+  X,
 } from 'lucide-react';
 import AdminLogin from './AdminLogin';
 import AdminDashboard from './AdminDashboard';
@@ -94,6 +96,7 @@ function AdminRoutes() {
   const { keys } = useKeys();
   const navigate = useNavigate();
   const location = useLocation();
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -108,6 +111,21 @@ function AdminRoutes() {
       console.error('Auth error:', error);
     }
   }, [location.search, handleCallback, navigate, location.pathname]);
+
+  // Close drawer whenever the route changes (mobile nav link tap).
+  useEffect(() => {
+    setMobileNavOpen(false);
+  }, [location.pathname]);
+
+  // Prevent background scroll while mobile drawer is open.
+  useEffect(() => {
+    if (!mobileNavOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [mobileNavOpen]);
 
   if (isLoading) {
     return (
@@ -131,83 +149,159 @@ function AdminRoutes() {
 
   return (
     <div className="flex min-h-screen bg-[#0a0a0b] text-white">
-      <aside className="sticky top-0 flex h-screen w-64 shrink-0 flex-col border-r border-white/10 bg-[#0c0c0e]">
-        <div className="border-b border-white/10 px-4 py-4">
-          <div className="flex items-center gap-3">
-            <div className="rounded-xl border border-purple-400/20 bg-purple-500/10 p-2">
-              <Shield className="text-purple-300" size={18} />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-white font-mono">Admin</p>
-              <p className="text-[11px] text-gray-500">sogki.dev</p>
-            </div>
-          </div>
-        </div>
-
-        <nav className="flex-1 space-y-5 overflow-y-auto px-3 py-4">
-          {NAV_GROUPS.map((group) => (
-            <div key={group.label}>
-              <p className="mb-1.5 px-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-600">
-                {group.label}
-              </p>
-              <div className="space-y-0.5">
-                {group.items.map((item) => (
-                  <AdminNavLink key={item.to} to={item.to} icon={item.icon}>
-                    {item.label}
-                  </AdminNavLink>
-                ))}
-              </div>
-            </div>
-          ))}
-        </nav>
-
-        <div className="space-y-1 border-t border-white/10 p-3">
-          <a
-            href="/"
-            className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-500 transition-colors hover:bg-white/5 hover:text-gray-200"
-          >
-            <ExternalLink size={15} />
-            View site
-          </a>
-          <button
-            type="button"
-            onClick={logout}
-            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-500 transition-colors hover:bg-red-500/10 hover:text-red-300"
-          >
-            <LogOut size={15} />
-            Logout
-          </button>
-        </div>
+      {/* Desktop sidebar */}
+      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-white/10 bg-[#0c0c0e] lg:flex">
+        <AdminSidebarHeader />
+        <AdminSidebarNav />
+        <AdminSidebarFooter logout={logout} />
       </aside>
 
-      <main className="relative flex-1 overflow-auto">
-        <div className="pointer-events-none absolute inset-0 opacity-40" aria-hidden>
-          <div
-            className="absolute -top-24 right-0 h-[28rem] w-[28rem] rounded-full blur-3xl"
-            style={{
-              background: 'radial-gradient(circle, rgba(147,51,234,0.12) 0%, transparent 70%)',
-            }}
-          />
+      {/* Mobile drawer */}
+      <AnimatePresence>
+        {mobileNavOpen && (
+          <>
+            <motion.button
+              type="button"
+              aria-label="Close navigation"
+              className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm lg:hidden"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setMobileNavOpen(false)}
+            />
+            <motion.aside
+              className="fixed inset-y-0 left-0 z-50 flex w-[min(18rem,88vw)] flex-col border-r border-white/10 bg-[#0c0c0e] shadow-2xl lg:hidden"
+              initial={{ x: '-100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '-100%' }}
+              transition={{ type: 'tween', duration: 0.22 }}
+            >
+              <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+                <AdminSidebarHeader compact />
+                <button
+                  type="button"
+                  onClick={() => setMobileNavOpen(false)}
+                  className="rounded-lg p-2 text-gray-400 hover:bg-white/5 hover:text-white"
+                  aria-label="Close menu"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+              <AdminSidebarNav />
+              <AdminSidebarFooter logout={logout} />
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
+
+      <div className="flex min-w-0 flex-1 flex-col">
+        {/* Mobile top bar */}
+        <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-white/10 bg-[#0c0c0e]/80 px-4 py-3 backdrop-blur-md lg:hidden">
+          <button
+            type="button"
+            onClick={() => setMobileNavOpen(true)}
+            className="rounded-lg border border-white/10 bg-white/5 p-2 text-gray-200 hover:bg-white/10"
+            aria-label="Open navigation"
+          >
+            <Menu size={18} />
+          </button>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-semibold text-white font-mono">Admin</p>
+            <p className="truncate text-[11px] text-gray-500">sogki.dev</p>
+          </div>
+          <div className="rounded-lg border border-purple-400/20 bg-purple-500/10 p-2">
+            <Shield className="text-purple-300" size={16} />
+          </div>
+        </header>
+
+        <main className="relative min-h-0 flex-1 overflow-auto">
+          <div className="pointer-events-none absolute inset-0 opacity-40" aria-hidden>
+            <div
+              className="absolute -top-24 right-0 h-[28rem] w-[28rem] rounded-full blur-3xl"
+              style={{
+                background: 'radial-gradient(circle, rgba(147,51,234,0.12) 0%, transparent 70%)',
+              }}
+            />
+          </div>
+          <div className="relative z-10 mx-auto max-w-6xl p-4 sm:p-6 lg:p-8">
+            <Routes>
+              <Route index element={<AdminDashboard />} />
+              <Route path="home" element={<AdminHome />} />
+              <Route path="projects" element={<AdminProjects />} />
+              <Route path="contact" element={<AdminContact />} />
+              <Route path="graphics" element={<AdminGraphics />} />
+              <Route path="blogs" element={<AdminBlogs />} />
+              <Route path="resourcepacks" element={<AdminResourcePacks />} />
+              <Route path="binder-showcase" element={<AdminBinderShowcase />} />
+              <Route path="master-set-completion" element={<AdminMasterSetCompletion />} />
+              <Route path="cvs" element={<AdminCvs />} />
+              <Route path="social" element={<AdminSocial />} />
+              <Route path="footer" element={<AdminFooter />} />
+              <Route path="settings" element={<AdminSettings />} />
+              <Route path="*" element={<Navigate to="/admin" replace />} />
+            </Routes>
+          </div>
+        </main>
+      </div>
+    </div>
+  );
+}
+
+function AdminSidebarHeader({ compact = false }: { compact?: boolean }) {
+  return (
+    <div className={compact ? '' : 'border-b border-white/10 px-4 py-4'}>
+      <div className="flex items-center gap-3">
+        <div className="rounded-xl border border-purple-400/20 bg-purple-500/10 p-2">
+          <Shield className="text-purple-300" size={18} />
         </div>
-        <div className="relative z-10 mx-auto max-w-6xl p-6 lg:p-8">
-          <Routes>
-            <Route index element={<AdminDashboard />} />
-            <Route path="home" element={<AdminHome />} />
-            <Route path="projects" element={<AdminProjects />} />
-            <Route path="contact" element={<AdminContact />} />
-            <Route path="graphics" element={<AdminGraphics />} />
-            <Route path="blogs" element={<AdminBlogs />} />
-            <Route path="resourcepacks" element={<AdminResourcePacks />} />
-            <Route path="binder-showcase" element={<AdminBinderShowcase />} />
-            <Route path="master-set-completion" element={<AdminMasterSetCompletion />} />
-            <Route path="cvs" element={<AdminCvs />} />
-            <Route path="social" element={<AdminSocial />} />
-            <Route path="footer" element={<AdminFooter />} />
-            <Route path="settings" element={<AdminSettings />} />
-            <Route path="*" element={<Navigate to="/admin" replace />} />
-          </Routes>
+        <div>
+          <p className="text-sm font-semibold text-white font-mono">Admin</p>
+          <p className="text-[11px] text-gray-500">sogki.dev</p>
         </div>
-      </main>
+      </div>
+    </div>
+  );
+}
+
+function AdminSidebarNav() {
+  return (
+    <nav className="flex-1 space-y-5 overflow-y-auto px-3 py-4">
+      {NAV_GROUPS.map((group) => (
+        <div key={group.label}>
+          <p className="mb-1.5 px-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-600">
+            {group.label}
+          </p>
+          <div className="space-y-0.5">
+            {group.items.map((item) => (
+              <AdminNavLink key={item.to} to={item.to} icon={item.icon}>
+                {item.label}
+              </AdminNavLink>
+            ))}
+          </div>
+        </div>
+      ))}
+    </nav>
+  );
+}
+
+function AdminSidebarFooter({ logout }: { logout: () => void }) {
+  return (
+    <div className="space-y-1 border-t border-white/10 p-3">
+      <a
+        href="/"
+        className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-500 transition-colors hover:bg-white/5 hover:text-gray-200"
+      >
+        <ExternalLink size={15} />
+        View site
+      </a>
+      <button
+        type="button"
+        onClick={logout}
+        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-500 transition-colors hover:bg-red-500/10 hover:text-red-300"
+      >
+        <LogOut size={15} />
+        Logout
+      </button>
     </div>
   );
 }
