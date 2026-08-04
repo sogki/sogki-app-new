@@ -16,6 +16,7 @@ import {
   saveVuagConfig,
   type VuagConfig,
 } from '../../../lib/lifeDashboard/vuagConfig';
+import { marketSessionBadge, resolveMarketSession } from '../../../lib/lifeDashboard/marketHours';
 import { useAdminToast } from '../../../context/AdminToastContext';
 
 const RANGES: InvestmentRange[] = ['1D', '1W', '1M', '6M', '1Y', 'ALL'];
@@ -102,6 +103,8 @@ export default function LifeInvestments({ fallback, expanded }: LifeInvestmentsP
   const positiveToday = data.todayGainLoss >= 0;
   const positiveUnrealized = unrealized == null ? true : unrealized >= 0;
   const positiveDay = data.dailyChangePct >= 0;
+  const marketSession = data.marketSession ?? resolveMarketSession(data.marketState);
+  const marketBadge = marketSessionBadge(marketSession);
 
   const rangePositive = useMemo(() => {
     if (points.length < 2) return positiveDay;
@@ -298,6 +301,15 @@ export default function LifeInvestments({ fallback, expanded }: LifeInvestmentsP
                 }`}
               >
                 {live ? 'Live feed' : 'Offline'}
+              </span>
+              <span
+                className={`rounded-full px-2 py-0.5 text-[10px] border ${
+                  marketBadge.openish
+                    ? 'bg-sky-500/10 text-sky-300 border-sky-400/20'
+                    : 'bg-amber-500/10 text-amber-200/90 border-amber-400/20'
+                }`}
+              >
+                {marketBadge.label}
               </span>
             </div>
             <p className="mt-0.5 text-sm text-gray-400">{data.name}</p>

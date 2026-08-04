@@ -332,6 +332,38 @@ export const adminApi = {
     return { reply };
   },
 
+  /** Transcribe a recorded utterance with OpenAI Whisper. */
+  eiTranscribe: async (blob: Blob): Promise<{ text: string }> => {
+    const token = getAdminToken();
+    if (!token) throw new Error('Not authenticated');
+    const form = new FormData();
+    const type = blob.type || 'audio/webm';
+    const ext = type.includes('mp4') ? 'mp4' : type.includes('ogg') ? 'ogg' : 'webm';
+    form.append('file', blob, `speech.${ext}`);
+    let res: Response;
+    try {
+      res = await fetch(`${FUNCTIONS_URL}/ei-transcribe`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: form,
+      });
+    } catch {
+      throw new Error(
+        'Cannot reach ei-transcribe. Deploy with: npx supabase functions deploy ei-transcribe'
+      );
+    }
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(resolveApiError(data, res.status));
+    }
+    const text =
+      typeof (data as { text?: string }).text === 'string'
+        ? (data as { text: string }).text.trim()
+        : '';
+    if (!text) throw new Error('No speech detected');
+    return { text };
+  },
+
   lifeInvestment: (symbol = 'VUAG.L') =>
     adminApi.get(`life_investments?symbol=${encodeURIComponent(symbol)}`),
   saveLifeInvestment: (data: {

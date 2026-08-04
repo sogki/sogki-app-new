@@ -70,6 +70,7 @@ Deno.serve(async (req) => {
       price,
       previousClose,
       dailyChangePct,
+      marketState: meta.marketState || null,
       series,
     });
   } catch (err) {

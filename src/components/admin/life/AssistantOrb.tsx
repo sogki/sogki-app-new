@@ -10,11 +10,6 @@ type AssistantOrbProps = {
   className?: string;
 };
 
-type Vec3 = { x: number; y: number; z: number };
-type Node = Vec3 & { phase: number; size: number; band: number };
-
-type Shockwave = { born: number; strength: number };
-
 function lerp(a: number, b: number, t: number) {
   return a + (b - a) * t;
 }
@@ -23,95 +18,17 @@ function clamp01(n: number) {
   return Math.min(1, Math.max(0, n));
 }
 
-function fibonacciSphere(count: number, radius: number): Vec3[] {
-  const pts: Vec3[] = [];
-  const golden = Math.PI * (3 - Math.sqrt(5));
-  for (let i = 0; i < count; i++) {
-    const y = 1 - (i / Math.max(1, count - 1)) * 2;
-    const r = Math.sqrt(Math.max(0, 1 - y * y));
-    const theta = golden * i;
-    pts.push({
-      x: Math.cos(theta) * r * radius,
-      y: y * radius,
-      z: Math.sin(theta) * r * radius,
-    });
-  }
-  return pts;
+function avgBands(bands: number[] | undefined, fallback: number) {
+  if (!bands?.length) return fallback;
+  let s = 0;
+  for (let i = 0; i < bands.length; i++) s += bands[i]!;
+  return s / bands.length;
 }
 
-function dist2(a: Vec3, b: Vec3) {
-  const dx = a.x - b.x;
-  const dy = a.y - b.y;
-  const dz = a.z - b.z;
-  return dx * dx + dy * dy + dz * dz;
-}
-
-function rotateY(p: Vec3, a: number): Vec3 {
-  const c = Math.cos(a);
-  const s = Math.sin(a);
-  return { x: p.x * c + p.z * s, y: p.y, z: -p.x * s + p.z * c };
-}
-
-function rotateX(p: Vec3, a: number): Vec3 {
-  const c = Math.cos(a);
-  const s = Math.sin(a);
-  return { x: p.x, y: p.y * c - p.z * s, z: p.y * s + p.z * c };
-}
-
-function buildGraph(nodeCount: number, radius: number) {
-  const shell = fibonacciSphere(nodeCount, radius);
-  const core = fibonacciSphere(Math.floor(nodeCount * 0.28), radius * 0.45);
-
-  const nodes: Node[] = [...shell, ...core].map((p, i) => ({
-    ...p,
-    phase: (i * 0.37) % (Math.PI * 2),
-    size: 1.1 + (i % 4) * 0.3,
-    band: i % 24,
-  }));
-
-  const links: Array<[number, number]> = [];
-  const maxLinkDist2 = (radius * 0.5) ** 2;
-  const maxLinksPerNode = 3;
-
-  for (let i = 0; i < nodes.length; i++) {
-    const candidates: Array<{ j: number; d: number }> = [];
-    for (let j = i + 1; j < nodes.length; j++) {
-      const d = dist2(nodes[i], nodes[j]);
-      if (d < maxLinkDist2) candidates.push({ j, d });
-    }
-    candidates.sort((a, b) => a.d - b.d);
-    for (let k = 0; k < Math.min(maxLinksPerNode, candidates.length); k++) {
-      links.push([i, candidates[k]!.j]);
-    }
-  }
-
-  return { nodes, links };
-}
-
-function sampleBands(
-  bands: number[] | undefined,
-  count: number,
-  t: number,
-  level: number,
-  mode: OrbMode
-) {
-  if (bands && bands.length) {
-    return Array.from({ length: count }, (_, i) => clamp01(bands[i % bands.length] ?? 0));
-  }
-  if (mode === 'speaking') {
-    return Array.from({ length: count }, (_, i) =>
-      clamp01(
-        level * 0.65 +
-          Math.abs(Math.sin(t * 9 + i * 0.5)) * 0.28 * (0.35 + level) +
-          Math.abs(Math.sin(t * 3.6 + i * 0.18)) * 0.15
-      )
-    );
-  }
-  return Array.from({ length: count }, (_, i) =>
-    clamp01(0.07 + Math.sin(t * 1.05 + i * 0.28) * 0.035)
-  );
-}
-
+/**
+ * Clean Jarvis-style energy core:
+ * soft luminous sphere + a few orbital HUD rings — no wireframe mesh.
+ */
 export default function AssistantOrb({
   mode,
   level = 0,
@@ -143,32 +60,16 @@ export default function AssistantOrb({
     let raf = 0;
     const start = performance.now();
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    // Keep geometry well inside the canvas so speech pulse never clips into a square
-    const radius = size * 0.28;
-    const { nodes, links } = buildGraph(42, radius);
-
-    let smoothEnergy = 0.1;
-    let prevEnergy = 0.1;
-    let rotY = 0.3;
-    let rotX = 0.14;
-    const shockwaves: Shockwave[] = [];
-    const nodeHeat = new Float32Array(nodes.length);
-    // Reused projected buffer — avoid alloc every frame
-    const projected = nodes.map(() => ({
-      i: 0,
-      x: 0,
-      y: 0,
-      z: 0,
-      depth: 1,
-      heat: 0,
-      size: 1,
-    }));
 
     canvas.width = Math.round(size * dpr);
     canvas.height = Math.round(size * dpr);
     canvas.style.width = `${size}px`;
     canvas.style.height = `${size}px`;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    let smooth = 0.08;
+    let ringSpin = 0;
+    let scan = 0;
 
     const draw = (now: number) => {
       const t = (now - start) / 1000;
@@ -177,175 +78,223 @@ export default function AssistantOrb({
       const currentMode = modeRef.current;
       const liveLevel = levelRef.current;
       const liveBands = bandsRef.current;
-      const active = currentMode === 'speaking' || currentMode === 'listening';
+      const active = currentMode !== 'idle';
 
-      const bandVals = sampleBands(liveBands, 24, t, liveLevel, currentMode);
-      let bandSum = 0;
-      for (let i = 0; i < bandVals.length; i++) bandSum += bandVals[i]!;
-      const rawEnergy = active
-        ? clamp01(liveLevel * 0.8 + (bandSum / bandVals.length) * 0.4)
-        : clamp01(0.09 + Math.sin(t * 1.1) * 0.025);
+      const bandAvg = avgBands(liveBands, liveLevel);
+      const raw = active
+        ? clamp01(liveLevel * 0.7 + bandAvg * 0.45)
+        : clamp01(0.1 + Math.sin(t * 0.7) * 0.025);
 
-      const ease = rawEnergy > smoothEnergy ? 0.28 : 0.1;
-      smoothEnergy = lerp(smoothEnergy, rawEnergy, ease);
-      const energy = smoothEnergy;
-      const hit = Math.max(0, energy - prevEnergy);
-      prevEnergy = energy;
+      smooth = lerp(smooth, raw, raw > smooth ? 0.2 : 0.07);
+      const e = smooth;
 
-      if (active && hit > 0.07) {
-        shockwaves.push({ born: t, strength: clamp01(0.3 + hit * 2) });
-        if (shockwaves.length > 3) shockwaves.shift();
-      }
+      const spinSpeed =
+        currentMode === 'idle' ? 0.22 : currentMode === 'listening' ? 0.55 : 0.38;
+      ringSpin += 0.016 * spinSpeed;
+      scan += 0.012 + e * 0.04;
 
-      if (currentMode === 'idle') {
-        rotY += 0.0012;
-        rotX = lerp(rotX, 0.14 + Math.sin(t * 0.18) * 0.03, 0.02);
-      } else {
-        rotY += 0.00025;
-        rotX = lerp(rotX, 0.11 + energy * 0.03, 0.04);
-      }
-
-      for (let i = 0; i < nodes.length; i++) {
-        // Fast attack so nodes snap with voice peaks
-        const spike = active ? (bandVals[nodes[i]!.band % bandVals.length] ?? 0) : 0.05;
-        nodeHeat[i] = lerp(nodeHeat[i]!, spike, active ? 0.42 : 0.05);
-      }
-
-      // Global breath stays subtle; per-node bounce carries the speech look
-      const breath = active
-        ? 1 + energy * 0.03
-        : 1 + Math.sin(t * 1.15) * 0.01;
-
-      for (let i = 0; i < nodes.length; i++) {
-        const n = nodes[i]!;
-        let p = rotateY(n, rotY);
-        p = rotateX(p, rotX);
-        const heat = nodeHeat[i]!;
-        // Radial bounce: each node moves in/out on its own frequency band
-        const bounce =
-          currentMode === 'speaking'
-            ? 1 + heat * 0.22 + Math.sin(t * 14 + n.phase) * heat * 0.06
-            : currentMode === 'listening'
-              ? 1 + heat * 0.16
-              : 1 + Math.sin(t * 1.4 + n.phase) * 0.012;
-        const scale = Math.min(1.18, breath * bounce);
-        const x3 = p.x * scale;
-        const y3 = p.y * scale;
-        const z3 = p.z * scale;
-        const perspective = 1.12 / (1.12 - z3 / (radius * 2.4));
-        const out = projected[i]!;
-        out.i = i;
-        out.x = cx + x3 * perspective;
-        out.y = cy + y3 * perspective;
-        out.z = z3;
-        out.depth = perspective;
-        out.heat = heat;
-        out.size = n.size * (1 + (active ? heat * 0.55 : 0));
-      }
+      const R = size * 0.28 * (1 + (active ? e * 0.04 : Math.sin(t * 0.9) * 0.008));
 
       ctx.clearRect(0, 0, size, size);
-
-      // Circular clip so nothing can look square
       ctx.save();
       ctx.beginPath();
-      ctx.arc(cx, cy, size * 0.48, 0, Math.PI * 2);
+      ctx.arc(cx, cy, size * 0.495, 0, Math.PI * 2);
       ctx.clip();
 
-      const bloomR = radius * (1.15 + energy * 0.25);
-      const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, bloomR);
-      glow.addColorStop(0, `rgba(240, 249, 255, ${0.1 + energy * 0.28})`);
-      glow.addColorStop(0.4, `rgba(56, 189, 248, ${0.08 + energy * 0.16})`);
-      glow.addColorStop(1, 'rgba(0, 0, 0, 0)');
-      ctx.fillStyle = glow;
+      // Atmosphere
+      const atm = ctx.createRadialGradient(cx, cy, R * 0.2, cx, cy, R * 2.1);
+      atm.addColorStop(0, `rgba(14, 116, 144, ${0.14 + e * 0.12})`);
+      atm.addColorStop(0.45, `rgba(8, 47, 73, ${0.1 + e * 0.06})`);
+      atm.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = atm;
+      ctx.fillRect(0, 0, size, size);
+
+      // Soft outer halo
+      const halo = ctx.createRadialGradient(cx, cy, R * 0.7, cx, cy, R * 1.85);
+      halo.addColorStop(0, `rgba(34, 211, 238, ${0.08 + e * 0.14})`);
+      halo.addColorStop(0.55, `rgba(14, 165, 233, ${0.05 + e * 0.06})`);
+      halo.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = halo;
       ctx.beginPath();
-      ctx.arc(cx, cy, bloomR, 0, Math.PI * 2);
+      ctx.arc(cx, cy, R * 1.85, 0, Math.PI * 2);
       ctx.fill();
 
-      for (let s = shockwaves.length - 1; s >= 0; s--) {
-        const wave = shockwaves[s]!;
-        const age = t - wave.born;
-        if (age > 0.55) {
-          shockwaves.splice(s, 1);
-          continue;
-        }
-        const progress = age / 0.55;
-        const r = radius * (0.35 + progress * 0.75);
-        ctx.beginPath();
-        ctx.strokeStyle = `rgba(186, 230, 253, ${(1 - progress) * wave.strength * 0.55})`;
-        ctx.lineWidth = 1.2 + (1 - progress) * 1.6;
-        ctx.arc(cx, cy, r, 0, Math.PI * 2);
-        ctx.stroke();
-      }
-
-      // Links (no per-frame sort — z-order is soft enough)
-      for (let li = 0; li < links.length; li++) {
-        const [a, b] = links[li]!;
-        const pa = projected[a]!;
-        const pb = projected[b]!;
-        const heat = (pa.heat + pb.heat) * 0.5;
-        const depthFade = clamp01((pa.z + pb.z + radius * 2) / (radius * 4));
-        const flash = active ? heat * heat : 0;
-        const alpha = 0.07 + depthFade * 0.12 + energy * 0.14 + flash * 0.4;
-        ctx.beginPath();
-        ctx.strokeStyle = `rgba(125, 211, 252, ${clamp01(alpha)})`;
-        ctx.lineWidth = 0.55 + energy * 0.5 + flash;
-        ctx.moveTo(pa.x, pa.y);
-        ctx.lineTo(pb.x, pb.y);
-        ctx.stroke();
-      }
-
-      if (active && energy > 0.1) {
-        const packetCount = 4 + Math.floor(energy * 8);
-        for (let p = 0; p < packetCount; p++) {
-          const link = links[(p * 11 + Math.floor(t * (5 + energy * 10))) % links.length];
-          if (!link) continue;
-          const pa = projected[link[0]]!;
-          const pb = projected[link[1]]!;
-          const u = (t * (1.2 + energy * 1.8) + p * 0.19) % 1;
-          const x = lerp(pa.x, pb.x, u);
-          const y = lerp(pa.y, pb.y, u);
-          const pr = 1.2 + energy * 1.6;
+      // Expanding voice rings
+      if (active) {
+        for (let i = 0; i < 3; i++) {
+          const age = (t * (0.55 + e * 0.35) + i * 0.33) % 1;
+          const rr = R * (1.05 + age * 0.85);
           ctx.beginPath();
-          ctx.fillStyle = `rgba(224, 242, 254, ${0.45 + energy * 0.35})`;
-          ctx.arc(x, y, pr, 0, Math.PI * 2);
-          ctx.fill();
+          ctx.arc(cx, cy, rr, 0, Math.PI * 2);
+          ctx.strokeStyle = `rgba(165, 243, 252, ${(1 - age) * (0.22 + e * 0.35)})`;
+          ctx.lineWidth = 1.4 * (1 - age * 0.7);
+          ctx.stroke();
         }
       }
 
-      for (let i = 0; i < projected.length; i++) {
-        const n = projected[i]!;
-        const depthFade = clamp01((n.z + radius) / (radius * 2));
-        const flare = active ? n.heat : 0.04;
-        const s = (1.05 + n.size * 0.45) * n.depth * (0.8 + energy * 0.2 + flare * 0.7);
+      // Orbital HUD rings — thin, elegant, few
+      const orbits = [
+        { tilt: 0.62, scaleY: 0.38, r: 1.22, speed: 1, ticks: 36, dash: false },
+        { tilt: 1.15, scaleY: 0.48, r: 1.38, speed: -0.7, ticks: 24, dash: true },
+        { tilt: 0.35, scaleY: 0.28, r: 1.55, speed: 0.45, ticks: 48, dash: false },
+      ] as const;
 
-        if (flare > 0.15) {
+      for (let oi = 0; oi < orbits.length; oi++) {
+        const o = orbits[oi]!;
+        const ang = ringSpin * o.speed + oi * 0.8;
+        const rr = R * o.r * (1 + e * 0.03);
+
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(ang * 0.15 + o.tilt * 0.2);
+        ctx.scale(1, o.scaleY);
+
+        // Ring body
+        ctx.beginPath();
+        ctx.arc(0, 0, rr, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(103, 232, 249, ${0.18 + e * 0.2 - oi * 0.03})`;
+        ctx.lineWidth = oi === 0 ? 1.35 : 0.9;
+        if (o.dash) ctx.setLineDash([4, 7]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Tick marks
+        for (let k = 0; k < o.ticks; k++) {
+          if (k % 3 !== 0 && oi === 2) continue;
+          const a = (k / o.ticks) * Math.PI * 2 + ang;
+          const major = k % 6 === 0;
+          const len = major ? 5.5 : 2.8;
+          const ca = Math.cos(a);
+          const sa = Math.sin(a);
           ctx.beginPath();
-          ctx.fillStyle = `rgba(186, 230, 253, ${flare * 0.35})`;
-          ctx.arc(n.x, n.y, s * 2.2, 0, Math.PI * 2);
-          ctx.fill();
+          ctx.moveTo(ca * (rr - len), sa * (rr - len));
+          ctx.lineTo(ca * (rr + (major ? 1.5 : 0.5)), sa * (rr + (major ? 1.5 : 0.5)));
+          ctx.strokeStyle = `rgba(165, 243, 252, ${major ? 0.35 + e * 0.2 : 0.12 + e * 0.1})`;
+          ctx.lineWidth = major ? 1.1 : 0.6;
+          ctx.stroke();
         }
 
-        const w = s * (n.i % 3 === 0 ? 1.9 : 1.3);
-        const h = s * (n.i % 3 === 0 ? 1 : 1.3);
-        ctx.fillStyle = `rgba(240, 249, 255, ${0.35 + depthFade * 0.25 + flare * 0.35})`;
-        ctx.strokeStyle = `rgba(56, 189, 248, ${0.3 + flare * 0.45})`;
-        ctx.lineWidth = 0.6 + flare * 0.5;
-        ctx.fillRect(n.x - w / 2, n.y - h / 2, w, h);
-        ctx.strokeRect(n.x - w / 2, n.y - h / 2, w, h);
+        // Bright arc accent on each ring
+        const arcStart = ang + oi;
+        const arcLen = 0.55 + e * 0.45;
+        ctx.beginPath();
+        ctx.arc(0, 0, rr, arcStart, arcStart + arcLen);
+        ctx.strokeStyle = `rgba(224, 242, 254, ${0.45 + e * 0.35})`;
+        ctx.lineWidth = oi === 0 ? 2 : 1.4;
+        ctx.lineCap = 'round';
+        ctx.stroke();
+
+        ctx.restore();
       }
 
-      const coreR = radius * (0.14 + energy * 0.06);
-      const core = ctx.createRadialGradient(cx, cy, 0, cx, cy, coreR * 1.6);
-      core.addColorStop(0, `rgba(255, 255, 255, ${0.5 + energy * 0.3})`);
-      core.addColorStop(0.5, `rgba(56, 189, 248, ${0.3 + energy * 0.25})`);
-      core.addColorStop(1, 'rgba(8, 47, 73, 0)');
+      // Scanning arc (single elegant sweep)
+      {
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(scan);
+        const sweep = ctx.createRadialGradient(0, 0, R * 0.4, 0, 0, R * 1.35);
+        sweep.addColorStop(0, 'rgba(34, 211, 238, 0)');
+        sweep.addColorStop(0.7, `rgba(34, 211, 238, ${0.04 + e * 0.06})`);
+        sweep.addColorStop(1, 'rgba(34, 211, 238, 0)');
+        ctx.fillStyle = sweep;
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.arc(0, 0, R * 1.35, -0.35, 0.35);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.moveTo(R * 0.55, 0);
+        ctx.lineTo(R * 1.32, 0);
+        ctx.strokeStyle = `rgba(207, 250, 254, ${0.25 + e * 0.25})`;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // Glass sphere body
+      const body = ctx.createRadialGradient(
+        cx - R * 0.25,
+        cy - R * 0.3,
+        R * 0.05,
+        cx,
+        cy,
+        R * 1.05
+      );
+      body.addColorStop(0, `rgba(240, 249, 255, ${0.2 + e * 0.15})`);
+      body.addColorStop(0.25, `rgba(103, 232, 249, ${0.16 + e * 0.14})`);
+      body.addColorStop(0.55, `rgba(14, 165, 233, ${0.12 + e * 0.1})`);
+      body.addColorStop(0.82, `rgba(8, 47, 73, ${0.35 + e * 0.1})`);
+      body.addColorStop(1, 'rgba(2, 12, 22, 0.55)');
+      ctx.fillStyle = body;
+      ctx.beginPath();
+      ctx.arc(cx, cy, R, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Inner luminous core
+      const coreR = R * (0.42 + e * 0.12);
+      const core = ctx.createRadialGradient(cx, cy, 0, cx, cy, coreR);
+      core.addColorStop(0, `rgba(255, 255, 255, ${0.92 + e * 0.08})`);
+      core.addColorStop(0.25, `rgba(207, 250, 254, ${0.7 + e * 0.2})`);
+      core.addColorStop(0.55, `rgba(34, 211, 238, ${0.35 + e * 0.25})`);
+      core.addColorStop(1, 'rgba(8, 145, 178, 0)');
       ctx.fillStyle = core;
       ctx.beginPath();
-      ctx.arc(cx, cy, coreR * 1.6, 0, Math.PI * 2);
+      ctx.arc(cx, cy, coreR, 0, Math.PI * 2);
       ctx.fill();
 
-      ctx.restore();
+      // Specular highlight
+      const spec = ctx.createRadialGradient(
+        cx - R * 0.28,
+        cy - R * 0.32,
+        0,
+        cx - R * 0.28,
+        cy - R * 0.32,
+        R * 0.35
+      );
+      spec.addColorStop(0, 'rgba(255, 255, 255, 0.45)');
+      spec.addColorStop(0.4, 'rgba(186, 230, 253, 0.12)');
+      spec.addColorStop(1, 'rgba(255, 255, 255, 0)');
+      ctx.fillStyle = spec;
+      ctx.beginPath();
+      ctx.arc(cx - R * 0.28, cy - R * 0.32, R * 0.35, 0, Math.PI * 2);
+      ctx.fill();
 
+      // Crisp rim
+      ctx.beginPath();
+      ctx.arc(cx, cy, R, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(165, 243, 252, ${0.35 + e * 0.3})`;
+      ctx.lineWidth = 1.25;
+      ctx.stroke();
+
+      // Inner rim glow
+      ctx.beginPath();
+      ctx.arc(cx, cy, R * 0.92, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(34, 211, 238, ${0.12 + e * 0.15})`;
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+
+      // Speaking: subtle frequency bars as soft arcs inside the glass
+      if (currentMode === 'speaking' || (currentMode === 'listening' && e > 0.12)) {
+        const n = 16;
+        for (let i = 0; i < n; i++) {
+          const b =
+            liveBands && liveBands.length
+              ? liveBands[i % liveBands.length]!
+              : clamp01(e * (0.5 + 0.5 * Math.abs(Math.sin(t * 9 + i))));
+          const a0 = -Math.PI / 2 + (i / n) * Math.PI * 2;
+          const len = R * (0.55 + b * 0.28);
+          ctx.beginPath();
+          ctx.moveTo(cx + Math.cos(a0) * R * 0.48, cy + Math.sin(a0) * R * 0.48);
+          ctx.lineTo(cx + Math.cos(a0) * len, cy + Math.sin(a0) * len);
+          ctx.strokeStyle = `rgba(207, 250, 254, ${0.15 + b * 0.45})`;
+          ctx.lineWidth = 1.5;
+          ctx.lineCap = 'round';
+          ctx.stroke();
+        }
+      }
+
+      ctx.restore();
       raf = requestAnimationFrame(draw);
     };
 

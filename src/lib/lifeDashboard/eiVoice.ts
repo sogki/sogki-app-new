@@ -1,5 +1,11 @@
 /** Ei speech helpers — phonetic text + neural TTS with browser fallback. */
 
+import {
+  isQuotaOrBillingError,
+  markOpenAiQuotaExhausted,
+  shouldSkipOpenAi,
+} from './eiErrors';
+
 const PREFERRED_VOICE_PATTERNS: RegExp[] = [
   /aria.*neural/i,
   /aria.*natural/i,
@@ -159,17 +165,19 @@ export async function speakAsEi(
 ): Promise<SpeakController & { provider: string; voiceId?: string; warning?: string }> {
   const spoken = toSpokenText(text);
 
-  if (fetchAudio) {
+  if (fetchAudio && !shouldSkipOpenAi()) {
     try {
       const { buffer, provider, voiceId } = await fetchAudio(spoken);
       const ctrl = await playNeuralBuffer(buffer, handlers);
       return { ...ctrl, provider, voiceId };
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Neural TTS unavailable';
+      if (isQuotaOrBillingError(msg)) markOpenAiQuotaExhausted();
       console.warn('[Ei]', msg, '— using browser voice');
       await whenVoicesReady();
       const ctrl = speakBrowser(spoken, handlers);
-      return { ...ctrl, provider: 'browser', warning: msg };
+      // Silent fallback — don't surface ElevenLabs/OpenAI paywall noise every click
+      return { ...ctrl, provider: 'browser' };
     }
   }
 
@@ -177,8 +185,6 @@ export async function speakAsEi(
   return {
     ...speakBrowser(spoken, handlers),
     provider: 'browser',
-    warning:
-      'Still on browser voice (robotic). Add ELEVENLABS_API_KEY in Supabase keys, then deploy ei-speak.',
   };
 }
 

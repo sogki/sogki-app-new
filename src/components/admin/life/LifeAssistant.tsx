@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { CloudSun, LayoutDashboard, Mic, MicOff, Sparkles, TrendingUp } from 'lucide-react';
 import AdminCard from '../AdminCard';
-import AdminButton from '../AdminButton';
 import AssistantOrb, { type OrbMode } from './AssistantOrb';
 import { adminApi } from '../../../lib/adminApi';
 import { speakAsEi, whenVoicesReady, type SpeakController } from '../../../lib/lifeDashboard/eiVoice';
@@ -12,12 +12,35 @@ import {
 } from '../../../lib/lifeDashboard/eiOverview';
 import { fetchVuagQuote } from '../../../lib/lifeDashboard/fetchVuag';
 import type { InvestmentSnapshot, LifeDashboardPayload } from '../../../lib/lifeDashboard/types';
+import {
+  friendlyEiError,
+  isQuotaOrBillingError,
+  markOpenAiQuotaExhausted,
+  shouldSkipOpenAi,
+} from '../../../lib/lifeDashboard/eiErrors';
 import { useAdminToast } from '../../../context/AdminToastContext';
 
 const BAND_COUNT = 32;
 const EI_NAME = 'Ei';
 
-type SpeechRec = SpeechRecognition;
+const OFFLINE_REPLY =
+  "I've hit my cloud limit for now. Overview, Vanguard, and Weather still work offline — top up OpenAI billing and I'll be sharp again.";
+
+type SpeechRec = {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  onresult: ((event: SpeechRecognitionEventLike) => void) | null;
+  onerror: ((event: { error?: string }) => void) | null;
+  start: () => void;
+  stop: () => void;
+  abort: () => void;
+};
+
+type SpeechRecognitionEventLike = {
+  resultIndex: number;
+  results: ArrayLike<{ isFinal: boolean; 0: { transcript: string } }>;
+};
 
 function getSpeechRecognitionCtor(): (new () => SpeechRec) | null {
   const w = window as Window & {
@@ -25,6 +48,17 @@ function getSpeechRecognitionCtor(): (new () => SpeechRec) | null {
     webkitSpeechRecognition?: new () => SpeechRec;
   };
   return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null;
+}
+
+function pickRecorderMime(): string | undefined {
+  const candidates = [
+    'audio/webm;codecs=opus',
+    'audio/webm',
+    'audio/mp4',
+    'audio/ogg;codecs=opus',
+  ];
+  if (typeof MediaRecorder === 'undefined') return undefined;
+  return candidates.find((t) => MediaRecorder.isTypeSupported(t));
 }
 
 type LifeAssistantProps = {
@@ -41,8 +75,6 @@ export default function LifeAssistant({ payload, expanded }: LifeAssistantProps)
   const [speakBands, setSpeakBands] = useState<number[]>([]);
   const [level, setLevel] = useState(0);
   const [bands, setBands] = useState<number[]>([]);
-  const [voiceProvider, setVoiceProvider] = useState<string | null>(null);
-  const [voiceIdUsed, setVoiceIdUsed] = useState<string | null>(null);
   const [overviewLoading, setOverviewLoading] = useState(false);
   const [heard, setHeard] = useState<string | null>(null);
 
@@ -51,37 +83,56 @@ export default function LifeAssistant({ payload, expanded }: LifeAssistantProps)
   const analyserRef = useRef<AnalyserNode | null>(null);
   const rafRef = useRef(0);
   const speakCtrlRef = useRef<SpeakController | null>(null);
-  const recognitionRef = useRef<SpeechRec | null>(null);
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
   const handlingUtteranceRef = useRef(false);
   const eiSpeakRef = useRef<(text: string) => Promise<void>>(async () => {});
+  const speechRecRef = useRef<SpeechRec | null>(null);
+  const browserTranscriptRef = useRef('');
 
-  const stopRecognition = useCallback(() => {
-    const rec = recognitionRef.current;
-    recognitionRef.current = null;
+  const stopSpeechRec = useCallback(() => {
+    const rec = speechRecRef.current;
+    speechRecRef.current = null;
     if (!rec) return;
     try {
       rec.onresult = null;
       rec.onerror = null;
-      rec.onend = null;
       rec.stop();
     } catch {
-      /* already stopped */
+      try {
+        rec.abort();
+      } catch {
+        /* ignore */
+      }
     }
   }, []);
 
-  const stopMic = useCallback(() => {
-    stopRecognition();
+  const stopAnalyser = useCallback(() => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
     rafRef.current = 0;
-    streamRef.current?.getTracks().forEach((t) => t.stop());
-    streamRef.current = null;
     void audioCtxRef.current?.close();
     audioCtxRef.current = null;
     analyserRef.current = null;
-    setListening(false);
     setLevel(0);
     setBands([]);
-  }, [stopRecognition]);
+  }, []);
+
+  const stopMic = useCallback(() => {
+    stopSpeechRec();
+    const rec = recorderRef.current;
+    recorderRef.current = null;
+    if (rec && rec.state !== 'inactive') {
+      try {
+        rec.stop();
+      } catch {
+        /* already stopped */
+      }
+    }
+    stopAnalyser();
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
+    setListening(false);
+  }, [stopAnalyser, stopSpeechRec]);
 
   const stopSpeaking = useCallback(() => {
     speakCtrlRef.current?.stop();
@@ -146,76 +197,64 @@ export default function LifeAssistant({ payload, expanded }: LifeAssistantProps)
       );
 
       speakCtrlRef.current = result;
-      setVoiceProvider(result.provider);
-      setVoiceIdUsed(result.voiceId ?? null);
-      if (result.warning) toast.error(result.warning);
     },
-    [stopMic, stopSpeaking, toast]
+    [stopMic, stopSpeaking]
   );
 
   useEffect(() => {
     eiSpeakRef.current = eiSpeak;
   }, [eiSpeak]);
 
-  const handleHeard = useCallback(
-    async (transcript: string) => {
-      const text = transcript.trim();
-      if (!text || handlingUtteranceRef.current) return;
-      handlingUtteranceRef.current = true;
-      setHeard(text);
-      setThinking(true);
-      stopMic();
-
-      try {
-        const { reply } = await adminApi.eiChat({
-          message: text,
-          context: buildContext(),
-        });
-        setThinking(false);
-        await eiSpeakRef.current(reply);
-      } catch (e) {
-        setThinking(false);
-        toast.error(e instanceof Error ? e.message : 'Ei could not reply');
-      } finally {
-        handlingUtteranceRef.current = false;
-      }
-    },
-    [buildContext, stopMic, toast]
-  );
-
   const startMic = async () => {
     stopSpeaking();
     handlingUtteranceRef.current = false;
+    chunksRef.current = [];
     setHeard(null);
 
-    const Ctor = getSpeechRecognitionCtor();
-    if (!Ctor) {
-      toast.error('Speech recognition is not supported in this browser. Try Chrome or Edge.');
+    if (typeof MediaRecorder === 'undefined') {
+      toast.error('Recording is not supported in this browser. Try Chrome or Edge.');
       return;
     }
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        audio: { echoCancellation: true, noiseSuppression: true },
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+          channelCount: 1,
+        },
         video: false,
       });
+
       const ctx = new AudioContext();
       const source = ctx.createMediaStreamSource(stream);
       const analyser = ctx.createAnalyser();
       analyser.fftSize = 256;
-      analyser.smoothingTimeConstant = 0.55;
+      analyser.smoothingTimeConstant = 0.45;
       source.connect(analyser);
 
       streamRef.current = stream;
       audioCtxRef.current = ctx;
       analyserRef.current = analyser;
       setListening(true);
+      setHeard('Listening…');
 
       const freq = new Uint8Array(analyser.frequencyBinCount);
+      const wave = new Uint8Array(analyser.fftSize);
       const tick = () => {
         const a = analyserRef.current;
         if (!a) return;
         a.getByteFrequencyData(freq);
+        a.getByteTimeDomainData(wave);
+
+        let sumSq = 0;
+        for (let i = 0; i < wave.length; i++) {
+          const v = (wave[i]! - 128) / 128;
+          sumSq += v * v;
+        }
+        const rms = Math.sqrt(sumSq / wave.length);
+        const voiceGate = rms > 0.025;
 
         const start = 2;
         const usable = freq.slice(start, start + BAND_COUNT * 2);
@@ -229,68 +268,164 @@ export default function LifeAssistant({ payload, expanded }: LifeAssistantProps)
             sum += usable[j] ?? 0;
             n++;
           }
-          next.push(Math.min(1, (sum / Math.max(1, n)) / 140));
+          const raw = Math.min(1, (sum / Math.max(1, n)) / 130);
+          next.push(voiceGate ? raw : raw * 0.12);
         }
-        const avg = next.reduce((s, v) => s + v, 0) / next.length;
         setBands(next);
-        setLevel(avg);
+        setLevel(voiceGate ? next.reduce((s, v) => s + v, 0) / next.length : 0.08);
         rafRef.current = requestAnimationFrame(tick);
       };
       rafRef.current = requestAnimationFrame(tick);
 
-      const rec = new Ctor();
-      rec.lang = 'en-GB';
-      rec.continuous = false;
-      rec.interimResults = true;
-      rec.maxAlternatives = 1;
+      const mime = pickRecorderMime();
+      const recorder = mime
+        ? new MediaRecorder(stream, { mimeType: mime })
+        : new MediaRecorder(stream);
+      recorderRef.current = recorder;
+      chunksRef.current = [];
 
-      rec.onresult = (event: SpeechRecognitionEvent) => {
-        let finalText = '';
-        let interim = '';
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          const result = event.results[i];
-          if (!result) continue;
-          const piece = result[0]?.transcript ?? '';
-          if (result.isFinal) finalText += piece;
-          else interim += piece;
-        }
-        if (interim) setHeard(interim);
-        if (finalText.trim()) {
-          void handleHeard(finalText);
-        }
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) chunksRef.current.push(event.data);
       };
 
-      rec.onerror = (event: SpeechRecognitionErrorEvent) => {
-        if (event.error === 'aborted' || event.error === 'no-speech') return;
-        toast.error(`Listen failed: ${event.error}`);
-        stopMic();
-      };
+      recorder.start(200);
 
-      rec.onend = () => {
-        // If still in listening mode and we didn't hand off to a reply, restart once.
-        if (
-          recognitionRef.current === rec &&
-          !handlingUtteranceRef.current &&
-          streamRef.current
-        ) {
-          try {
-            rec.start();
-          } catch {
-            stopMic();
-          }
+      // Parallel browser STT — used when Whisper hits quota / is unreachable
+      browserTranscriptRef.current = '';
+      const Ctor = getSpeechRecognitionCtor();
+      if (Ctor) {
+        try {
+          const recognition = new Ctor();
+          recognition.continuous = true;
+          recognition.interimResults = true;
+          recognition.lang = 'en-GB';
+          recognition.onresult = (event) => {
+            let finalText = '';
+            let interim = '';
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+              const result = event.results[i];
+              if (!result) continue;
+              const piece = result[0]?.transcript ?? '';
+              if (result.isFinal) finalText += piece;
+              else interim += piece;
+            }
+            if (finalText) {
+              browserTranscriptRef.current = `${browserTranscriptRef.current} ${finalText}`.trim();
+            }
+            const live = `${browserTranscriptRef.current} ${interim}`.trim();
+            if (live) setHeard(live);
+          };
+          recognition.onerror = () => {
+            /* Whisper or empty transcript handles failure */
+          };
+          speechRecRef.current = recognition;
+          recognition.start();
+        } catch {
+          /* optional fallback */
         }
-      };
-
-      recognitionRef.current = rec;
-      rec.start();
+      }
     } catch {
-      toast.error('Microphone access denied — Ei can still speak without it.');
+      toast.error('Microphone access denied — allow mic permission, then try Listen again.');
       setListening(false);
     }
   };
 
+  const finishListening = async () => {
+    if (handlingUtteranceRef.current) return;
+    handlingUtteranceRef.current = true;
+
+    const recorder = recorderRef.current;
+    const stream = streamRef.current;
+    const mime = recorder?.mimeType || 'audio/webm';
+
+    stopSpeechRec();
+    const browserText = browserTranscriptRef.current.trim();
+
+    const blob = await new Promise<Blob | null>((resolve) => {
+      if (!recorder || recorder.state === 'inactive') {
+        resolve(
+          chunksRef.current.length ? new Blob(chunksRef.current, { type: mime }) : null
+        );
+        return;
+      }
+      recorder.onstop = () => {
+        resolve(
+          chunksRef.current.length ? new Blob(chunksRef.current, { type: mime }) : null
+        );
+      };
+      try {
+        if (recorder.state === 'recording') recorder.requestData();
+        recorder.stop();
+      } catch {
+        resolve(
+          chunksRef.current.length ? new Blob(chunksRef.current, { type: mime }) : null
+        );
+      }
+    });
+
+    stopAnalyser();
+    stream?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
+    recorderRef.current = null;
+    setListening(false);
+
+    setThinking(true);
+    setHeard(browserText || 'Transcribing…');
+
+    try {
+      let text = browserText;
+
+      if (!shouldSkipOpenAi() && blob && blob.size >= 800) {
+        try {
+          const result = await adminApi.eiTranscribe(blob);
+          if (result.text.trim()) text = result.text.trim();
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : '';
+          if (isQuotaOrBillingError(msg)) markOpenAiQuotaExhausted();
+          if (!text) throw e;
+        }
+      }
+
+      if (!text) {
+        throw new Error("Didn't catch that — speak while Listening, then tap Done.");
+      }
+
+      setHeard(text);
+
+      let reply = OFFLINE_REPLY;
+      if (!shouldSkipOpenAi()) {
+        try {
+          const chat = await adminApi.eiChat({
+            message: text,
+            context: buildContext(),
+          });
+          reply = chat.reply;
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : '';
+          if (isQuotaOrBillingError(msg)) {
+            markOpenAiQuotaExhausted();
+            toast.error(friendlyEiError(msg));
+          } else {
+            throw e;
+          }
+        }
+      }
+
+      setThinking(false);
+      await eiSpeakRef.current(reply);
+    } catch (e) {
+      setThinking(false);
+      setHeard(null);
+      const msg = e instanceof Error ? e.message : 'Ei could not process that';
+      if (isQuotaOrBillingError(msg)) markOpenAiQuotaExhausted();
+      toast.error(friendlyEiError(msg));
+    } finally {
+      handlingUtteranceRef.current = false;
+    }
+  };
+
   const toggleMic = () => {
-    if (listening) stopMic();
+    if (listening) void finishListening();
     else void startMic();
   };
 
@@ -332,7 +467,7 @@ export default function LifeAssistant({ payload, expanded }: LifeAssistantProps)
   };
 
   const mode: OrbMode = speaking ? 'speaking' : listening ? 'listening' : 'idle';
-  const orbSize = expanded ? 320 : 220;
+  const orbSize = expanded ? 300 : 200;
   const statusLabel = speaking
     ? 'Speaking'
     : thinking
@@ -343,31 +478,94 @@ export default function LifeAssistant({ payload, expanded }: LifeAssistantProps)
   const orbLevel = speaking ? speakLevel : level;
   const orbBands = speaking ? speakBands : listening ? bands : undefined;
   const busy = speaking || overviewLoading || thinking;
-  const providerLabel =
-    voiceProvider === 'elevenlabs'
-      ? 'ElevenLabs'
-      : voiceProvider === 'openai'
-        ? 'OpenAI'
-        : voiceProvider === 'browser'
-          ? 'Browser'
-          : null;
+  const active = speaking || listening || thinking;
+  const statusCopy = speaking
+    ? 'Speaking…'
+    : thinking
+      ? heard
+        ? `“${heard}”`
+        : 'Thinking…'
+      : listening
+        ? heard || 'Speak now — tap Done when finished'
+        : 'Ready when you are';
+
+  const glow =
+    mode === 'speaking'
+      ? 'rgba(34,211,238,0.35)'
+      : mode === 'listening'
+        ? 'rgba(56,189,248,0.42)'
+        : 'rgba(14,165,233,0.18)';
 
   return (
-    <AdminCard id="widget-assistant" title={EI_NAME} className="h-full">
+    <AdminCard
+      id="widget-assistant"
+      title={EI_NAME}
+      className="relative h-full overflow-hidden"
+    >
+      {/* Atmosphere */}
+      <div className="pointer-events-none absolute inset-0" aria-hidden>
+        <div
+          className="absolute inset-0 opacity-90"
+          style={{
+            background:
+              'radial-gradient(ellipse 80% 55% at 50% 18%, rgba(8,47,73,0.55) 0%, transparent 62%)',
+          }}
+        />
+        <motion.div
+          className="absolute left-1/2 top-[18%] h-[55%] w-[70%] -translate-x-1/2 rounded-full blur-3xl"
+          animate={{
+            opacity: active ? [0.35, 0.55, 0.35] : [0.18, 0.28, 0.18],
+            scale: active ? [1, 1.06, 1] : [1, 1.03, 1],
+          }}
+          transition={{ duration: active ? 2.4 : 7, repeat: Infinity, ease: 'easeInOut' }}
+          style={{ background: `radial-gradient(circle, ${glow} 0%, transparent 70%)` }}
+        />
+        <div
+          className="absolute inset-0 opacity-[0.04]"
+          style={{
+            backgroundImage:
+              'linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)',
+            backgroundSize: '28px 28px',
+            maskImage: 'radial-gradient(ellipse 70% 60% at 50% 30%, black 20%, transparent 75%)',
+          }}
+        />
+      </div>
+
       <div
-        className={`flex flex-col items-center gap-4 ${expanded ? 'sm:flex-row sm:items-center sm:gap-8' : ''}`}
+        className={`relative flex flex-col ${
+          expanded ? 'sm:flex-row sm:items-center sm:gap-10' : 'items-stretch'
+        }`}
       >
-        <div className="relative flex shrink-0 flex-col items-center gap-2">
+        {/* Orb stage */}
+        <div
+          className={`flex flex-col items-center ${
+            expanded ? 'shrink-0 sm:w-[320px]' : 'w-full'
+          }`}
+        >
           <div
-            className="relative flex items-center justify-center overflow-hidden rounded-full"
+            className="relative flex items-center justify-center"
             style={{ width: orbSize, height: orbSize }}
           >
             <div
-              className="pointer-events-none absolute inset-0 rounded-full opacity-70 blur-2xl"
-              style={{
-                background:
-                  'radial-gradient(circle, rgba(56,189,248,0.22) 0%, rgba(14,165,233,0.08) 45%, transparent 70%)',
+              className="pointer-events-none absolute inset-[8%] rounded-full border border-cyan-400/10"
+              aria-hidden
+            />
+            <div
+              className="pointer-events-none absolute inset-[4%] rounded-full border border-white/[0.04]"
+              aria-hidden
+            />
+            <motion.div
+              className="pointer-events-none absolute inset-[12%] rounded-full"
+              animate={{
+                boxShadow: active
+                  ? [
+                      `0 0 40px ${glow}`,
+                      `0 0 64px ${glow}`,
+                      `0 0 40px ${glow}`,
+                    ]
+                  : [`0 0 28px ${glow}`, `0 0 36px ${glow}`, `0 0 28px ${glow}`],
               }}
+              transition={{ duration: 2.8, repeat: Infinity, ease: 'easeInOut' }}
               aria-hidden
             />
             <AssistantOrb
@@ -378,85 +576,111 @@ export default function LifeAssistant({ payload, expanded }: LifeAssistantProps)
               className="relative"
             />
           </div>
-          <span className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.14em] text-cyan-300/80 font-mono">
+
+          <div className="mt-1 flex items-center gap-2">
             <span
-              className={`h-1.5 w-1.5 rounded-full ${
-                speaking || listening || thinking
-                  ? 'bg-cyan-300 shadow-[0_0_8px_rgba(34,211,238,0.9)] animate-pulse'
-                  : 'bg-white/25'
+              className={`h-1.5 w-1.5 rounded-full transition-colors ${
+                active
+                  ? 'bg-cyan-300 shadow-[0_0_10px_rgba(34,211,238,0.95)] animate-pulse'
+                  : 'bg-white/20'
               }`}
             />
-            {statusLabel}
-            {providerLabel && (
-              <span className="normal-case tracking-normal text-gray-500">
-                · {providerLabel}
-                {voiceIdUsed && voiceProvider === 'elevenlabs'
-                  ? ` · ${voiceIdUsed.slice(0, 6)}…`
-                  : ''}
-              </span>
-            )}
-          </span>
+            <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-cyan-200/70">
+              {statusLabel}
+            </span>
+          </div>
         </div>
 
-        <div className={`w-full space-y-3 ${expanded ? 'max-w-md text-left' : 'text-center'}`}>
-          <div>
-            <p className="text-sm text-gray-300">
-              {speaking
-                ? `${EI_NAME} is speaking…`
-                : thinking
-                  ? `${EI_NAME} is thinking…`
-                  : listening
-                    ? heard
-                      ? `Heard: “${heard}”`
-                      : `${EI_NAME} is listening — say something.`
-                    : `${EI_NAME} is online.`}
-            </p>
+        {/* Console */}
+        <div
+          className={`mt-5 flex w-full flex-1 flex-col ${
+            expanded ? 'sm:mt-0 sm:max-w-md sm:justify-center' : ''
+          }`}
+        >
+          <div className="mb-4 min-h-[2.5rem] text-center sm:text-left">
+            <AnimatePresence mode="wait">
+              <motion.p
+                key={statusCopy}
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -4 }}
+                transition={{ duration: 0.2 }}
+                className="text-sm leading-relaxed text-gray-300"
+              >
+                {statusCopy}
+              </motion.p>
+            </AnimatePresence>
           </div>
 
-          <div className={`flex flex-wrap gap-2 ${expanded ? 'justify-start' : 'justify-center'}`}>
-            <AdminButton size="sm" variant="primary" onClick={askEi} disabled={busy}>
-              <Sparkles size={14} />
-              {speaking ? 'Speaking…' : 'Wake Ei'}
-            </AdminButton>
-            <AdminButton
-              size="sm"
-              variant={listening ? 'primary' : 'secondary'}
-              onClick={toggleMic}
+          {/* Primary actions — equal split */}
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              disabled={busy}
+              onClick={askEi}
+              className="group inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-xs font-medium text-gray-200 transition
+                hover:border-cyan-400/25 hover:bg-cyan-400/[0.07] hover:text-white
+                disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <Sparkles size={14} className="text-cyan-300/80 transition group-hover:text-cyan-200" />
+              {speaking ? 'Speaking…' : 'Wake'}
+            </button>
+            <button
+              type="button"
               disabled={busy && !listening}
+              onClick={toggleMic}
+              className={`inline-flex items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-xs font-medium transition
+                disabled:cursor-not-allowed disabled:opacity-40 ${
+                  listening
+                    ? 'border-cyan-300/50 bg-cyan-400/20 text-cyan-50 shadow-[0_0_24px_rgba(34,211,238,0.18)]'
+                    : 'border-cyan-400/30 bg-cyan-500/15 text-cyan-50 hover:border-cyan-300/50 hover:bg-cyan-400/25'
+                }`}
             >
               {listening ? <MicOff size={14} /> : <Mic size={14} />}
-              {listening ? 'Stop mic' : 'Listen'}
-            </AdminButton>
+              {listening ? 'Done' : 'Listen'}
+            </button>
           </div>
 
-          <div className={`flex flex-wrap gap-2 ${expanded ? 'justify-start' : 'justify-center'}`}>
-            <AdminButton
-              size="sm"
-              variant="secondary"
-              disabled={busy}
-              onClick={() => void speakOverview('full')}
-            >
-              <LayoutDashboard size={14} />
-              Overview
-            </AdminButton>
-            <AdminButton
-              size="sm"
-              variant="secondary"
-              disabled={busy}
-              onClick={() => void speakOverview('investments')}
-            >
-              <TrendingUp size={14} />
-              VUAG
-            </AdminButton>
-            <AdminButton
-              size="sm"
-              variant="secondary"
-              disabled={busy}
-              onClick={() => void speakOverview('weather')}
-            >
-              <CloudSun size={14} />
-              Weather
-            </AdminButton>
+          {/* Briefings — one segmented control */}
+          <div className="mt-3">
+            <p className="mb-1.5 px-0.5 font-mono text-[9px] uppercase tracking-[0.2em] text-white/30">
+              Briefings
+            </p>
+            <div className="grid grid-cols-3 overflow-hidden rounded-xl border border-white/10 bg-black/25">
+              {(
+                [
+                  {
+                    id: 'full' as const,
+                    label: 'Overview',
+                    icon: LayoutDashboard,
+                  },
+                  {
+                    id: 'investments' as const,
+                    label: 'Vanguard',
+                    icon: TrendingUp,
+                  },
+                  {
+                    id: 'weather' as const,
+                    label: 'Weather',
+                    icon: CloudSun,
+                  },
+                ] as const
+              ).map(({ id, label, icon: Icon }, i) => (
+                <button
+                  key={id}
+                  type="button"
+                  disabled={busy}
+                  onClick={() => void speakOverview(id)}
+                  className={`flex flex-col items-center justify-center gap-1 px-2 py-2.5 text-[11px] font-medium text-gray-400 transition
+                    hover:bg-white/[0.06] hover:text-cyan-100
+                    disabled:cursor-not-allowed disabled:opacity-40
+                    ${i > 0 ? 'border-l border-white/10' : ''}`}
+                >
+                  <Icon size={14} className="text-cyan-400/70" />
+                  <span className="leading-none">{label}</span>
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </div>

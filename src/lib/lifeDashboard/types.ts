@@ -21,6 +21,9 @@ export type InvestmentSnapshot = {
   holdings: number;
   /** Cost basis when known (ISA). */
   invested?: number;
+  /** LSE session for VUAG.L — from Yahoo when available. */
+  marketState?: string;
+  marketSession?: 'open' | 'closed' | 'pre' | 'post';
   series: Record<InvestmentRange, InvestmentPoint[]>;
 };
 

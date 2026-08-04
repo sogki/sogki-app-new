@@ -2,6 +2,7 @@ import { getAdminToken } from '../adminApi';
 import { SUPABASE_URL } from '../../config/bootstrap';
 import type { InvestmentPoint, InvestmentRange, InvestmentSnapshot } from './types';
 import { fetchVuagConfig, getInvested, loadVuagConfig } from './vuagConfig';
+import { resolveMarketSession } from './marketHours';
 
 const FUNCTIONS_URL = `${SUPABASE_URL}/functions/v1`;
 
@@ -12,6 +13,7 @@ type VuagApiResponse = {
   price: number;
   previousClose: number;
   dailyChangePct: number;
+  marketState?: string | null;
   series: InvestmentPoint[];
 };
 
@@ -81,6 +83,8 @@ export async function fetchVuagQuote(range: InvestmentRange): Promise<Investment
     todayGainLoss: holdings * (price - previousClose),
     holdings,
     invested: getInvested(config) ?? undefined,
+    marketState: data.marketState ?? undefined,
+    marketSession: resolveMarketSession(data.marketState),
     series,
   };
 }

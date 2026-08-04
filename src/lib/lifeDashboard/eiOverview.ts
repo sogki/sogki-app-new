@@ -1,21 +1,23 @@
 import type { InvestmentSnapshot, LifeDashboardPayload } from './types';
 import { getInvested, loadVuagConfig } from './vuagConfig';
+import { resolveMarketSession, speakMarketSession } from './marketHours';
 
-/** Money phrasing that TTS reads cleanly. */
+/** Conversational money phrasing for TTS. */
 export function speakMoney(value: number): string {
   const abs = Math.abs(value);
   const pounds = Math.floor(abs);
   const pence = Math.round((abs - pounds) * 100);
   const sign = value < 0 ? 'minus ' : '';
   if (pence <= 0) return `${sign}${pounds} pounds`;
+  if (pence === 1) return `${sign}${pounds} pounds and 1 pence`;
   return `${sign}${pounds} pounds and ${pence} pence`;
 }
 
 export function speakPct(value: number): string {
   const rounded = Math.abs(value).toFixed(Math.abs(value) >= 10 ? 1 : 2);
-  if (value > 0) return `up ${rounded} percent`;
-  if (value < 0) return `down ${rounded} percent`;
-  return 'unchanged';
+  if (value > 0.05) return `up about ${rounded} percent`;
+  if (value < -0.05) return `down about ${rounded} percent`;
+  return 'pretty much flat';
 }
 
 function trendFromSeries(series: { value: number }[]): 'up' | 'down' | 'flat' {
@@ -29,9 +31,10 @@ function trendFromSeries(series: { value: number }[]): 'up' | 'down' | 'flat' {
 
 export function buildInvestmentOverview(inv: InvestmentSnapshot | null): string {
   if (!inv || !(inv.price > 0)) {
-    return `I couldn't pull a live Vanguard quote. Refresh investments and I'll try again.`;
+    return `I couldn't get a live Vanguard quote just now — refresh investments and ask me again.`;
   }
 
+  const session = inv.marketSession ?? resolveMarketSession(inv.marketState);
   const dayMove = speakPct(inv.dailyChangePct);
   const series = inv.series?.['1M']?.length
     ? inv.series['1M']
@@ -41,43 +44,47 @@ export function buildInvestmentOverview(inv: InvestmentSnapshot | null): string 
   const chartTrend = trendFromSeries(series);
   const chartPhrase =
     chartTrend === 'up'
-      ? 'The month chart is trending up'
+      ? 'Over the last month, the chart has been drifting higher'
       : chartTrend === 'down'
-        ? 'The month chart is trending down'
-        : 'The month chart is holding sideways';
+        ? 'Over the last month, the chart has been drifting lower'
+        : 'Over the last month, the chart has mostly been sideways';
 
-  const parts = [`Vanguard is ${dayMove} today, around ${speakMoney(inv.price)} a share.`];
+  const bits: string[] = [
+    `${speakMarketSession(session)}.`,
+    `Vanguard is ${dayMove} on the day, around ${speakMoney(inv.price)} a share.`,
+  ];
 
   if (inv.holdings > 0) {
-    parts.push(`Your portfolio sits at ${speakMoney(inv.portfolioValue)}.`);
+    bits.push(`That puts your portfolio at about ${speakMoney(inv.portfolioValue)}.`);
     const invested = inv.invested ?? getInvested(loadVuagConfig());
     if (invested != null && invested > 0) {
       const pnl = inv.portfolioValue - invested;
-      parts.push(
+      bits.push(
         pnl >= 0
-          ? `Unrealised gain: ${speakMoney(pnl)}.`
-          : `Unrealised loss: ${speakMoney(Math.abs(pnl))}.`
+          ? `You're sitting on an unrealised gain of roughly ${speakMoney(pnl)}.`
+          : `You're down about ${speakMoney(Math.abs(pnl))} unrealised.`
       );
     }
-    if (inv.todayGainLoss !== 0) {
-      parts.push(
+    if (Math.abs(inv.todayGainLoss) >= 0.01) {
+      bits.push(
         inv.todayGainLoss >= 0
-          ? `Today's move adds roughly ${speakMoney(inv.todayGainLoss)}.`
-          : `Today's move costs roughly ${speakMoney(Math.abs(inv.todayGainLoss))}.`
+          ? `Today's move is worth about ${speakMoney(inv.todayGainLoss)}.`
+          : `Today's move costs you about ${speakMoney(Math.abs(inv.todayGainLoss))}.`
       );
     }
   }
 
-  parts.push(`${chartPhrase}.`);
-  return parts.join(' ');
+  bits.push(`${chartPhrase}.`);
+  return bits.join(' ');
 }
 
 export function buildWeatherOverview(payload: LifeDashboardPayload): string {
   const w = payload.weather;
   const next = w.forecast?.[0];
-  let line = `Outside in ${w.location}: ${w.condition}, ${w.temperatureC} degrees. High ${w.highC}, low ${w.lowC}.`;
+  const place = w.location.replace(/United Kingdom/i, 'the UK');
+  let line = `It's ${w.condition.toLowerCase()} in ${place}, around ${w.temperatureC} degrees — highs near ${w.highC}, lows around ${w.lowC}.`;
   if (next) {
-    line += ` ${next.day} looks ${next.condition.toLowerCase()}, high ${next.highC}.`;
+    line += ` Looking ahead to ${next.day}, it's shaping up ${next.condition.toLowerCase()} with a high of about ${next.highC}.`;
   }
   return line;
 }
@@ -86,14 +93,15 @@ export function buildHabitsOverview(payload: LifeDashboardPayload): string {
   const habits = payload.habits ?? [];
   const done = habits.filter((h) => h.completed).length;
   const left = habits.filter((h) => !h.completed);
-  if (!habits.length) return `No habits on the board yet.`;
-  if (!left.length) return `All ${done} habits are cleared for today.`;
+  if (!habits.length) return `You haven't set up any habits yet.`;
+  if (!left.length) return `Nice one — you've cleared all ${done} habits for today.`;
+  if (left.length === 1) return `You've done ${done} of ${habits.length} habits. Still left: ${left[0]!.label}.`;
   const names = left
-    .slice(0, 4)
+    .slice(0, 3)
     .map((h) => h.label)
     .join(', ');
-  const more = left.length > 4 ? `, and ${left.length - 4} more` : '';
-  return `${done} of ${habits.length} habits done. Still open: ${names}${more}.`;
+  const more = left.length > 3 ? `, plus ${left.length - 3} more` : '';
+  return `You've knocked out ${done} of ${habits.length} habits. Still on the list: ${names}${more}.`;
 }
 
 export function buildFullOverview(
@@ -101,10 +109,10 @@ export function buildFullOverview(
   inv: InvestmentSnapshot | null
 ): string {
   return [
-    `Here's where things stand.`,
+    `Here's a quick rundown.`,
     buildInvestmentOverview(inv),
     buildWeatherOverview(payload),
     buildHabitsOverview(payload),
-    `Anything else?`,
+    `Want me to dig into anything?`,
   ].join(' ');
 }

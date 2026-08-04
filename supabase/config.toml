@@ -28,3 +28,7 @@ verify_jwt = false
 # Ei chat replies — uses custom admin JWT
 [functions.ei-chat]
 verify_jwt = false
+
+# Ei speech-to-text (Whisper) — uses custom admin JWT
+[functions.ei-transcribe]
+verify_jwt = false

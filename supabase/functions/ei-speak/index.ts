@@ -72,13 +72,14 @@ async function handleSpeak(req: Request) {
   const openaiKey = usable(keyMap['OPENAI_API_KEY']);
   const voiceId = usable(keyMap['ELEVENLABS_VOICE_ID']) ?? DEFAULT_ELEVEN_VOICE;
 
-  // OpenAI first when present — pay-as-you-go, no subscription, works with free-tier freedom.
-  // ElevenLabs library voices often need a paid plan (HTTP 402 on free accounts).
+  // Prefer OpenAI whenever configured. Do not fall through to ElevenLabs —
+  // free-plan library voices return noisy HTTP 402 errors on every request.
   if (openaiKey) {
     const audio = await openAiSpeak(openaiKey, spoken);
     if (audio) {
       return audioResponse(audio, 'openai', 'onyx');
     }
+    return json({ error: 'OpenAI TTS failed. Check OPENAI_API_KEY / billing.' }, 502);
   }
 
   if (elevenKey) {
@@ -88,21 +89,21 @@ async function handleSpeak(req: Request) {
       return audioResponse(result.audio, 'elevenlabs', voiceId);
     }
     console.error('ei-speak elevenlabs failed', { voiceId, detail: result.error });
+    const paid = /payment_required|paid_plan_required|Free users cannot/i.test(result.error);
     return json(
       {
-        error: `ElevenLabs failed for voice ${voiceId}: ${result.error}`,
+        error: paid
+          ? 'ElevenLabs library voices need a paid plan. Set OPENAI_API_KEY to use neural speech instead.'
+          : `ElevenLabs TTS failed for the configured voice.`,
         voiceId,
-        hint:
-          'Library voices need an ElevenLabs paid plan. Prefer OPENAI_API_KEY (pay-as-you-go) for neural speech without a subscription.',
       },
-      502
+      paid ? 402 : 502
     );
   }
 
   return json(
     {
-      error:
-        'No neural TTS configured. Set OPENAI_API_KEY (recommended, pay-as-you-go) or a paid ElevenLabs setup.',
+      error: 'No neural TTS configured. Set OPENAI_API_KEY in the keys table.',
     },
     400
   );
