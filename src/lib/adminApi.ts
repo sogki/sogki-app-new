@@ -276,6 +276,9 @@ export const adminApi = {
     symbol?: string;
     holdings: number;
     invested?: number | null;
+    broker_price?: number | null;
+    broker_value?: number | null;
+    broker_day_pnl?: number | null;
     name?: string;
     exchange?: string;
     notes?: string | null;

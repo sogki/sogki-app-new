@@ -634,7 +634,7 @@ async function handleMutate(supabase: any, method: string, parts: string[], body
   // Life investments: upsert by symbol (VUAG.L etc.)
   if (resource === 'life_investments' && (method === 'POST' || method === 'PUT' || method === 'PATCH')) {
     const symbol = String(body.symbol || id || 'VUAG.L').toUpperCase();
-    const holdings = Number(body.holdings);
+    let holdings = Number(body.holdings);
     if (!Number.isFinite(holdings) || holdings < 0) {
       return json({ error: 'holdings must be a non-negative number' }, 400);
     }
@@ -652,6 +652,16 @@ async function handleMutate(supabase: any, method: string, parts: string[], body
       name: body.name || 'Vanguard S&P 500 UCITS ETF Acc (LSE)',
       exchange: body.exchange || 'LSE',
     };
+    // Optional clears for legacy broker override columns (if migration applied)
+    if (Object.prototype.hasOwnProperty.call(body, 'broker_price')) {
+      row.broker_price = body.broker_price;
+    }
+    if (Object.prototype.hasOwnProperty.call(body, 'broker_value')) {
+      row.broker_value = body.broker_value;
+    }
+    if (Object.prototype.hasOwnProperty.call(body, 'broker_day_pnl')) {
+      row.broker_day_pnl = body.broker_day_pnl;
+    }
     if (Object.prototype.hasOwnProperty.call(body, 'notes')) {
       row.notes = body.notes;
     }

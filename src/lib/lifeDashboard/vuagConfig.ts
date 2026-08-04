@@ -3,13 +3,10 @@ import { adminApi } from '../adminApi';
 const CACHE_KEY = 'life-dashboard-vuag';
 
 export type VuagConfig = {
-  /** Number of VUAG units (fractional OK) */
+  /** Fractional VUAG units — set by converting ISA value ÷ live feed price. */
   holdings: number;
-  /** Total amount invested / cost basis in GBP */
+  /** Total cost basis in GBP (what you paid into the ISA position). */
   invested?: number;
-  /** @deprecated Prefer `invested`. */
-  avgCost?: number;
-  /** Yahoo / LSE ticker */
   symbol: string;
   name?: string;
   exchange?: string;
@@ -30,20 +27,21 @@ type LifeInvestmentRow = {
   invested?: number | string | null;
 };
 
+function numOrUndef(raw: unknown): number | undefined {
+  if (raw == null || raw === '') return undefined;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : undefined;
+}
+
 function fromRow(row: LifeInvestmentRow | null | undefined): VuagConfig {
   if (!row) return { ...DEFAULT_CONFIG };
   const holdings = Number(row.holdings);
-  const investedRaw = row.invested;
-  const invested =
-    investedRaw != null && investedRaw !== '' && Number.isFinite(Number(investedRaw))
-      ? Number(investedRaw)
-      : undefined;
   return {
     symbol: typeof row.symbol === 'string' ? row.symbol : DEFAULT_CONFIG.symbol,
     name: typeof row.name === 'string' ? row.name : DEFAULT_CONFIG.name,
     exchange: typeof row.exchange === 'string' ? row.exchange : DEFAULT_CONFIG.exchange,
     holdings: Number.isFinite(holdings) ? holdings : 0,
-    invested,
+    invested: numOrUndef(row.invested),
   };
 }
 
@@ -51,27 +49,23 @@ function cacheWrite(config: VuagConfig): void {
   try {
     localStorage.setItem(CACHE_KEY, JSON.stringify(config));
   } catch {
-    /* ignore quota */
+    /* ignore */
   }
 }
 
-/** Sync read from local cache (instant UI). Prefer `fetchVuagConfig` for source of truth. */
 export function loadVuagConfig(): VuagConfig {
   try {
     const raw = localStorage.getItem(CACHE_KEY);
     if (!raw) return { ...DEFAULT_CONFIG };
-    const parsed = JSON.parse(raw) as Partial<VuagConfig>;
+    const parsed = JSON.parse(raw) as Partial<VuagConfig> & {
+      avgCost?: number;
+      brokerValue?: number;
+      brokerPrice?: number;
+    };
     const holdings = Number.isFinite(Number(parsed.holdings)) ? Number(parsed.holdings) : 0;
-    let invested: number | undefined =
-      parsed.invested != null && Number.isFinite(Number(parsed.invested))
-        ? Number(parsed.invested)
-        : undefined;
-    const avgCost =
-      parsed.avgCost != null && Number.isFinite(Number(parsed.avgCost))
-        ? Number(parsed.avgCost)
-        : undefined;
-    if (invested == null && avgCost != null && holdings > 0) {
-      invested = avgCost * holdings;
+    let invested = numOrUndef(parsed.invested);
+    if (invested == null && parsed.avgCost != null && holdings > 0) {
+      invested = Number(parsed.avgCost) * holdings;
     }
     return {
       symbol: typeof parsed.symbol === 'string' ? parsed.symbol : DEFAULT_CONFIG.symbol,
@@ -79,14 +73,12 @@ export function loadVuagConfig(): VuagConfig {
       exchange: typeof parsed.exchange === 'string' ? parsed.exchange : DEFAULT_CONFIG.exchange,
       holdings,
       invested,
-      avgCost,
     };
   } catch {
     return { ...DEFAULT_CONFIG };
   }
 }
 
-/** Load holdings from database (admin-api). Caches locally for offline/mobile snappiness. */
 export async function fetchVuagConfig(): Promise<VuagConfig> {
   const row = (await adminApi.lifeInvestment('VUAG.L')) as LifeInvestmentRow;
   const config = fromRow(row);
@@ -94,7 +86,6 @@ export async function fetchVuagConfig(): Promise<VuagConfig> {
   return config;
 }
 
-/** Persist holdings to database and refresh local cache. */
 export async function saveVuagConfig(config: VuagConfig): Promise<VuagConfig> {
   const payload = {
     symbol: config.symbol || 'VUAG.L',
@@ -102,6 +93,10 @@ export async function saveVuagConfig(config: VuagConfig): Promise<VuagConfig> {
     exchange: config.exchange || 'LSE',
     holdings: config.holdings,
     invested: config.invested ?? null,
+    // Clear old broker overrides so feed drives stats again
+    broker_price: null,
+    broker_value: null,
+    broker_day_pnl: null,
   };
   const row = (await adminApi.saveLifeInvestment(payload)) as LifeInvestmentRow;
   const saved = fromRow(row);
@@ -109,19 +104,18 @@ export async function saveVuagConfig(config: VuagConfig): Promise<VuagConfig> {
   return saved;
 }
 
-/** Cost basis in GBP, if known. */
 export function getInvested(config: VuagConfig): number | null {
   if (config.invested != null && Number.isFinite(config.invested) && config.invested > 0) {
     return config.invested;
   }
-  if (config.avgCost != null && config.holdings > 0) {
-    return config.avgCost * config.holdings;
-  }
   return null;
 }
 
-export function getAvgCost(config: VuagConfig): number | null {
-  const invested = getInvested(config);
-  if (invested == null || config.holdings <= 0) return null;
-  return invested / config.holdings;
+export function investedFromReturn(value: number, rateOfReturnPct: number): number {
+  return value / (1 + rateOfReturnPct / 100);
+}
+
+export function rateOfReturnPct(value: number, invested: number): number | null {
+  if (!(invested > 0)) return null;
+  return ((value - invested) / invested) * 100;
 }

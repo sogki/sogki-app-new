@@ -11,11 +11,16 @@ export type InvestmentSnapshot = {
   symbol: string;
   name: string;
   currency: string;
+  /** Valuation £/unit (broker mark when set, else feed). */
   price: number;
+  /** Delayed public feed £/unit. */
+  feedPrice?: number;
   dailyChangePct: number;
   portfolioValue: number;
   todayGainLoss: number;
   holdings: number;
+  /** Cost basis when known (ISA). */
+  invested?: number;
   series: Record<InvestmentRange, InvestmentPoint[]>;
 };
 

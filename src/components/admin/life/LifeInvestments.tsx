@@ -10,14 +10,15 @@ import { fetchVuagQuote } from '../../../lib/lifeDashboard/fetchVuag';
 import {
   fetchVuagConfig,
   getInvested,
+  investedFromReturn,
   loadVuagConfig,
+  rateOfReturnPct,
   saveVuagConfig,
   type VuagConfig,
 } from '../../../lib/lifeDashboard/vuagConfig';
 import { useAdminToast } from '../../../context/AdminToastContext';
 
 const RANGES: InvestmentRange[] = ['1D', '1W', '1M', '6M', '1Y', 'ALL'];
-const MIGRATE_FLAG = 'life-dashboard-vuag-migrated';
 
 type LifeInvestmentsProps = {
   fallback: InvestmentSnapshot;
@@ -33,80 +34,56 @@ export default function LifeInvestments({ fallback, expanded }: LifeInvestmentsP
   const [saving, setSaving] = useState(false);
   const [live, setLive] = useState(false);
   const [editing, setEditing] = useState(false);
-  const [unitsDraft, setUnitsDraft] = useState(() => {
-    const h = loadVuagConfig().holdings;
-    return h > 0 ? String(h) : '';
-  });
-  const [investedDraft, setInvestedDraft] = useState(() => {
-    const invested = getInvested(loadVuagConfig());
-    return invested != null ? String(invested) : '';
-  });
+
   const [valueDraft, setValueDraft] = useState('');
+  const [investedDraft, setInvestedDraft] = useState('');
+  const [returnDraft, setReturnDraft] = useState('');
 
-  const syncDrafts = (next: VuagConfig) => {
+  const syncDrafts = (next: VuagConfig, livePrice?: number) => {
     setConfig(next);
-    setUnitsDraft(next.holdings > 0 ? String(next.holdings) : '');
+    const price = livePrice && livePrice > 0 ? livePrice : undefined;
+    if (next.holdings > 0 && price) {
+      setValueDraft((next.holdings * price).toFixed(2));
+    } else if (next.holdings > 0) {
+      setValueDraft('');
+    } else {
+      setValueDraft('');
+    }
     const invested = getInvested(next);
-    setInvestedDraft(invested != null ? String(invested) : '');
-  };
-
-  const maybeMigrateLocalToDb = async () => {
-    try {
-      if (localStorage.getItem(MIGRATE_FLAG)) return;
-      const local = loadVuagConfig();
-      if (!(local.holdings > 0)) {
-        localStorage.setItem(MIGRATE_FLAG, '1');
-        return;
-      }
-      const remote = await fetchVuagConfig();
-      if (remote.holdings > 0) {
-        localStorage.setItem(MIGRATE_FLAG, '1');
-        return;
-      }
-      await saveVuagConfig(local);
-      localStorage.setItem(MIGRATE_FLAG, '1');
-    } catch {
-      /* ignore migrate failures */
+    setInvestedDraft(invested != null ? String(Number(invested.toFixed(4))) : '');
+    if (next.holdings > 0 && price && invested != null && invested > 0) {
+      const r = rateOfReturnPct(next.holdings * price, invested);
+      setReturnDraft(r != null ? String(Number(r.toFixed(2))) : '');
+    } else {
+      setReturnDraft('');
     }
   };
+
+  const needsSetup = !(config.holdings > 0);
 
   const loadQuote = useCallback(
     async (nextRange: InvestmentRange) => {
       setLoading(true);
       try {
-        await maybeMigrateLocalToDb();
         try {
           const remote = await fetchVuagConfig();
-          syncDrafts(remote);
+          setConfig(remote);
         } catch {
-          /* use cache */
+          /* cache */
         }
         const quote = await fetchVuagQuote(nextRange);
         setData(quote);
         setLive(true);
-        // Auto-open editor when holdings not set
-        if (quote.holdings <= 0) {
-          setEditing(true);
-        }
+        syncDrafts(loadVuagConfig(), quote.price);
+        if (!(quote.holdings > 0)) setEditing(true);
       } catch (e) {
-        const cached = loadVuagConfig();
-        setData((prev) => {
-          const base = prev.price ? prev : fallback;
-          const prevClose = base.price / (1 + (base.dailyChangePct || 0) / 100);
-          return {
-            ...base,
-            holdings: cached.holdings,
-            portfolioValue: cached.holdings * base.price,
-            todayGainLoss: cached.holdings * (base.price - prevClose),
-          };
-        });
         setLive(false);
-        toast.error(e instanceof Error ? e.message : 'Could not load live VUAG quote');
+        toast.error(e instanceof Error ? e.message : 'Could not load VUAG.L feed');
       } finally {
         setLoading(false);
       }
     },
-    [fallback, toast]
+    [toast]
   );
 
   useEffect(() => {
@@ -115,53 +92,79 @@ export default function LifeInvestments({ fallback, expanded }: LifeInvestmentsP
   }, [range]);
 
   const points = data.series[range] ?? [];
-  const invested = getInvested(config);
+  const invested = data.invested ?? getInvested(config);
   const unrealized =
-    invested != null && config.holdings > 0 ? data.portfolioValue - invested : null;
+    invested != null && data.holdings > 0 ? data.portfolioValue - invested : null;
   const unrealizedPct =
     unrealized != null && invested != null && invested > 0
       ? (unrealized / invested) * 100
       : null;
-  const rateOfReturn = unrealizedPct;
-  const positiveDay = data.dailyChangePct >= 0;
   const positiveToday = data.todayGainLoss >= 0;
   const positiveUnrealized = unrealized == null ? true : unrealized >= 0;
-  const needsHoldings = data.holdings <= 0;
+  const positiveDay = data.dailyChangePct >= 0;
 
   const rangePositive = useMemo(() => {
     if (points.length < 2) return positiveDay;
     return points[points.length - 1].value >= points[0].value;
   }, [points, positiveDay]);
 
-  const applyValueToUnits = () => {
+  const onReturnChange = (raw: string) => {
+    setReturnDraft(raw);
     const value = Number(valueDraft);
-    if (!Number.isFinite(value) || value <= 0) {
-      toast.error('Enter your current portfolio value (e.g. 16.17).');
+    const r = Number(raw);
+    if (Number.isFinite(value) && value > 0 && Number.isFinite(r)) {
+      setInvestedDraft(investedFromReturn(value, r).toFixed(4));
+    }
+  };
+
+  const onInvestedChange = (raw: string) => {
+    setInvestedDraft(raw);
+    const value = Number(valueDraft);
+    const inv = Number(raw);
+    if (Number.isFinite(value) && value > 0 && Number.isFinite(inv) && inv > 0) {
+      const r = rateOfReturnPct(value, inv);
+      if (r != null) setReturnDraft(r.toFixed(2));
+    }
+  };
+
+  const onValueChange = (raw: string) => {
+    setValueDraft(raw);
+    const value = Number(raw);
+    const r = Number(returnDraft);
+    if (Number.isFinite(value) && value > 0 && Number.isFinite(r)) {
+      setInvestedDraft(investedFromReturn(value, r).toFixed(4));
+    }
+  };
+
+  const saveIsa = async () => {
+    const accountValue = Number(valueDraft);
+    const returnPct = returnDraft.trim() === '' ? undefined : Number(returnDraft);
+    let investedAmount = investedDraft.trim() === '' ? undefined : Number(investedDraft);
+
+    if (!Number.isFinite(accountValue) || accountValue <= 0) {
+      toast.error('Enter your account / ISA value (e.g. 21.23).');
       return;
     }
     if (!data.price || data.price <= 0) {
-      toast.error('Live price not loaded yet — wait for Live, then try again.');
+      toast.error('Wait for the live VUAG.L price, then save again.');
       return;
     }
-    const units = value / data.price;
-    setUnitsDraft(units.toFixed(6).replace(/\.?0+$/, ''));
-    toast.success(`Set units from £${value.toFixed(2)} ÷ £${data.price.toFixed(3)}.`);
-  };
-
-  const saveHoldings = async () => {
-    const holdings = Number(unitsDraft);
-    const investedAmount =
-      investedDraft.trim() === '' ? undefined : Number(investedDraft);
-
-    if (!Number.isFinite(holdings) || holdings < 0) {
-      toast.error('Enter a valid units amount (fractional OK).');
+    if (returnPct != null && Number.isFinite(returnPct) && investedAmount == null) {
+      investedAmount = investedFromReturn(accountValue, returnPct);
+    }
+    if (investedAmount != null && (!Number.isFinite(investedAmount) || investedAmount <= 0)) {
+      toast.error('Amount invested must be a positive number (or enter rate of return %).');
       return;
     }
-    if (
-      investedAmount != null &&
-      (!Number.isFinite(investedAmount) || investedAmount < 0)
-    ) {
-      toast.error('Amount invested must be a valid number.');
+
+    // Lock units from your value ÷ live feed — feed then drives future value & 24h.
+    const holdings = accountValue / data.price;
+
+    // Guard common mistake: treating pounds as share count
+    if (holdings > 5) {
+      toast.error(
+        `That would be ${holdings.toFixed(2)} units (~${formatMoney(holdings * data.price, '£')}). Check the account value is in pounds, not units.`
+      );
       return;
     }
 
@@ -174,12 +177,12 @@ export default function LifeInvestments({ fallback, expanded }: LifeInvestmentsP
         holdings,
         invested: investedAmount,
       });
-      syncDrafts(saved);
+      syncDrafts(saved, data.price);
       setEditing(false);
-      toast.success('VUAG holdings saved to database.');
+      toast.success('Saved. Value & 24h now track the VUAG.L public feed.');
       await loadQuote(range);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Failed to save holdings');
+      toast.error(e instanceof Error ? e.message : 'Failed to save');
     } finally {
       setSaving(false);
     }
@@ -194,7 +197,7 @@ export default function LifeInvestments({ fallback, expanded }: LifeInvestmentsP
         <div className="mr-14 flex flex-wrap items-center gap-1">
           <AdminButton size="sm" variant="ghost" onClick={() => setEditing((v) => !v)}>
             <Pencil size={12} />
-            Holdings
+            Edit values
           </AdminButton>
           <AdminButton
             size="sm"
@@ -218,70 +221,66 @@ export default function LifeInvestments({ fallback, expanded }: LifeInvestmentsP
       }
     >
       <div className={`space-y-4 ${expanded ? 'max-w-4xl' : ''}`}>
-        {(editing || needsHoldings) && (
-          <div className="rounded-xl border border-emerald-400/20 bg-emerald-500/5 p-3 space-y-3">
+        {(editing || needsSetup) && (
+          <div className="rounded-xl border border-white/10 bg-black/25 p-3 space-y-3">
             <p className="text-xs text-gray-300">
-              {needsHoldings
-                ? 'Holdings not set yet — portfolio shows £0 until you save units. LSE ticker VUAG.L.'
-                : 'Update LSE VUAG.L holdings. Synced to the database for desktop and mobile.'}
+              Enter your <span className="text-white">ISA / Trading 212</span> numbers. We convert
+              account value → units using the live VUAG.L price; the feed then calculates value,
+              last 24h, and the chart.
             </p>
 
             <div className="grid gap-3 sm:grid-cols-2">
-              <div className="sm:col-span-2">
-                <AdminLabel>Current value (£) → units helper</AdminLabel>
-                <div className="flex gap-2">
-                  <AdminInput
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={valueDraft}
-                    onChange={(e) => setValueDraft(e.target.value)}
-                    placeholder="e.g. 16.17"
-                  />
-                  <AdminButton size="sm" variant="ghost" onClick={applyValueToUnits}>
-                    Convert
-                  </AdminButton>
-                </div>
-                <p className="mt-1 text-[11px] text-gray-500">
-                  Live LSE price {data.price > 0 ? formatMoney(data.price, '£', 3) : '—'}/unit
-                </p>
-              </div>
               <div>
-                <AdminLabel>Units held</AdminLabel>
+                <AdminLabel>Account value (£)</AdminLabel>
                 <AdminInput
                   type="number"
                   min="0"
-                  step="any"
-                  value={unitsDraft}
-                  onChange={(e) => setUnitsDraft(e.target.value)}
-                  placeholder="e.g. 0.1473"
+                  step="0.01"
+                  value={valueDraft}
+                  onChange={(e) => onValueChange(e.target.value)}
+                  placeholder="21.23"
                 />
+                <p className="mt-1 text-[11px] text-gray-500">
+                  Live feed {data.price > 0 ? formatMoney(data.price, '£', 3) : '—'}/unit
+                  {data.price > 0 && Number(valueDraft) > 0
+                    ? ` → ≈ ${(Number(valueDraft) / data.price).toFixed(4)} units`
+                    : ''}
+                </p>
               </div>
               <div>
+                <AdminLabel>Rate of return (%) — optional</AdminLabel>
+                <AdminInput
+                  type="number"
+                  step="0.01"
+                  value={returnDraft}
+                  onChange={(e) => onReturnChange(e.target.value)}
+                  placeholder="1.2"
+                />
+              </div>
+              <div className="sm:col-span-2">
                 <AdminLabel>Amount invested (£)</AdminLabel>
                 <AdminInput
                   type="number"
                   min="0"
                   step="0.01"
                   value={investedDraft}
-                  onChange={(e) => setInvestedDraft(e.target.value)}
-                  placeholder="e.g. 16.00"
+                  onChange={(e) => onInvestedChange(e.target.value)}
+                  placeholder="auto from return %, or type cost basis"
                 />
+                <p className="mt-1 text-[11px] text-gray-500">
+                  Used for unrealised P/L. Leave blank if you only care about live value &amp; 24h.
+                </p>
               </div>
             </div>
+
             <div className="flex justify-end gap-2">
-              {!needsHoldings && (
+              {!needsSetup && (
                 <AdminButton size="sm" variant="ghost" onClick={() => setEditing(false)}>
                   Cancel
                 </AdminButton>
               )}
-              <AdminButton
-                size="sm"
-                variant="primary"
-                disabled={saving}
-                onClick={() => void saveHoldings()}
-              >
-                {saving ? 'Saving…' : 'Save holdings'}
+              <AdminButton size="sm" variant="primary" disabled={saving} onClick={() => void saveIsa()}>
+                {saving ? 'Saving…' : 'Save'}
               </AdminButton>
             </div>
           </div>
@@ -298,7 +297,7 @@ export default function LifeInvestments({ fallback, expanded }: LifeInvestmentsP
                     : 'bg-white/5 text-gray-500 border border-white/10'
                 }`}
               >
-                {live ? 'Live' : 'Offline'}
+                {live ? 'Live feed' : 'Offline'}
               </span>
             </div>
             <p className="mt-0.5 text-sm text-gray-400">{data.name}</p>
@@ -309,10 +308,7 @@ export default function LifeInvestments({ fallback, expanded }: LifeInvestmentsP
               {formatMoney(data.price, '£', 3)}/unit
               {data.holdings > 0
                 ? ` · ${data.holdings.toLocaleString('en-GB', { maximumFractionDigits: 4 })} units`
-                : ' · holdings not set'}
-            </p>
-            <p className="mt-1 text-[11px] text-gray-600">
-              Delayed LSE quote for VUAG.L (public market data).
+                : ' · set account value'}
             </p>
           </div>
           <div className="text-right">
@@ -322,7 +318,7 @@ export default function LifeInvestments({ fallback, expanded }: LifeInvestmentsP
                 onClick={() => setEditing(true)}
                 className="text-sm font-medium text-emerald-300 hover:text-emerald-200"
               >
-                Set holdings
+                Set invested
               </button>
             ) : (
               <p
@@ -352,8 +348,8 @@ export default function LifeInvestments({ fallback, expanded }: LifeInvestmentsP
           />
           <Stat
             label="Rate of return"
-            value={rateOfReturn == null ? '—' : formatPct(rateOfReturn)}
-            tone={rateOfReturn == null ? undefined : rateOfReturn >= 0 ? 'good' : 'bad'}
+            value={unrealizedPct == null ? '—' : formatPct(unrealizedPct)}
+            tone={unrealizedPct == null ? undefined : unrealizedPct >= 0 ? 'good' : 'bad'}
           />
           <Stat
             label="Last 24h"

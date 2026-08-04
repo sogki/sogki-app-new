@@ -1,7 +1,7 @@
 import { getAdminToken } from '../adminApi';
 import { SUPABASE_URL } from '../../config/bootstrap';
 import type { InvestmentPoint, InvestmentRange, InvestmentSnapshot } from './types';
-import { fetchVuagConfig, loadVuagConfig } from './vuagConfig';
+import { fetchVuagConfig, getInvested, loadVuagConfig } from './vuagConfig';
 
 const FUNCTIONS_URL = `${SUPABASE_URL}/functions/v1`;
 
@@ -24,8 +24,11 @@ const RANGE_QUERY: Record<InvestmentRange, { range: string; interval: string }> 
   ALL: { range: 'max', interval: '1wk' },
 };
 
+/**
+ * Public VUAG.L feed drives price, chart, and 24h move.
+ * Your saved holdings + invested drive portfolio value and unrealised return.
+ */
 export async function fetchVuagQuote(range: InvestmentRange): Promise<InvestmentSnapshot> {
-  // Prefer DB-backed holdings (syncs desktop ↔ mobile); fall back to cache if offline.
   let config = loadVuagConfig();
   try {
     config = await fetchVuagConfig();
@@ -53,7 +56,6 @@ export async function fetchVuagQuote(range: InvestmentRange): Promise<Investment
   const holdings = config.holdings;
   const price = data.price;
   const previousClose = data.previousClose || price;
-  const todayGainLoss = holdings * (price - previousClose);
   const dailyChangePct =
     data.dailyChangePct ??
     (previousClose ? ((price - previousClose) / previousClose) * 100 : 0);
@@ -73,10 +75,12 @@ export async function fetchVuagQuote(range: InvestmentRange): Promise<Investment
     name: config.name || data.name || 'Vanguard S&P 500 UCITS ETF Acc (LSE)',
     currency: data.currency || 'GBP',
     price,
+    feedPrice: price,
     dailyChangePct,
     portfolioValue: holdings * price,
-    todayGainLoss,
+    todayGainLoss: holdings * (price - previousClose),
     holdings,
+    invested: getInvested(config) ?? undefined,
     series,
   };
 }
