@@ -24,3 +24,7 @@ verify_jwt = false
 # Ei neural TTS — uses custom admin JWT
 [functions.ei-speak]
 verify_jwt = false
+
+# Ei chat replies — uses custom admin JWT
+[functions.ei-chat]
+verify_jwt = false

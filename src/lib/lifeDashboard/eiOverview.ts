@@ -29,7 +29,7 @@ function trendFromSeries(series: { value: number }[]): 'up' | 'down' | 'flat' {
 
 export function buildInvestmentOverview(inv: InvestmentSnapshot | null): string {
   if (!inv || !(inv.price > 0)) {
-    return `I couldn't pull a live VUAG quote. Refresh investments and I'll try again.`;
+    return `I couldn't pull a live Vanguard quote. Refresh investments and I'll try again.`;
   }
 
   const dayMove = speakPct(inv.dailyChangePct);
@@ -46,7 +46,7 @@ export function buildInvestmentOverview(inv: InvestmentSnapshot | null): string 
         ? 'The month chart is trending down'
         : 'The month chart is holding sideways';
 
-  const parts = [`VUAG is ${dayMove} today, around ${speakMoney(inv.price)} a share.`];
+  const parts = [`Vanguard is ${dayMove} today, around ${speakMoney(inv.price)} a share.`];
 
   if (inv.holdings > 0) {
     parts.push(`Your portfolio sits at ${speakMoney(inv.portfolioValue)}.`);

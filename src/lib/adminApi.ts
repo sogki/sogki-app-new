@@ -300,6 +300,38 @@ export const adminApi = {
     return { buffer: await res.arrayBuffer(), provider, voiceId };
   },
 
+  /** Ask Ei (LLM) for a spoken-style reply. */
+  eiChat: async (payload: {
+    message: string;
+    displayName?: string;
+    context?: string;
+  }): Promise<{ reply: string }> => {
+    const token = getAdminToken();
+    if (!token) throw new Error('Not authenticated');
+    let res: Response;
+    try {
+      res = await fetch(`${FUNCTIONS_URL}/ei-chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+    } catch {
+      throw new Error('Cannot reach ei-chat. Deploy with: npx supabase functions deploy ei-chat');
+    }
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(resolveApiError(data, res.status));
+    }
+    const reply = typeof (data as { reply?: string }).reply === 'string'
+      ? (data as { reply: string }).reply.trim()
+      : '';
+    if (!reply) throw new Error('Empty reply from Ei');
+    return { reply };
+  },
+
   lifeInvestment: (symbol = 'VUAG.L') =>
     adminApi.get(`life_investments?symbol=${encodeURIComponent(symbol)}`),
   saveLifeInvestment: (data: {

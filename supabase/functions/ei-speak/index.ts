@@ -5,7 +5,7 @@ const corsHeaders: Record<string, string> = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Expose-Headers': 'X-Ei-Voice-Provider, X-Ei-Voice-Id',
+  'Access-Control-Expose-Headers': 'X-Ei-Voice-Provider, X-Ei-Voice-Id, X-Ei-Voice-Warning',
 };
 
 const MAX_CHARS = 800;
@@ -62,14 +62,25 @@ async function handleSpeak(req: Request) {
   if (!raw) return json({ error: 'text is required' }, 400);
   if (raw.length > MAX_CHARS) return json({ error: `text max ${MAX_CHARS} characters` }, 400);
 
-  const spoken = raw.replace(/\bEi\b/g, 'Aye').replace(/\bEI\b/g, 'Aye');
+  const spoken = raw
+    .replace(/\bEi\b/g, 'Aye')
+    .replace(/\bEI\b/g, 'Aye')
+    .replace(/\bVUAG\.L\b/gi, 'Vanguard')
+    .replace(/\bVUAG\b/gi, 'Vanguard');
 
   const elevenKey = usable(keyMap['ELEVENLABS_API_KEY']);
   const openaiKey = usable(keyMap['OPENAI_API_KEY']);
   const voiceId = usable(keyMap['ELEVENLABS_VOICE_ID']) ?? DEFAULT_ELEVEN_VOICE;
 
-  // Prefer ElevenLabs when configured — do NOT silently fall back to OpenAI
-  // (OpenAI ignores ELEVENLABS_VOICE_ID, which looked like the voice "not taking effect").
+  // OpenAI first when present — pay-as-you-go, no subscription, works with free-tier freedom.
+  // ElevenLabs library voices often need a paid plan (HTTP 402 on free accounts).
+  if (openaiKey) {
+    const audio = await openAiSpeak(openaiKey, spoken);
+    if (audio) {
+      return audioResponse(audio, 'openai', 'onyx');
+    }
+  }
+
   if (elevenKey) {
     const result = await elevenLabsSpeak(elevenKey, voiceId, spoken);
     if (result.ok) {
@@ -81,23 +92,17 @@ async function handleSpeak(req: Request) {
       {
         error: `ElevenLabs failed for voice ${voiceId}: ${result.error}`,
         voiceId,
-        hint: 'Check ELEVENLABS_VOICE_ID is a voice your account can use, and the API key is valid.',
+        hint:
+          'Library voices need an ElevenLabs paid plan. Prefer OPENAI_API_KEY (pay-as-you-go) for neural speech without a subscription.',
       },
       502
     );
   }
 
-  if (openaiKey) {
-    const audio = await openAiSpeak(openaiKey, spoken);
-    if (audio) {
-      return audioResponse(audio, 'openai', 'openai-default');
-    }
-  }
-
   return json(
     {
       error:
-        'No neural TTS configured. Set ELEVENLABS_API_KEY (and ELEVENLABS_VOICE_ID) in the keys table.',
+        'No neural TTS configured. Set OPENAI_API_KEY (recommended, pay-as-you-go) or a paid ElevenLabs setup.',
     },
     400
   );
@@ -196,10 +201,10 @@ async function openAiSpeak(apiKey: string, text: string): Promise<ArrayBuffer | 
     },
     body: JSON.stringify({
       model: 'gpt-4o-mini-tts',
-      voice: 'coral',
+      voice: 'onyx',
       input: text,
       instructions:
-        'Warm clear young woman. Natural conversational pacing with soft pauses. Not robotic.',
+        'Clear, calm adult male voice. Natural conversational pacing — confident and composed, like a personal AI assistant. Not robotic.',
       response_format: 'mp3',
     }),
   });
@@ -213,7 +218,7 @@ async function openAiSpeak(apiKey: string, text: string): Promise<ArrayBuffer | 
     },
     body: JSON.stringify({
       model: 'tts-1-hd',
-      voice: 'nova',
+      voice: 'onyx',
       input: text,
       response_format: 'mp3',
     }),
@@ -225,7 +230,12 @@ async function openAiSpeak(apiKey: string, text: string): Promise<ArrayBuffer | 
   return fallback.arrayBuffer();
 }
 
-function audioResponse(audio: ArrayBuffer, provider: string, voiceId: string) {
+function audioResponse(
+  audio: ArrayBuffer,
+  provider: string,
+  voiceId: string,
+  warning?: string
+) {
   return new Response(audio, {
     headers: {
       ...corsHeaders,
@@ -233,6 +243,7 @@ function audioResponse(audio: ArrayBuffer, provider: string, voiceId: string) {
       'Cache-Control': 'no-store',
       'X-Ei-Voice-Provider': provider,
       'X-Ei-Voice-Id': voiceId,
+      ...(warning ? { 'X-Ei-Voice-Warning': warning } : {}),
     },
   });
 }

@@ -36,9 +36,13 @@ export type SpeakController = {
   stop: () => void;
 };
 
-/** Written "Ei" → spoken "Aye" so engines don't invent ee/eye. */
+/** Written "Ei" → spoken "Aye"; VUAG → Vanguard for clear TTS. */
 export function toSpokenText(text: string): string {
-  return text.replace(/\bEi\b/g, 'Aye').replace(/\bEI\b/g, 'Aye');
+  return text
+    .replace(/\bEi\b/g, 'Aye')
+    .replace(/\bEI\b/g, 'Aye')
+    .replace(/\bVUAG\.L\b/gi, 'Vanguard')
+    .replace(/\bVUAG\b/gi, 'Vanguard');
 }
 
 function scoreVoice(voice: SpeechSynthesisVoice): number {
@@ -188,20 +192,32 @@ async function playNeuralBuffer(
   source.buffer = audioBuffer;
 
   const analyser = ctx.createAnalyser();
-  analyser.fftSize = 256;
-  analyser.smoothingTimeConstant = 0.75;
+  analyser.fftSize = 512;
+  analyser.smoothingTimeConstant = 0.35;
   source.connect(analyser);
   analyser.connect(ctx.destination);
 
   const freq = new Uint8Array(analyser.frequencyBinCount);
+  const wave = new Uint8Array(analyser.fftSize);
   let raf = 0;
   let stopped = false;
 
   const tick = () => {
     if (stopped) return;
     analyser.getByteFrequencyData(freq);
+    analyser.getByteTimeDomainData(wave);
+
+    // RMS of waveform — punchy speech amplitude
+    let sumSq = 0;
+    for (let i = 0; i < wave.length; i++) {
+      const v = (wave[i]! - 128) / 128;
+      sumSq += v * v;
+    }
+    const rms = Math.sqrt(sumSq / wave.length);
+    const level = Math.min(1, rms * 4.2);
+
     const bands: number[] = [];
-    const slice = freq.slice(2, 34);
+    const slice = freq.slice(1, 65);
     for (let i = 0; i < 32; i++) {
       const i0 = Math.floor((i / 32) * slice.length);
       const i1 = Math.floor(((i + 1) / 32) * slice.length);
@@ -211,9 +227,8 @@ async function playNeuralBuffer(
         sum += slice[j] ?? 0;
         n++;
       }
-      bands.push(Math.min(1, (sum / Math.max(1, n)) / 160));
+      bands.push(Math.min(1, (sum / Math.max(1, n)) / 140 + level * 0.35));
     }
-    const level = bands.reduce((s, v) => s + v, 0) / bands.length;
     handlers.onLevel?.(level, bands);
     raf = requestAnimationFrame(tick);
   };
