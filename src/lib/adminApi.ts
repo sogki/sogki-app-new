@@ -267,4 +267,19 @@ export const adminApi = {
     }
     return data;
   },
+
+  lifeInvestment: (symbol = 'VUAG.L') =>
+    adminApi.get(`life_investments?symbol=${encodeURIComponent(symbol)}`),
+  saveLifeInvestment: (data: {
+    symbol?: string;
+    holdings: number;
+    invested?: number | null;
+    name?: string;
+    exchange?: string;
+    notes?: string | null;
+  }) => adminApi.put('life_investments', data),
+
+  lifeDashboard: () => adminApi.get('life-dashboard'),
+  saveLifeDashboard: (data: { payload?: unknown; layout?: unknown }) =>
+    adminApi.put('life-dashboard', data),
 };

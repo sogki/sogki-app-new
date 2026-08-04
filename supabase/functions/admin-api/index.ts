@@ -69,8 +69,12 @@ Deno.serve(async (req) => {
   }
 
   const url = new URL(req.url);
-  const match = url.pathname.match(/\/admin-api(?:\/(.*))?$/);
-  const path = (match?.[1] ?? '').replace(/^\/+/, '');
+  // Supabase may pass either `/functions/v1/admin-api/...` or function-relative `/...`
+  const adminMatch = url.pathname.match(/\/admin-api(?:\/(.*))?$/i);
+  const relative = adminMatch
+    ? (adminMatch[1] ?? '')
+    : url.pathname.replace(/^\/+/, '');
+  const path = relative.replace(/^\/+/, '');
   const parts = path ? path.split('/').filter(Boolean) : [];
 
   try {
@@ -198,6 +202,47 @@ async function handleGet(supabase: any, parts: string[], url: URL) {
       if (cvOneErr) throw cvOneErr;
       const [withUrl] = await attachCvSignedUrls(supabase, [cvRow], 60 * 60);
       return json(withUrl);
+    }
+    case 'life_investments': {
+      const symbol = (url.searchParams.get('symbol') || 'VUAG.L').toUpperCase();
+      if (id) {
+        const { data, error } = await supabase
+          .from('life_investments')
+          .select('*')
+          .eq('id', id)
+          .maybeSingle();
+        if (error) throw error;
+        return json(data ?? {});
+      }
+      const { data, error } = await supabase
+        .from('life_investments')
+        .select('*')
+        .eq('symbol', symbol)
+        .maybeSingle();
+      if (error) throw error;
+      return json(
+        data ?? {
+          symbol,
+          name: 'Vanguard S&P 500 UCITS ETF Acc (LSE)',
+          exchange: 'LSE',
+          holdings: 0,
+          invested: null,
+        }
+      );
+    }
+    case 'life_dashboard':
+    case 'life-dashboard': {
+      const { data, error } = await supabase
+        .from('life_dashboard_state')
+        .select('payload, layout, updated_at')
+        .eq('key', 'default')
+        .maybeSingle();
+      if (error) throw error;
+      return json({
+        payload: data?.payload ?? {},
+        layout: data?.layout ?? {},
+        updated_at: data?.updated_at ?? null,
+      });
     }
     default:
       return json({ error: 'Unknown resource' }, 404);
@@ -584,6 +629,76 @@ async function handleMutate(supabase: any, method: string, parts: string[], body
     const { error: delErr } = await supabase.from('cv_documents').delete().eq('id', id);
     if (delErr) throw delErr;
     return json({ ok: true });
+  }
+
+  // Life investments: upsert by symbol (VUAG.L etc.)
+  if (resource === 'life_investments' && (method === 'POST' || method === 'PUT' || method === 'PATCH')) {
+    const symbol = String(body.symbol || id || 'VUAG.L').toUpperCase();
+    const holdings = Number(body.holdings);
+    if (!Number.isFinite(holdings) || holdings < 0) {
+      return json({ error: 'holdings must be a non-negative number' }, 400);
+    }
+    let invested: number | null = null;
+    if (body.invested !== undefined && body.invested !== null && body.invested !== '') {
+      invested = Number(body.invested);
+      if (!Number.isFinite(invested) || invested < 0) {
+        return json({ error: 'invested must be a non-negative number' }, 400);
+      }
+    }
+    const row: Record<string, unknown> = {
+      symbol,
+      holdings,
+      invested,
+      name: body.name || 'Vanguard S&P 500 UCITS ETF Acc (LSE)',
+      exchange: body.exchange || 'LSE',
+    };
+    if (Object.prototype.hasOwnProperty.call(body, 'notes')) {
+      row.notes = body.notes;
+    }
+    const { data, error } = await supabase
+      .from('life_investments')
+      .upsert(row, { onConflict: 'symbol' })
+      .select('*')
+      .single();
+    if (error) throw error;
+    return json(data);
+  }
+
+  // Life dashboard state: upsert payload and/or layout
+  if (
+    (resource === 'life_dashboard' || resource === 'life-dashboard') &&
+    (method === 'POST' || method === 'PUT' || method === 'PATCH')
+  ) {
+    const { data: existing, error: fetchErr } = await supabase
+      .from('life_dashboard_state')
+      .select('payload, layout')
+      .eq('key', 'default')
+      .maybeSingle();
+    if (fetchErr) throw fetchErr;
+
+    const nextPayload =
+      body.payload !== undefined
+        ? body.payload
+        : existing?.payload ?? {};
+    const nextLayout =
+      body.layout !== undefined
+        ? body.layout
+        : existing?.layout ?? {};
+
+    const { data, error } = await supabase
+      .from('life_dashboard_state')
+      .upsert(
+        {
+          key: 'default',
+          payload: nextPayload,
+          layout: nextLayout,
+        },
+        { onConflict: 'key' }
+      )
+      .select('payload, layout, updated_at')
+      .single();
+    if (error) throw error;
+    return json(data);
   }
 
   const tableMap: Record<string, string> = {

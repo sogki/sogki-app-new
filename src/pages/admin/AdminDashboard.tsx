@@ -1,82 +1,155 @@
-import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import AdminPageLayout from './AdminPageLayout';
+import DashboardBoard from '../../components/admin/life/DashboardBoard';
+import { fetchLifeDashboard, saveLifeDashboard } from '../../lib/lifeDashboard/api';
 import {
-  Palette,
-  FileText,
-  FolderGit2,
-  Share2,
-  PanelLeft,
-  ChevronRight,
-  Home,
-  MessageCircle,
-  Settings,
-  Layers,
-  Percent,
-  Package,
-  Briefcase,
-} from 'lucide-react';
+  defaultDashboardLayout,
+  defaultLifeDashboardPayload,
+} from '../../lib/lifeDashboard/defaults';
+import type {
+  DashboardLayout,
+  DashboardWidgetId,
+  InvestmentSnapshot,
+  LifeDashboardPayload,
+} from '../../lib/lifeDashboard/types';
+import { useAdminToast } from '../../context/AdminToastContext';
+
+function emptyInvestment(): InvestmentSnapshot {
+  return {
+    symbol: 'VUAG',
+    name: 'Vanguard S&P 500 UCITS ETF Acc (LSE)',
+    currency: 'GBP',
+    price: 0,
+    dailyChangePct: 0,
+    portfolioValue: 0,
+    todayGainLoss: 0,
+    holdings: 0,
+    series: { '1D': [], '1W': [], '1M': [], '6M': [], '1Y': [], ALL: [] },
+  };
+}
+
+const WIDGET_IDS: DashboardWidgetId[] = [
+  'welcome',
+  'investments',
+  'goals',
+  'habits',
+  'reading',
+  'jobSearch',
+  'projects',
+  'notes',
+  'weather',
+  'siteTools',
+  'quickActions',
+];
 
 export default function AdminDashboard() {
-  const sections = [
-    { to: '/admin/home', icon: Home, label: 'Home', labelJp: 'ホーム', desc: 'Hero, About, and Features content', group: 'Content' },
-    { to: '/admin/projects', icon: FolderGit2, label: 'Projects', labelJp: 'プロジェクト', desc: 'Add and update featured projects', group: 'Content' },
-    { to: '/admin/contact', icon: MessageCircle, label: 'Contact', labelJp: 'お問い合わせ', desc: 'Contact section text and links', group: 'Content' },
-    { to: '/admin/blogs', icon: FileText, label: 'Blogs', labelJp: 'ブログ', desc: 'Create and edit blog posts with markdown', group: 'Content' },
-    { to: '/admin/graphics', icon: Palette, label: 'Graphics', labelJp: 'グラフィック', desc: 'Upload and manage graphic design assets', group: 'Portfolio' },
-    { to: '/admin/binder-showcase', icon: Layers, label: 'Binder showcase', labelJp: 'バインダー', desc: 'TCG binder carousels and set rows', group: 'Portfolio' },
-    { to: '/admin/master-set-completion', icon: Percent, label: 'Master set', labelJp: 'マスター', desc: 'Collection completion entries', group: 'Portfolio' },
-    { to: '/admin/cvs', icon: Briefcase, label: 'CV Manager', labelJp: '履歴書', desc: 'Private CV storage, preview, and email export', group: 'Tools' },
-    { to: '/admin/resourcepacks', icon: Package, label: 'Resource Packs', labelJp: 'リソース', desc: 'Minecraft resource pack uploads', group: 'Tools' },
-    { to: '/admin/social', icon: Share2, label: 'Social Links', labelJp: 'ソーシャル', desc: 'Manage global social media links', group: 'Site' },
-    { to: '/admin/footer', icon: PanelLeft, label: 'Footer', labelJp: 'フッター', desc: 'Configure footer links and featured projects', group: 'Site' },
-    { to: '/admin/settings', icon: Settings, label: 'Settings', labelJp: '設定', desc: 'Feature flags and visibility toggles', group: 'Site' },
-  ];
+  const { toast } = useAdminToast();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [payload, setPayload] = useState<LifeDashboardPayload | null>(null);
+  const [layout, setLayout] = useState<DashboardLayout | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const saveTimer = useRef<number | null>(null);
+  const latest = useRef<{ payload: LifeDashboardPayload; layout: DashboardLayout } | null>(
+    null
+  );
+
+  const focusParam = searchParams.get('focus');
+  const expandedId =
+    focusParam && WIDGET_IDS.includes(focusParam as DashboardWidgetId)
+      ? (focusParam as DashboardWidgetId)
+      : null;
+
+  const load = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const state = await fetchLifeDashboard();
+      setPayload(state.payload);
+      setLayout(state.layout);
+      latest.current = { payload: state.payload, layout: state.layout };
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Failed to load dashboard';
+      setError(msg);
+      const fallbackPayload = defaultLifeDashboardPayload();
+      const fallbackLayout = defaultDashboardLayout();
+      setPayload(fallbackPayload);
+      setLayout(fallbackLayout);
+      latest.current = { payload: fallbackPayload, layout: fallbackLayout };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void load();
+  }, []);
+
+  const scheduleSave = useCallback(() => {
+    if (!latest.current) return;
+    if (saveTimer.current) window.clearTimeout(saveTimer.current);
+    saveTimer.current = window.setTimeout(() => {
+      const snap = latest.current;
+      if (!snap) return;
+      void saveLifeDashboard({ payload: snap.payload, layout: snap.layout }).catch((e) => {
+        toast.error(e instanceof Error ? e.message : 'Failed to save dashboard');
+      });
+    }, 600);
+  }, [toast]);
+
+  const onPayloadChange = (next: LifeDashboardPayload) => {
+    setPayload(next);
+    setError(null);
+    if (!layout) return;
+    latest.current = { payload: next, layout };
+    scheduleSave();
+  };
+
+  const onLayoutChange = (next: DashboardLayout) => {
+    setLayout(next);
+    setError(null);
+    if (!payload) return;
+    latest.current = { payload, layout: next };
+    scheduleSave();
+  };
+
+  const onExpand = (id: DashboardWidgetId | null) => {
+    const next = new URLSearchParams(searchParams);
+    if (id) next.set('focus', id);
+    else next.delete('focus');
+    setSearchParams(next, { replace: true });
+  };
+
+  // When API failed but we have local defaults, still render the board (banner via toast once).
+  const hardBlock = loading && !payload;
 
   return (
-    <div className="relative">
-      <span
-        className="absolute -top-1 right-0 text-5xl font-light text-purple-400/[0.08] pointer-events-none select-none"
-        aria-hidden
-      >
-        管理パネル
-      </span>
-      <div className="relative mb-8">
-        <h1 className="text-2xl font-semibold tracking-tight text-white font-mono">Dashboard</h1>
-        <p className="mt-1.5 text-sm text-gray-400">Manage portfolio content, tools, and site settings.</p>
-      </div>
-
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        {sections.map(({ to, icon: Icon, label, labelJp, desc, group }, i) => (
-          <Link key={to} to={to}>
-            <motion.div
-              className="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] p-4 transition-colors hover:border-purple-400/30 hover:bg-white/[0.05]"
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.25, delay: i * 0.03 }}
-              whileHover={{ y: -2 }}
-              whileTap={{ scale: 0.99 }}
-            >
-              <span
-                className="absolute inset-0 flex items-center justify-end pr-5 text-3xl font-light text-purple-400/[0.07] pointer-events-none select-none"
-                aria-hidden
-              >
-                {labelJp}
-              </span>
-              <div className="relative flex items-start gap-3">
-                <div className="rounded-xl border border-white/10 bg-purple-500/10 p-2.5 text-purple-300">
-                  <Icon size={18} />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-600">{group}</p>
-                  <h2 className="mt-0.5 font-medium text-white font-mono">{label}</h2>
-                  <p className="mt-1 text-xs text-gray-500 leading-relaxed">{desc}</p>
-                </div>
-                <ChevronRight className="mt-1 shrink-0 text-gray-600 transition-colors group-hover:text-purple-300" size={16} />
-              </div>
-            </motion.div>
-          </Link>
-        ))}
-      </div>
-    </div>
+    <AdminPageLayout hideHeader loading={hardBlock} error={null} onRetry={load}>
+      {error && payload && (
+        <div className="mb-4 rounded-xl border border-amber-400/25 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+          Could not sync from database ({error}). Showing local defaults — edits may not persist
+          until the API is reachable.
+          <button
+            type="button"
+            className="ml-2 underline"
+            onClick={() => void load()}
+          >
+            Retry
+          </button>
+        </div>
+      )}
+      {payload && layout && (
+        <DashboardBoard
+          payload={payload}
+          layout={layout}
+          investmentFallback={emptyInvestment()}
+          onPayloadChange={onPayloadChange}
+          onLayoutChange={onLayoutChange}
+          expandedId={expandedId}
+          onExpand={onExpand}
+        />
+      )}
+    </AdminPageLayout>
   );
 }

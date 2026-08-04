@@ -223,9 +223,10 @@ function AdminRoutes() {
               }}
             />
           </div>
-          <div className="relative z-10 mx-auto max-w-6xl p-4 sm:p-6 lg:p-8">
+          <div className="relative z-10 w-full max-w-none p-4 sm:p-5 lg:p-6 xl:p-8">
             <Routes>
               <Route index element={<AdminDashboard />} />
+              <Route path="life" element={<Navigate to="/admin" replace />} />
               <Route path="home" element={<AdminHome />} />
               <Route path="projects" element={<AdminProjects />} />
               <Route path="contact" element={<AdminContact />} />

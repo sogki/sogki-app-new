@@ -16,3 +16,7 @@ verify_jwt = false
 # Admin CV export email endpoint - uses custom admin JWT
 [functions.admin-cv-email]
 verify_jwt = false
+
+# VUAG / Yahoo Finance proxy for Life Dashboard investments
+[functions.market-vuag]
+verify_jwt = false
