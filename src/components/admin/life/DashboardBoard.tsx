@@ -33,9 +33,11 @@ import LifeNotes from './LifeNotes';
 import LifeWeatherWidget from './LifeWeather';
 import LifeSiteTools from './LifeSiteTools';
 import LifeQuickActions from './LifeQuickActions';
+import LifeAssistant from './LifeAssistant';
 
 const TITLES: Record<DashboardWidgetId, string> = {
   welcome: 'Welcome',
+  assistant: 'Ei',
   investments: 'Investments',
   goals: 'Goals',
   habits: 'Habits',
@@ -98,6 +100,8 @@ export default function DashboardBoard({
     switch (id) {
       case 'welcome':
         return <LifeWelcome displayName={payload.displayName} />;
+      case 'assistant':
+        return <LifeAssistant payload={payload} expanded={expanded} />;
       case 'investments':
         return <LifeInvestments fallback={investmentFallback} expanded={expanded} />;
       case 'goals':

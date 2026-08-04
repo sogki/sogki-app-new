@@ -270,6 +270,35 @@ export const adminApi = {
     return data;
   },
 
+  /** Neural TTS for Ei — returns mp3 + provider name. */
+  eiSpeakAudio: async (
+    text: string
+  ): Promise<{ buffer: ArrayBuffer; provider: string }> => {
+    const token = getAdminToken();
+    if (!token) throw new Error('Not authenticated');
+    let res: Response;
+    try {
+      res = await fetch(`${FUNCTIONS_URL}/ei-speak`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ text }),
+      });
+    } catch {
+      throw new Error(
+        'Cannot reach ei-speak. Deploy with: npx supabase functions deploy ei-speak'
+      );
+    }
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(resolveApiError(data, res.status));
+    }
+    const provider = res.headers.get('X-Ei-Voice-Provider') || 'neural';
+    return { buffer: await res.arrayBuffer(), provider };
+  },
+
   lifeInvestment: (symbol = 'VUAG.L') =>
     adminApi.get(`life_investments?symbol=${encodeURIComponent(symbol)}`),
   saveLifeInvestment: (data: {

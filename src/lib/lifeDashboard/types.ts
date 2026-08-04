@@ -110,6 +110,7 @@ export type LifeDashboardData = {
 
 export type DashboardWidgetId =
   | 'welcome'
+  | 'assistant'
   | 'investments'
   | 'goals'
   | 'habits'

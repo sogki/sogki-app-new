@@ -31,6 +31,7 @@ function emptyInvestment(): InvestmentSnapshot {
 
 const WIDGET_IDS: DashboardWidgetId[] = [
   'welcome',
+  'assistant',
   'investments',
   'goals',
   'habits',

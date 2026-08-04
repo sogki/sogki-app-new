@@ -27,9 +27,23 @@ export function normalizeLayout(raw: unknown): DashboardLayout {
   for (const id of base.order) {
     if (!seen.has(id)) cleaned.push(id);
   }
+
+  // Keep Assistant directly under Welcome.
+  const withoutAssistant = cleaned.filter((id) => id !== 'assistant');
+  const welcomeIdx = withoutAssistant.indexOf('welcome');
+  const insertAt = welcomeIdx >= 0 ? welcomeIdx + 1 : 0;
+  withoutAssistant.splice(insertAt, 0, 'assistant');
+
   return {
-    order: cleaned,
-    spans: { ...base.spans, ...(obj.spans ?? {}) },
+    order: withoutAssistant,
+    spans: {
+      ...base.spans,
+      ...(obj.spans ?? {}),
+      welcome: 4,
+      assistant: 2,
+      investments: 2,
+      goals: 1,
+    },
   };
 }
 

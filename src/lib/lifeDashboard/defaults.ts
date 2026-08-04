@@ -7,6 +7,7 @@ export function defaultDashboardLayout(): DashboardLayout {
   return {
     order: [
       'welcome',
+      'assistant',
       'investments',
       'goals',
       'habits',
@@ -20,8 +21,9 @@ export function defaultDashboardLayout(): DashboardLayout {
     ],
     spans: {
       welcome: 4,
+      assistant: 2,
       investments: 2,
-      goals: 2,
+      goals: 1,
       habits: 1,
       reading: 1,
       jobSearch: 1,

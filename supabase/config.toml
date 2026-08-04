@@ -20,3 +20,7 @@ verify_jwt = false
 # VUAG / Yahoo Finance proxy for Life Dashboard investments
 [functions.market-vuag]
 verify_jwt = false
+
+# Ei neural TTS — uses custom admin JWT
+[functions.ei-speak]
+verify_jwt = false
