@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { adminApi } from '../../lib/adminApi';
+import { useAdminToast } from '../../context/AdminToastContext';
 import AdminPageLayout from './AdminPageLayout';
 import { SiteContentField } from './SiteContentField';
 import { AdminSectionCard } from './AdminSectionCard';
@@ -24,6 +25,7 @@ const FLAG_GROUPS: { label: string; labelJp: string; keys: string[] }[] = [
 ];
 
 export default function AdminSettings() {
+  const { toast } = useAdminToast();
   const [items, setItems] = useState<SiteContentItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -45,9 +47,10 @@ export default function AdminSettings() {
     setSaving(key);
     try {
       await adminApi.updateSiteContent(key, value);
+      toast.success('Setting saved.');
       fetch();
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Failed to save');
+      toast.error(e instanceof Error ? e.message : 'Failed to save');
     } finally {
       setSaving(null);
     }

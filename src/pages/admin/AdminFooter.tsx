@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { adminApi } from '../../lib/adminApi';
+import { useAdminToast } from '../../context/AdminToastContext';
 import AdminPageLayout from './AdminPageLayout';
 import { ExternalLink, Save } from 'lucide-react';
 
@@ -9,6 +10,7 @@ type QuickLink = { name: string; href: string };
 type Philosophy = { en?: string; jp?: string };
 
 export default function AdminFooter() {
+  const { toast } = useAdminToast();
   const [config, setConfig] = useState<Record<string, unknown>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -36,8 +38,9 @@ export default function AdminFooter() {
     try {
       await adminApi.updateFooter(key, value);
       setConfig((prev) => ({ ...prev, [key]: value }));
+      toast.success('Footer updated.');
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Failed to save');
+      toast.error(e instanceof Error ? e.message : 'Failed to save');
     } finally {
       setSaving(null);
     }

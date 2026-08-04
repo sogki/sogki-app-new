@@ -12,68 +12,70 @@ import {
   Settings,
   Layers,
   Percent,
+  Package,
+  Briefcase,
 } from 'lucide-react';
 
 export default function AdminDashboard() {
   const sections = [
-    { to: '/admin/home', icon: Home, label: 'Home', labelJp: 'ホーム', desc: 'Hero, About, and Features content' },
-    { to: '/admin/projects', icon: FolderGit2, label: 'Projects', labelJp: 'プロジェクト', desc: 'Add and update featured projects' },
-    { to: '/admin/contact', icon: MessageCircle, label: 'Contact', labelJp: 'お問い合わせ', desc: 'Contact section text and links' },
-    { to: '/admin/settings', icon: Settings, label: 'Settings', labelJp: '設定', desc: 'Feature flags and visibility toggles' },
-    { to: '/admin/binder-showcase', icon: Layers, label: 'Binder showcase', labelJp: 'バインダー', desc: 'TCG collection page: binder carousels and per-binder set rows' },
-    {
-      to: '/admin/master-set-completion',
-      icon: Percent,
-      label: 'Master set completion',
-      labelJp: 'マスター完成度',
-      desc: 'Collection page: custom %, titles, and copy (not binder-specific)',
-    },
-    { to: '/admin/graphics', icon: Palette, label: 'Graphics Portfolio', labelJp: 'グラフィックデザイン', desc: 'Upload and manage graphic design assets' },
-    { to: '/admin/blogs', icon: FileText, label: 'Blogs', labelJp: 'ブログ', desc: 'Create and edit blog posts with markdown' },
-    { to: '/admin/social', icon: Share2, label: 'Social Links', labelJp: 'ソーシャルリンク', desc: 'Manage global social media links' },
-    { to: '/admin/footer', icon: PanelLeft, label: 'Footer', labelJp: 'フッター', desc: 'Configure footer links and featured projects' },
+    { to: '/admin/home', icon: Home, label: 'Home', labelJp: 'ホーム', desc: 'Hero, About, and Features content', group: 'Content' },
+    { to: '/admin/projects', icon: FolderGit2, label: 'Projects', labelJp: 'プロジェクト', desc: 'Add and update featured projects', group: 'Content' },
+    { to: '/admin/contact', icon: MessageCircle, label: 'Contact', labelJp: 'お問い合わせ', desc: 'Contact section text and links', group: 'Content' },
+    { to: '/admin/blogs', icon: FileText, label: 'Blogs', labelJp: 'ブログ', desc: 'Create and edit blog posts with markdown', group: 'Content' },
+    { to: '/admin/graphics', icon: Palette, label: 'Graphics', labelJp: 'グラフィック', desc: 'Upload and manage graphic design assets', group: 'Portfolio' },
+    { to: '/admin/binder-showcase', icon: Layers, label: 'Binder showcase', labelJp: 'バインダー', desc: 'TCG binder carousels and set rows', group: 'Portfolio' },
+    { to: '/admin/master-set-completion', icon: Percent, label: 'Master set', labelJp: 'マスター', desc: 'Collection completion entries', group: 'Portfolio' },
+    { to: '/admin/cvs', icon: Briefcase, label: 'CV Manager', labelJp: '履歴書', desc: 'Private CV storage, preview, and email export', group: 'Tools' },
+    { to: '/admin/resourcepacks', icon: Package, label: 'Resource Packs', labelJp: 'リソース', desc: 'Minecraft resource pack uploads', group: 'Tools' },
+    { to: '/admin/social', icon: Share2, label: 'Social Links', labelJp: 'ソーシャル', desc: 'Manage global social media links', group: 'Site' },
+    { to: '/admin/footer', icon: PanelLeft, label: 'Footer', labelJp: 'フッター', desc: 'Configure footer links and featured projects', group: 'Site' },
+    { to: '/admin/settings', icon: Settings, label: 'Settings', labelJp: '設定', desc: 'Feature flags and visibility toggles', group: 'Site' },
   ];
 
   return (
     <div className="relative">
       <span
-        className="absolute -top-2 right-0 text-6xl font-light text-purple-400/10 pointer-events-none select-none"
+        className="absolute -top-1 right-0 text-5xl font-light text-purple-400/[0.08] pointer-events-none select-none"
         aria-hidden
       >
         管理パネル
       </span>
-      <div className="relative">
-        <h1 className="text-2xl font-bold text-white mb-2 font-mono">Dashboard</h1>
-        <p className="text-gray-400 mb-8">Manage your portfolio content</p>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {sections.map(({ to, icon: Icon, label, labelJp, desc }, i) => (
+      <div className="relative mb-8">
+        <h1 className="text-2xl font-semibold tracking-tight text-white font-mono">Dashboard</h1>
+        <p className="mt-1.5 text-sm text-gray-400">Manage portfolio content, tools, and site settings.</p>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        {sections.map(({ to, icon: Icon, label, labelJp, desc, group }, i) => (
           <Link key={to} to={to}>
             <motion.div
-              className="group relative overflow-hidden flex items-start gap-4 p-5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-purple-400/50 transition-all duration-150"
-              initial={{ opacity: 0, y: 20 }}
+              className="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] p-4 transition-colors hover:border-purple-400/30 hover:bg-white/[0.05]"
+              initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: i * 0.05 }}
-              whileHover={{ scale: 1.02, y: -2 }}
-              whileTap={{ scale: 0.98 }}
+              transition={{ duration: 0.25, delay: i * 0.03 }}
+              whileHover={{ y: -2 }}
+              whileTap={{ scale: 0.99 }}
             >
               <span
-                className="absolute inset-0 flex items-center justify-end pr-6 text-4xl font-light text-purple-400/10 pointer-events-none select-none"
+                className="absolute inset-0 flex items-center justify-end pr-5 text-3xl font-light text-purple-400/[0.07] pointer-events-none select-none"
                 aria-hidden
               >
                 {labelJp}
               </span>
-              <div className="relative p-2.5 rounded-lg bg-gradient-to-br from-purple-500/20 to-indigo-500/20 border border-white/10 text-purple-400 group-hover:border-purple-400/30 transition-colors shrink-0">
-                <Icon size={20} />
+              <div className="relative flex items-start gap-3">
+                <div className="rounded-xl border border-white/10 bg-purple-500/10 p-2.5 text-purple-300">
+                  <Icon size={18} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-600">{group}</p>
+                  <h2 className="mt-0.5 font-medium text-white font-mono">{label}</h2>
+                  <p className="mt-1 text-xs text-gray-500 leading-relaxed">{desc}</p>
+                </div>
+                <ChevronRight className="mt-1 shrink-0 text-gray-600 transition-colors group-hover:text-purple-300" size={16} />
               </div>
-              <div className="relative flex-1 min-w-0">
-                <h2 className="font-semibold text-white font-mono mb-1">{label}</h2>
-                <p className="text-sm text-gray-400">{desc}</p>
-              </div>
-              <ChevronRight className="relative text-gray-500 group-hover:text-purple-400 shrink-0 transition-colors" size={18} />
             </motion.div>
           </Link>
         ))}
-      </div>
       </div>
     </div>
   );

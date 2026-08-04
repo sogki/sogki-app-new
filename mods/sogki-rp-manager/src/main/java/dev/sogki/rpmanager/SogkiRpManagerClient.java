@@ -1,7 +1,11 @@
 package dev.sogki.rpmanager;
 
 import com.mojang.brigadier.CommandDispatcher;
+import dev.sogki.rpmanager.client.SogkiWildTrainerSkinTextures;
+import dev.sogki.rpmanager.client.render.SogkiWildTrainerEntityRenderer;
 import dev.sogki.rpmanager.config.PromptPlayerDataStore;
+import dev.sogki.rpmanager.entity.SogkiWildTrainerEntity;
+import dev.sogki.rpmanager.registry.SogkiEntities;
 import dev.sogki.rpmanager.config.RpManagerConfig;
 import dev.sogki.rpmanager.model.PackEntry;
 import dev.sogki.rpmanager.service.PackDiscoveryService;
@@ -11,10 +15,12 @@ import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
+import net.minecraft.util.math.Box;
 import net.minecraft.command.CommandRegistryAccess;
 import net.minecraft.registry.Registries;
 import net.minecraft.sound.SoundEvent;
@@ -39,6 +45,7 @@ public final class SogkiRpManagerClient implements ClientModInitializer {
 
   @Override
   public void onInitializeClient() {
+    EntityRendererRegistry.register(SogkiEntities.WILD_TRAINER, SogkiWildTrainerEntityRenderer::new);
     config = RpManagerConfig.load();
     promptPlayerDataStore = PromptPlayerDataStore.load();
     logLine("Client mod loaded (pre-init).");
@@ -100,6 +107,12 @@ public final class SogkiRpManagerClient implements ClientModInitializer {
       while (openManagerKey.wasPressed()) {
         logUiEvent("Opening RP manager via keybind: " + openKeyLabel());
         client.setScreen(new JoinPromptScreen(client.currentScreen, config));
+      }
+      if (client.world != null && client.player != null && client.world.getTime() % 10L == 0L) {
+        Box box = client.player.getBoundingBox().expand(160.0D);
+        for (SogkiWildTrainerEntity e : client.world.getEntitiesByType(SogkiEntities.WILD_TRAINER, box, x -> true)) {
+          SogkiWildTrainerSkinTextures.warmup(e.getSkinUsername());
+        }
       }
     });
   }

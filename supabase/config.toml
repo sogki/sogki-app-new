@@ -12,3 +12,7 @@ verify_jwt = false
 # Public resource pack endpoints (Minecraft/server consumers)
 [functions.resourcepacks-api]
 verify_jwt = false
+
+# Admin CV export email endpoint - uses custom admin JWT
+[functions.admin-cv-email]
+verify_jwt = false

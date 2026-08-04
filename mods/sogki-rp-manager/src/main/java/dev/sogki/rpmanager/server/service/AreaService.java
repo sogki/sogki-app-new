@@ -68,6 +68,23 @@ public final class AreaService {
     }
   }
 
+  /**
+   * Same area/town/structure/biome resolution used for enter/leave titles — for systems like wild trainers
+   * that should align spawns with "Pallet Town", cobbletown structures, region towns, etc.
+   */
+  public AreaSnapshot resolveAreaSnapshot(ServerPlayerEntity player, ServerFeatureConfig config) {
+    ResolvedArea a = resolveArea(player, config);
+    return new AreaSnapshot(a.label(), a.town());
+  }
+
+  public record AreaSnapshot(String label, boolean town) {
+    public AreaSnapshot {
+      if (label == null || label.isBlank()) {
+        label = "Unknown";
+      }
+    }
+  }
+
   private ResolvedArea resolveArea(ServerPlayerEntity player, ServerFeatureConfig config) {
     var townFromAdapter = cobbletown.resolveTownName(player);
     if (townFromAdapter.isPresent()) return new ResolvedArea(cleanAreaLabel(townFromAdapter.get()), true);

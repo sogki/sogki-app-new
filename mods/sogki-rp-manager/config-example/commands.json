@@ -10,7 +10,27 @@
   "rtpCooldownSeconds": 180,
   "rtpMinRadiusBlocks": 250,
   "rtpMaxRadiusBlocks": 8000,
-  "rtpMaxAttempts": 80,
+  "rtpMaxAttempts": 128,
+  "rtpMinFeetY": 55,
+  "rtpMaxFeetY": 200,
+  "rtpAllowedFloorBlocks": [
+    "minecraft:grass_block",
+    "minecraft:sand",
+    "minecraft:dirt",
+    "minecraft:podzol",
+    "minecraft:coarse_dirt",
+    "minecraft:rooted_dirt",
+    "minecraft:mud",
+    "minecraft:moss_block",
+    "minecraft:stone",
+    "minecraft:deepslate",
+    "minecraft:snow_block",
+    "minecraft:mycelium",
+    "minecraft:sandstone",
+    "minecraft:granite",
+    "minecraft:diorite",
+    "minecraft:andesite"
+  ],
   "playtimeCooldownSeconds": 5,
   "statsCooldownSeconds": 8
 }

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { adminApi } from '../../lib/adminApi';
+import { useAdminToast } from '../../context/AdminToastContext';
 import type { BinderShowcase, BinderShowcaseImage, BinderShowcaseSet } from '../../lib/siteData';
 import AdminPageLayout from './AdminPageLayout';
 import { Plus, Pencil, Trash2, X, Upload, ImageIcon } from 'lucide-react';
@@ -11,6 +12,7 @@ type EditingBinder = Partial<BinderShowcase> & {
 };
 
 export default function AdminBinderShowcase() {
+  const { toast, confirm } = useAdminToast();
   const [showcases, setShowcases] = useState<BinderShowcase[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -36,13 +38,20 @@ export default function AdminBinderShowcase() {
   }, []);
 
   const handleDeleteShowcase = async (id: string) => {
-    if (!confirm('Delete this binder showcase and all its images and set progress rows?')) return;
+    const ok = await confirm({
+      title: 'Delete this binder showcase?',
+      description: 'All images and set progress rows will be removed. This cannot be undone.',
+      confirmLabel: 'Delete',
+      danger: true,
+    });
+    if (!ok) return;
     try {
       await adminApi.deleteBinderShowcase(id);
       setEditing((e) => (e?.id === id ? null : e));
+      toast.success('Showcase deleted.');
       fetchList();
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Failed to delete');
+      toast.error(e instanceof Error ? e.message : 'Failed to delete');
     }
   };
 
@@ -159,6 +168,7 @@ function ShowcaseEditorModal({
   onRefresh: (selectId?: string) => Promise<void>;
   onDeleteShowcase?: () => void;
 }) {
+  const { toast, confirm } = useAdminToast();
   const isNew = !showcase.id;
   const [title, setTitle] = useState(showcase.title ?? '');
   const [titleJp, setTitleJp] = useState(showcase.title_jp ?? '');
@@ -178,7 +188,7 @@ function ShowcaseEditorModal({
 
   const saveMeta = async () => {
     if (!title.trim()) {
-      alert('Title is required');
+      toast.error('Title is required');
       return;
     }
     setSaving(true);
@@ -191,6 +201,7 @@ function ShowcaseEditorModal({
           sort_order: sortOrder,
         })) as { id: string };
         await onRefresh(created.id);
+        toast.success('Showcase created.');
       } else {
         await adminApi.updateBinderShowcase(showcase.id as string, {
           title: title.trim(),
@@ -199,9 +210,10 @@ function ShowcaseEditorModal({
           sort_order: sortOrder,
         });
         await onRefresh(showcase.id as string);
+        toast.success('Showcase saved.');
       }
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Save failed');
+      toast.error(e instanceof Error ? e.message : 'Save failed');
     } finally {
       setSaving(false);
     }
@@ -225,20 +237,27 @@ function ShowcaseEditorModal({
         });
       }
       await onRefresh(showcase.id as string);
+      toast.success('Images uploaded.');
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Upload failed');
+      toast.error(e instanceof Error ? e.message : 'Upload failed');
     } finally {
       setUploading(false);
     }
   };
 
   const removeImage = async (img: BinderShowcaseImage) => {
-    if (!confirm('Remove this image from the showcase?')) return;
+    const ok = await confirm({
+      title: 'Remove this image from the showcase?',
+      confirmLabel: 'Remove',
+      danger: true,
+    });
+    if (!ok) return;
     try {
       await adminApi.deleteBinderShowcaseImage(img.id);
       await onRefresh(showcase.id as string);
+      toast.success('Image removed.');
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Delete failed');
+      toast.error(e instanceof Error ? e.message : 'Delete failed');
     }
   };
 
@@ -247,7 +266,7 @@ function ShowcaseEditorModal({
       await adminApi.updateBinderShowcaseImage(img.id, { sort_order });
       await onRefresh(showcase.id as string);
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Update failed');
+      toast.error(e instanceof Error ? e.message : 'Update failed');
     }
   };
 
@@ -266,8 +285,9 @@ function ShowcaseEditorModal({
         sort_order: nextOrder,
       });
       await onRefresh(showcase.id as string);
+      toast.success('Set row added.');
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Failed to add set');
+      toast.error(e instanceof Error ? e.message : 'Failed to add set');
     } finally {
       setSaving(false);
     }
@@ -277,18 +297,25 @@ function ShowcaseEditorModal({
     try {
       await adminApi.updateBinderShowcaseSet(row.id, data);
       await onRefresh(showcase.id as string);
+      toast.success('Set row saved.');
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Save failed');
+      toast.error(e instanceof Error ? e.message : 'Save failed');
     }
   };
 
   const removeSet = async (row: BinderShowcaseSet) => {
-    if (!confirm('Remove this master set row?')) return;
+    const ok = await confirm({
+      title: 'Remove this master set row?',
+      confirmLabel: 'Remove',
+      danger: true,
+    });
+    if (!ok) return;
     try {
       await adminApi.deleteBinderShowcaseSet(row.id);
       await onRefresh(showcase.id as string);
+      toast.success('Set row removed.');
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Delete failed');
+      toast.error(e instanceof Error ? e.message : 'Delete failed');
     }
   };
 

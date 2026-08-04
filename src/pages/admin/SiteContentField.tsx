@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Save } from 'lucide-react';
+import { useAdminToast } from '../../context/AdminToastContext';
 
 type SiteContentItem = {
   id: string;
@@ -18,6 +19,7 @@ export function SiteContentField({
   onSave: (key: string, value: unknown) => void;
   saving: boolean;
 }) {
+  const { toast } = useAdminToast();
   const [value, setValue] = useState(stringifyValue(item.value));
 
   useEffect(() => setValue(stringifyValue(item.value)), [item.value]);
@@ -25,7 +27,7 @@ export function SiteContentField({
   const handleSave = () => {
     const parsed = parseValue(value, item.content_type);
     if (parsed !== undefined) onSave(item.key, parsed);
-    else alert('Invalid value');
+    else toast.error('Invalid value');
   };
 
   if (item.content_type === 'boolean') {

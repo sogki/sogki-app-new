@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { adminApi } from '../../lib/adminApi';
+import { useAdminToast } from '../../context/AdminToastContext';
 import AdminPageLayout from './AdminPageLayout';
 import { SiteContentField } from './SiteContentField';
 import { AdminSectionCard } from './AdminSectionCard';
@@ -43,6 +44,7 @@ const COLOR_OPTIONS = [
 ];
 
 export default function AdminProjects() {
+  const { toast, confirm } = useAdminToast();
   const [projects, setProjects] = useState<Project[]>([]);
   const [sectionContent, setSectionContent] = useState<SiteContentItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -74,9 +76,10 @@ export default function AdminProjects() {
     setContentSaving(key);
     try {
       await adminApi.updateSiteContent(key, value);
+      toast.success('Content saved.');
       fetch();
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Failed to save');
+      toast.error(e instanceof Error ? e.message : 'Failed to save');
     } finally {
       setContentSaving(null);
     }
@@ -91,22 +94,30 @@ export default function AdminProjects() {
         await adminApi.createProject(data);
       }
       setEditing(null);
+      toast.success('Project saved.');
       fetch();
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Failed to save');
+      toast.error(e instanceof Error ? e.message : 'Failed to save');
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Delete this project?')) return;
+    const ok = await confirm({
+      title: 'Delete this project?',
+      description: 'This cannot be undone.',
+      confirmLabel: 'Delete',
+      danger: true,
+    });
+    if (!ok) return;
     try {
       await adminApi.deleteProject(id);
       setEditing(null);
+      toast.success('Project deleted.');
       fetch();
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Failed to delete');
+      toast.error(e instanceof Error ? e.message : 'Failed to delete');
     }
   };
 

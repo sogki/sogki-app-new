@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { adminApi } from '../../lib/adminApi';
+import { useAdminToast } from '../../context/AdminToastContext';
 import AdminPageLayout from './AdminPageLayout';
 import { BlogEditor } from '../../components/blog/BlogEditor';
 import { Plus, Pencil, Trash2, X, ExternalLink } from 'lucide-react';
@@ -26,6 +27,7 @@ function slugify(s: string): string {
 }
 
 export default function AdminBlogs() {
+  const { toast, confirm } = useAdminToast();
   const [blogs, setBlogs] = useState<Blog[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -53,22 +55,30 @@ export default function AdminBlogs() {
         await adminApi.updateBlog(editing.id, data);
       }
       setEditing(null);
+      toast.success('Blog saved.');
       fetch();
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Failed to save');
+      toast.error(e instanceof Error ? e.message : 'Failed to save');
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Delete this blog post?')) return;
+    const ok = await confirm({
+      title: 'Delete this blog post?',
+      description: 'This cannot be undone.',
+      confirmLabel: 'Delete',
+      danger: true,
+    });
+    if (!ok) return;
     try {
       await adminApi.deleteBlog(id);
       setEditing(null);
+      toast.success('Blog deleted.');
       fetch();
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Failed to delete');
+      toast.error(e instanceof Error ? e.message : 'Failed to delete');
     }
   };
 

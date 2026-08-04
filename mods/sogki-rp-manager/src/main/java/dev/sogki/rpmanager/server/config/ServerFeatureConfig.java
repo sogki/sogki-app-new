@@ -522,7 +522,20 @@ public final class ServerFeatureConfig {
     public int rtpCooldownSeconds = 180;
     public int rtpMinRadiusBlocks = 250;
     public int rtpMaxRadiusBlocks = 8000;
-    public int rtpMaxAttempts = 80;
+    public int rtpMaxAttempts = 128;
+    /**
+     * If set, /rtp feet Y must be &gt;= this (surface / avoid deep caves). Null = no minimum.
+     */
+    public Integer rtpMinFeetY;
+    /**
+     * If set, /rtp feet Y must be &lt;= this (avoid sky builds / extreme mountains). Null = use default from config load (200).
+     */
+    public Integer rtpMaxFeetY;
+    /**
+     * If non-empty, /rtp requires the standing-on block to be one of these (e.g. minecraft:grass_block).
+     * Empty list = any safe solid floor.
+     */
+    public java.util.List<String> rtpAllowedFloorBlocks = new java.util.ArrayList<>();
     public int playtimeCooldownSeconds = 5;
     public int statsCooldownSeconds = 8;
   }

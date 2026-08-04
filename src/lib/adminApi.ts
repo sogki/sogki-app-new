@@ -201,4 +201,70 @@ export const adminApi = {
     }
     return payload;
   },
+
+  cvs: () => adminApi.get('cvs'),
+  createCv: (data: unknown) => adminApi.post('cvs', data),
+  updateCv: (id: string, data: unknown) => adminApi.patch(`cvs/${id}`, data),
+  deleteCv: (id: string) => adminApi.delete(`cvs/${id}`),
+  cvSignedUrl: (id: string, expiresIn = 3600) =>
+    adminApi.get(`cvs/${id}/signed-url?expires_in=${expiresIn}`),
+
+  uploadCv: async (
+    file: File,
+    data: {
+      title: string;
+      notes?: string;
+      is_active: boolean;
+      preview?: Blob | null;
+    }
+  ) => {
+    const token = getAdminToken();
+    if (!token) throw new Error('Not authenticated');
+
+    const form = new FormData();
+    form.append('file', file, file.name);
+    form.append('filename', file.name);
+    form.append('title', data.title);
+    form.append('is_active', String(Boolean(data.is_active)));
+    if (data.notes) form.append('notes', data.notes);
+    if (data.preview) {
+      form.append('preview', data.preview, 'preview.png');
+    }
+
+    const res = await fetch(`${FUNCTIONS_URL}/admin-api/cvs/upload`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: form,
+    });
+    const payload = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(resolveApiError(payload, res.status));
+    }
+    return payload;
+  },
+
+  sendCvEmail: async (payload: { cvId?: string; includeAll?: boolean; message?: string }) => {
+    const token = getAdminToken();
+    if (!token) throw new Error('Not authenticated');
+    let res: Response;
+    try {
+      res = await fetch(`${FUNCTIONS_URL}/admin-cv-email`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+    } catch {
+      throw new Error(
+        'Cannot reach admin-cv-email. Ensure the function is deployed (npx supabase functions deploy admin-cv-email).'
+      );
+    }
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(resolveApiError(data, res.status));
+    }
+    return data;
+  },
 };

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { adminApi } from '../../lib/adminApi';
+import { useAdminToast } from '../../context/AdminToastContext';
 import AdminPageLayout from './AdminPageLayout';
 import { Plus, Pencil, Trash2, X, ChevronDown, ChevronRight } from 'lucide-react';
 
@@ -18,6 +19,7 @@ type Asset = {
 };
 
 export default function AdminGraphics() {
+  const { toast, confirm } = useAdminToast();
   const [collections, setCollections] = useState<Collection[]>([]);
   const [assetsByCollection, setAssetsByCollection] = useState<Record<string, Asset[]>>({});
   const [loading, setLoading] = useState(true);
@@ -73,22 +75,30 @@ export default function AdminGraphics() {
         await adminApi.createCollection(data);
       }
       setEditingCollection(null);
+      toast.success('Collection saved.');
       fetch();
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Failed to save');
+      toast.error(e instanceof Error ? e.message : 'Failed to save');
     } finally {
       setSaving(false);
     }
   };
 
   const handleDeleteCollection = async (id: string) => {
-    if (!confirm('Delete this collection and all its assets?')) return;
+    const ok = await confirm({
+      title: 'Delete this collection and all its assets?',
+      description: 'This cannot be undone.',
+      confirmLabel: 'Delete',
+      danger: true,
+    });
+    if (!ok) return;
     try {
       await adminApi.deleteCollection(id);
       setEditingCollection(null);
+      toast.success('Collection deleted.');
       fetch();
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Failed to delete');
+      toast.error(e instanceof Error ? e.message : 'Failed to delete');
     }
   };
 
@@ -101,22 +111,30 @@ export default function AdminGraphics() {
         await adminApi.createAsset(data);
       }
       setEditingAsset(null);
+      toast.success('Asset saved.');
       fetch();
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Failed to save');
+      toast.error(e instanceof Error ? e.message : 'Failed to save');
     } finally {
       setSaving(false);
     }
   };
 
   const handleDeleteAsset = async (id: string) => {
-    if (!confirm('Delete this asset?')) return;
+    const ok = await confirm({
+      title: 'Delete this asset?',
+      description: 'This cannot be undone.',
+      confirmLabel: 'Delete',
+      danger: true,
+    });
+    if (!ok) return;
     try {
       await adminApi.deleteAsset(id);
       setEditingAsset(null);
+      toast.success('Asset deleted.');
       fetch();
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Failed to delete');
+      toast.error(e instanceof Error ? e.message : 'Failed to delete');
     }
   };
 

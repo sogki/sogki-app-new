@@ -1,0 +1,193 @@
+{
+  "enabled": false,
+  "randomPlacement": true,
+  "minTrainerSeparationBlocks": 448,
+  "placementMaxAttemptsPerTrainer": 160,
+  "townSpawnWeight": 35,
+  "wildernessSpawnWeight": 45,
+  "nearPlayerSpawnWeight": 20,
+  "nearPlayerMinOffsetBlocks": 40,
+  "nearPlayerMaxOffsetBlocks": 168,
+  "townNpcSpreadMaxBlocks": 72,
+  "wildernessSpawnMaxRadiusBlocks": 12000,
+  "autoRespawnMissingTrainers": false,
+  "spawnDimensions": ["minecraft:overworld"],
+  "wanderEnabled": true,
+  "wanderTickInterval": 30,
+  "wanderSpeed": 1.15,
+  "wanderSeekPlayerBlocks": 88,
+  "wanderStopDistanceBlocks": 7,
+  "relocateIntervalTicks": 0,
+  "proximity": 4.5,
+  "sneakAdvanceCooldownTicks": 12,
+  "reEngageCooldownTicks": 120,
+  "loreStructureNamespaces": ["cobblemon", "cobbletown", "cobbletowns"],
+  "lorePlacementMaxAttempts": 220,
+  "loreStructureSpreadMaxBlocks": 64,
+  "loreWildernessProbeAttemptsPerPass": 48,
+  "trainers": [
+    {
+      "id": "ash",
+      "displayName": "Ash",
+      "skinUsername": "HINAGOD",
+      "dimension": "minecraft:overworld",
+      "x": 0.5,
+      "y": 64.0,
+      "z": 0.5,
+      "yaw": 0.0,
+      "inPool": true,
+      "useFixedPosition": false,
+      "spawn": false,
+      "preferredHomeStructures": ["pallet_town"],
+      "skill": 4,
+      "npcLevel": 50,
+      "dialogue": [
+        "&eAsh:&r Hey! You look like a strong Trainer!",
+        "&eAsh:&r I've been traveling all over with Pikachu — every battle gets us closer to being Pokémon Masters!",
+        "&eAsh:&r So what do you say? Wanna have a real battle right here?",
+        "&eAsh:&r I won't hold back — come at me with everything you've got!"
+      ],
+      "partyLines": [
+        "pikachu level=58 moves=thunderbolt,electroweb,quickattack,irontail",
+        "lucario level=56 moves=aurasphere,dragonpulse,psychic,earthquake",
+        "charizard level=55 moves=airslash,flamethrower,dragonclaw,roost"
+      ]
+    },
+    {
+      "id": "n",
+      "displayName": "N",
+      "skinUsername": "z0as",
+      "dimension": "minecraft:overworld",
+      "x": 0.5,
+      "y": 64.0,
+      "z": 0.5,
+      "yaw": 0.0,
+      "inPool": true,
+      "useFixedPosition": false,
+      "spawn": false,
+      "preferredHomeStructures": ["dragonspiral", "n_castle", "castle"],
+      "skill": 5,
+      "npcLevel": 50,
+      "dialogue": [
+        "&bN:&r …You can hear their voices too, can't you? Pokémon speak in ways most Trainers never notice.",
+        "&bN:&r I don't see Pokémon as tools — they're partners, equals. If we battle, I want to understand how you treat yours.",
+        "&bN:&r Answer honestly with your team, not just your words. Shall we begin?",
+        "&bN:&r I will not hold resentment toward the outcome — only learn from it."
+      ],
+      "partyLines": [
+        "zoroark level=54 moves=nightdaze,flamethrower,grassknot,focusblast",
+        "carracosta level=52 moves=liquidation,crunch,rockslide,aquajet",
+        "klinklang level=53 moves=flashcannon,thunderbolt,shiftgear,hyperbeam"
+      ]
+    },
+    {
+      "id": "leaf",
+      "displayName": "Leaf",
+      "skinUsername": "asulauv",
+      "dimension": "minecraft:overworld",
+      "x": 0.5,
+      "y": 64.0,
+      "z": 0.5,
+      "yaw": 0.0,
+      "inPool": true,
+      "useFixedPosition": false,
+      "spawn": false,
+      "preferredHomeStructures": ["pallet_town", "kanto"],
+      "skill": 3,
+      "npcLevel": 50,
+      "dialogue": [
+        "&aLeaf:&r …Oh, hi. I was just mapping this route in my head.",
+        "&aLeaf:&r Kanto taught me to stay calm and read the field — every step matters in a battle.",
+        "&aLeaf:&r If you're up for it, I'd like to test your team. No hard feelings either way.",
+        "&aLeaf:&r Ready when you are."
+      ],
+      "partyLines": [
+        "venusaur level=55 moves=gigadrain,sludgebomb,earthpower,sleeppowder",
+        "clefable level=52 moves=moonblast,softboiled,thunderwave,cosmicpower",
+        "ninetales level=53 moves=heatwave,willowisp,hex,solarbeam"
+      ]
+    },
+    {
+      "id": "dawn",
+      "displayName": "Dawn",
+      "skinUsername": "lxcia125",
+      "dimension": "minecraft:overworld",
+      "x": 0.5,
+      "y": 64.0,
+      "z": 0.5,
+      "yaw": 0.0,
+      "inPool": true,
+      "useFixedPosition": false,
+      "spawn": false,
+      "voiceProfile": "female",
+      "preferredHomeStructures": ["twinleaf", "jubilife", "sinnoh"],
+      "skill": 3,
+      "npcLevel": 50,
+      "dialogue": [
+        "&dDawn:&r No need to worry — but wow, you surprised me popping up like that!",
+        "&dDawn:&r Coordinating contests taught me rhythm and flair, but battling? That's a whole different stage!",
+        "&dDawn:&r Let's make this a performance worth remembering — you in?",
+        "&dDawn:&r Starlight, spotlight… and go!"
+      ],
+      "partyLines": [
+        "empoleon level=54 moves=flashcannon,icebeam,surf,grassknot",
+        "pachirisu level=50 moves=thunderbolt,nuzzle,swagger,irontail",
+        "togekiss level=55 moves=airslash,dazzlinggleam,thunderwave,roost"
+      ]
+    },
+    {
+      "id": "serena",
+      "displayName": "Serena",
+      "skinUsername": "Fiw444",
+      "dimension": "minecraft:overworld",
+      "x": 0.5,
+      "y": 64.0,
+      "z": 0.5,
+      "yaw": 0.0,
+      "inPool": true,
+      "useFixedPosition": false,
+      "spawn": false,
+      "preferredHomeStructures": ["vaniville", "lumiose", "kalos"],
+      "skill": 3,
+      "npcLevel": 50,
+      "dialogue": [
+        "&cSerena:&r Oh — hello. You carry yourself like someone who's seen quite a few battles.",
+        "&cSerena:&r Kalos refined my style: grace under pressure, and trusting your partner completely.",
+        "&cSerena:&r I'd love a battle that's sharp but respectful. May I challenge you?",
+        "&cSerena:&r Wonderful. Let's both do our best."
+      ],
+      "partyLines": [
+        "delphox level=53 moves=psychic,flamethrower,shadowball,calmmind",
+        "pancham level=50 moves=drainpunch,crunch,bulletpunch,rockslide",
+        "absol level=52 moves=nightslash,playrough,swordsdance,psychocut"
+      ]
+    },
+    {
+      "id": "may",
+      "displayName": "May",
+      "skinUsername": "peepeeman6969",
+      "dimension": "minecraft:overworld",
+      "x": 0.5,
+      "y": 64.0,
+      "z": 0.5,
+      "yaw": 0.0,
+      "inPool": true,
+      "useFixedPosition": false,
+      "spawn": false,
+      "preferredHomeStructures": ["littleroot", "hoenn", "petalburg"],
+      "skill": 3,
+      "npcLevel": 50,
+      "dialogue": [
+        "&6May:&r Hey, hey! Perfect timing — I was hoping someone tough would walk by!",
+        "&6May:&r Hoenn's huge, and my team's been itching for a serious workout between contests.",
+        "&6May:&r How about a fiery, fun battle? Loser buys… well, imaginary berries!",
+        "&6May:&r Awesome! Don't go easy on me, okay?"
+      ],
+      "partyLines": [
+        "blaziken level=56 moves=flareblitz,closecombat,thunderpunch,protect",
+        "beautifly level=48 moves=bugbuzz,gigadrain,quiverdance,airslash",
+        "swampert level=54 moves=earthquake,liquidation,icepunch,hammerarm"
+      ]
+    }
+  ]
+}

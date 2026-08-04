@@ -37,18 +37,25 @@ import dev.sogki.rpmanager.server.util.FileWriteUtil;
 import dev.sogki.rpmanager.server.util.MessageDisplay;
 import dev.sogki.rpmanager.server.util.SafeRandomTeleport;
 import dev.sogki.rpmanager.server.util.TemplateEngine;
+import dev.sogki.rpmanager.registry.SogkiEntities;
+import dev.sogki.rpmanager.server.wildtrainer.CobblemonWildTrainerBridge;
+import dev.sogki.rpmanager.server.wildtrainer.WildTrainerService;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.fabricmc.fabric.api.event.Event;
 import net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
+import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.fabricmc.fabric.api.event.player.UseItemCallback;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.message.v1.ServerMessageDecoratorEvent;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.block.AbstractSignBlock;
+import net.minecraft.block.Block;
 import net.minecraft.block.BedBlock;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
@@ -71,8 +78,10 @@ import net.minecraft.item.BlockItem;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
+import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.stat.Stat;
 import net.minecraft.stat.StatFormatter;
@@ -96,11 +105,14 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.Locale;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 public final class SogkiCobblemonServerMod implements ModInitializer {
@@ -112,8 +124,16 @@ public final class SogkiCobblemonServerMod implements ModInitializer {
     .resolve("spawn.json");
 
   private static final ServerConfigManager CONFIG_MANAGER = new ServerConfigManager();
-  private static final StreakService STREAK_SERVICE = new StreakService();
+  private static final CobblemonWildTrainerBridge TRAINER_BRIDGE = new CobblemonWildTrainerBridge(LOGGER);
   private static final AreaService AREA_SERVICE = new AreaService(LOGGER);
+  private static final WildTrainerService WILD_TRAINERS = new WildTrainerService(
+    LOGGER,
+    TRAINER_BRIDGE,
+    AREA_SERVICE,
+    CONFIG_MANAGER::getWildTrainers,
+    CONFIG_MANAGER::get
+  );
+  private static final StreakService STREAK_SERVICE = new StreakService();
   private static final RegionProtectionService REGION_SERVICE = new RegionProtectionService();
   private static final ChatFormatService CHAT_SERVICE = new ChatFormatService();
   private static final TablistSidebarService TABLIST_SERVICE = new TablistSidebarService();
@@ -139,6 +159,7 @@ public final class SogkiCobblemonServerMod implements ModInitializer {
 
   @Override
   public void onInitialize() {
+    SogkiEntities.register();
     ServerFeatureConfig cfg = CONFIG_MANAGER.reload();
     STREAK_SERVICE.load();
     TEAM_SERVICE.load();
@@ -178,6 +199,7 @@ public final class SogkiCobblemonServerMod implements ModInitializer {
       TemplateEngine.setPlaceholderProvider((currentServer, player) -> buildTeamPlaceholders(currentServer, player, CONFIG_MANAGER.get()));
       COBBLEMON_ANNOUNCEMENTS.setConfigSupplier(CONFIG_MANAGER::get);
       COBBLEMON_ANNOUNCEMENTS.setCatchRateMultiplierSupplier(WORLD_EVENT_SERVICE::catchRateMultiplier);
+      WILD_TRAINERS.onServerStarted(server);
       LOGGER.info("[SogkiCobblemon] Server started.");
     });
 
@@ -192,6 +214,15 @@ public final class SogkiCobblemonServerMod implements ModInitializer {
       MODERATION_SERVICE.save();
       DISCORD_STATUS.announceOffline(server, CONFIG_MANAGER.get());
       DISCORD_STATUS.stopBotRuntime();
+    });
+
+    ServerEntityEvents.ENTITY_LOAD.register((entity, world) -> {
+      if (!world.isClient() && world instanceof ServerWorld sw) {
+        WILD_TRAINERS.onAmbientCobblemonNpcLoaded(entity, sw);
+      }
+    });
+    ServerEntityEvents.ENTITY_UNLOAD.register((entity, world) -> {
+      WILD_TRAINERS.onAmbientCobblemonNpcUnloaded(entity);
     });
 
     ServerTickEvents.END_SERVER_TICK.register(server -> {
@@ -211,12 +242,14 @@ public final class SogkiCobblemonServerMod implements ModInitializer {
       enforceExplosiveRegionSafety(server, cfg);
       suppressVillagerZombiePanic(server, cfg);
       enforceNpcPersistence(server);
+      WILD_TRAINERS.tick(server, ticks);
     });
 
     ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
       MODERATION_SERVICE.noteSeenPlayer(handler.player);
       MODERATION_SERVICE.enforceBanOnJoin(handler.player);
       ServerFeatureConfig cfg = CONFIG_MANAGER.get();
+      WILD_TRAINERS.onPlayerJoined(handler.player);
       STREAK_SERVICE.onJoin(handler.player, cfg);
       TEAM_SERVICE.onJoin(handler.player, cfg);
       COBBLEMON_ANNOUNCEMENTS.tryRegisterCobblemonHooks(SKILL_TREE_SERVICE, TITLE_SERVICE);
@@ -230,6 +263,25 @@ public final class SogkiCobblemonServerMod implements ModInitializer {
   }
 
   private void registerGameplayHooks() {
+    // Cobblemon NPCEntity opens preset dialogue on use; wild trainers use right-click for Sogki flow instead.
+    Identifier wildTrainerUsePhase = Identifier.of("sogki", "wild_trainer_entity_use");
+    UseEntityCallback.EVENT.addPhaseOrdering(wildTrainerUsePhase, Event.DEFAULT_PHASE);
+    UseEntityCallback.EVENT.register(wildTrainerUsePhase, (player, world, hand, entity, hitResult) -> {
+      if (!entity.getCommandTags().contains(WildTrainerService.WILD_TRAINER_TAG)) {
+        return ActionResult.PASS;
+      }
+      if (player.isSpectator()) {
+        return ActionResult.PASS;
+      }
+      if (!world.isClient() && player instanceof ServerPlayerEntity sp) {
+        MinecraftServer server = player.getServer();
+        if (server != null) {
+          WILD_TRAINERS.onWildTrainerClicked(sp, server, entity);
+        }
+      }
+      return ActionResult.SUCCESS;
+    });
+
     PlayerBlockBreakEvents.BEFORE.register((world, player, pos, state, blockEntity) -> {
       if (!(player instanceof net.minecraft.server.network.ServerPlayerEntity sp)) {
         return true;
@@ -900,10 +952,172 @@ public final class SogkiCobblemonServerMod implements ModInitializer {
         .then(CommandManager.literal("team")
           .then(CommandManager.literal("mission")
             .then(CommandManager.literal("reroll")
-              .executes(ctx -> runTeamMissionReroll(ctx.getSource())))));
+              .executes(ctx -> runTeamMissionReroll(ctx.getSource())))))
+        .then(CommandManager.literal("trainers")
+          .then(CommandManager.literal("respawn")
+            .executes(ctx -> runWildTrainersRespawn(ctx.getSource())))
+          .then(CommandManager.literal("list")
+            .executes(ctx -> runWildTrainersList(ctx.getSource())))
+          .then(CommandManager.literal("locate")
+            .then(CommandManager.argument("trainerId", StringArgumentType.word())
+              .suggests((ctx, builder) -> suggestWildTrainerIds(builder))
+              .executes(ctx -> runWildTrainerLocate(
+                ctx.getSource(),
+                StringArgumentType.getString(ctx, "trainerId")
+              ))))
+          .then(CommandManager.literal("summon")
+            .then(CommandManager.argument("trainerId", StringArgumentType.word())
+              .suggests((ctx, builder) -> suggestWildTrainerIds(builder))
+              .executes(ctx -> runWildTrainerSummon(
+                ctx.getSource(),
+                StringArgumentType.getString(ctx, "trainerId"),
+                null
+              ))
+              .then(CommandManager.argument("target", EntityArgumentType.player())
+                .executes(ctx -> runWildTrainerSummon(
+                  ctx.getSource(),
+                  StringArgumentType.getString(ctx, "trainerId"),
+                  EntityArgumentType.getPlayer(ctx, "target")
+                ))))));
 
       dispatcher.register(adminCommand);
+
+      var sogkiTrainerCommand = CommandManager.literal("sogki")
+        .then(CommandManager.literal("trainer")
+          .then(CommandManager.literal("accept")
+            .then(CommandManager.argument("trainerId", StringArgumentType.word())
+              .suggests((ctx, builder) -> suggestWildTrainerIds(builder))
+              .executes(ctx -> runTrainerAccept(ctx.getSource(), StringArgumentType.getString(ctx, "trainerId")))))
+          .then(CommandManager.literal("deny")
+            .then(CommandManager.argument("trainerId", StringArgumentType.word())
+              .suggests((ctx, builder) -> suggestWildTrainerIds(builder))
+              .executes(ctx -> runTrainerDeny(ctx.getSource(), StringArgumentType.getString(ctx, "trainerId"))))));
+      dispatcher.register(sogkiTrainerCommand);
     });
+  }
+
+  private static CompletableFuture<Suggestions> suggestWildTrainerIds(SuggestionsBuilder builder) {
+    String remain = builder.getRemaining().toLowerCase(Locale.ROOT);
+    for (String id : WILD_TRAINERS.trainerIds()) {
+      if (id == null || id.isBlank()) continue;
+      if (remain.isEmpty() || id.toLowerCase(Locale.ROOT).startsWith(remain)) {
+        builder.suggest(id);
+      }
+    }
+    return builder.buildFuture();
+  }
+
+  private static int runWildTrainersRespawn(ServerCommandSource source) {
+    if (source.getServer() == null) return 0;
+    WILD_TRAINERS.respawnAll(source.getServer());
+    source.sendFeedback(() -> Text.literal("Wild trainer NPCs respawned from trainers.yml / trainers.json."), true);
+    return 1;
+  }
+
+  private static int runWildTrainersList(ServerCommandSource source) {
+    if (source.getServer() == null) return 0;
+    WILD_TRAINERS.adminListSpawnedTrainers(source, source.getServer());
+    return 1;
+  }
+
+  private static int runWildTrainerLocate(ServerCommandSource source, String trainerId) {
+    if (source.getServer() == null) return 0;
+    if (!WILD_TRAINERS.adminLocateTrainer(source, source.getServer(), trainerId)) {
+      source.sendError(Text.literal("Unknown trainer id. Check trainers.yml / trainers.json."));
+      return 0;
+    }
+    return 1;
+  }
+
+  private static int runWildTrainerSummon(ServerCommandSource source, String trainerId, ServerPlayerEntity explicitTarget) {
+    MinecraftServer server = source.getServer();
+    if (server == null) return 0;
+    ServerPlayerEntity anchor;
+    if (explicitTarget != null) {
+      anchor = explicitTarget;
+    } else {
+      ServerPlayerEntity self = source.getPlayer();
+      if (self == null) {
+        source.sendError(Text.literal("Console must specify a player: /sogkiadmin trainers summon <id> <player>"));
+        return 0;
+      }
+      anchor = self;
+    }
+    int code = WILD_TRAINERS.adminSummonTrainerNear(server, anchor, trainerId);
+    return switch (code) {
+      case 0 -> {
+        String name = anchor.getName().getString();
+        source.sendFeedback(() -> Text.literal(
+          "Spawned an extra wild trainer \"" + trainerId + "\" near " + name + " (tracked world spawn unchanged)."
+        ), true);
+        yield 1;
+      }
+      case 1 -> {
+        source.sendError(Text.literal("Wild trainers are disabled in trainers.yml / trainers.json."));
+        yield 0;
+      }
+      case 2 -> {
+        source.sendError(Text.literal("Cobblemon NPCs are not available; cannot spawn trainers."));
+        yield 0;
+      }
+      case 3 -> {
+        source.sendError(Text.literal("Unknown trainer id."));
+        yield 0;
+      }
+      case 4 -> {
+        source.sendError(Text.literal("Could not find a safe spot near the player."));
+        yield 0;
+      }
+      case 5 -> {
+        source.sendError(Text.literal(
+          "Could not spawn that trainer (check latest.log for [SogkiCobblemon]). Try /sogkiadmin trainers respawn."
+        ));
+        yield 0;
+      }
+      default -> 0;
+    };
+  }
+
+  private static Set<Block> parseRtpFloorWhitelist(List<String> ids) {
+    if (ids == null || ids.isEmpty()) {
+      return Set.of();
+    }
+    HashSet<Block> out = new HashSet<>();
+    for (String raw : ids) {
+      if (raw == null) {
+        continue;
+      }
+      String s = raw.trim();
+      if (s.isEmpty()) {
+        continue;
+      }
+      Identifier id = Identifier.tryParse(s);
+      if (id == null || !Registries.BLOCK.containsId(id)) {
+        continue;
+      }
+      out.add(Registries.BLOCK.get(id));
+    }
+    return out.isEmpty() ? Set.of() : Collections.unmodifiableSet(out);
+  }
+
+  private static int runTrainerAccept(ServerCommandSource source, String trainerId) {
+    try {
+      var player = source.getPlayerOrThrow();
+      return WILD_TRAINERS.acceptDuel(player, trainerId);
+    } catch (Exception e) {
+      source.sendError(Text.literal("Players only."));
+      return 0;
+    }
+  }
+
+  private static int runTrainerDeny(ServerCommandSource source, String trainerId) {
+    try {
+      var player = source.getPlayerOrThrow();
+      return WILD_TRAINERS.denyDuel(player, trainerId);
+    } catch (Exception e) {
+      source.sendError(Text.literal("Players only."));
+      return 0;
+    }
   }
 
   private static int runClaim(ServerCommandSource source) {
@@ -948,6 +1162,9 @@ public final class SogkiCobblemonServerMod implements ModInitializer {
     TABLIST_SERVICE.setServices(TEAM_SERVICE, TITLE_SERVICE);
     if (source.getServer() != null) {
       DISCORD_STATUS.restartBotRuntime(source.getServer(), cfg);
+    }
+    if (source.getServer() != null) {
+      WILD_TRAINERS.respawnAll(source.getServer());
     }
     String msg = TemplateEngine.render(cfg.messages.configReloaded, Map.of());
     source.sendFeedback(() -> Text.literal(msg), true);
@@ -1345,13 +1562,21 @@ public final class SogkiCobblemonServerMod implements ModInitializer {
       }
       player.sendMessage(Text.literal(TemplateEngine.render(cfg.messages.rtpSearching, Map.of())));
       BlockPos origin = player.getBlockPos();
+      Set<Block> rtpFloors = parseRtpFloorWhitelist(cfg.commands.rtpAllowedFloorBlocks);
+      SafeRandomTeleport.FeetSearchOptions rtpOpts = SafeRandomTeleport.FeetSearchOptions.rtp(
+        world,
+        cfg.commands.rtpMinFeetY,
+        cfg.commands.rtpMaxFeetY,
+        rtpFloors
+      );
       BlockPos feet = SafeRandomTeleport.findSafeFeet(
         world,
         origin,
         cfg.commands.rtpMinRadiusBlocks,
         cfg.commands.rtpMaxRadiusBlocks,
         cfg.commands.rtpMaxAttempts,
-        world.random);
+        world.random,
+        rtpOpts);
       if (feet == null) {
         source.sendError(Text.literal(TemplateEngine.render(cfg.messages.rtpFailed, Map.of())));
         return 0;

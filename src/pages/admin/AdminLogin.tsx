@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { MessageCircle, Shield } from 'lucide-react';
+import { useAdminToast } from '../../context/AdminToastContext';
 
 interface AdminLoginProps {
   discordClientId: string;
@@ -7,9 +8,11 @@ interface AdminLoginProps {
 }
 
 export default function AdminLogin({ discordClientId, onLogin }: AdminLoginProps) {
+  const { toast } = useAdminToast();
+
   const handleLogin = () => {
     if (!discordClientId || discordClientId === 'YOUR_DISCORD_CLIENT_ID') {
-      alert('Discord Client ID not configured. Add DISCORD_CLIENT_ID to the keys table.');
+      toast.error('Discord Client ID not configured. Add DISCORD_CLIENT_ID to the keys table.');
       return;
     }
     onLogin(discordClientId);

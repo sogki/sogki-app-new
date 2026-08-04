@@ -1,0 +1,213 @@
+# Copy to config/sogki-cobblemon/trainers.yml
+# If this file exists, it overrides trainers.json for the same folder.
+#
+# Visible wild trainers are Sogki's own entity (sogkirpmanager:wild_trainer) with player skins from skinUsername.
+# Cobblemon is only used invisibly to run trainer battles after you accept.
+#
+# requireRightClickToStart: dialogue begins on right-click (not by walking nearby).
+# nametagAppendInteractHint: when true, adds nametagInteractHint under the trainer name (minimap/radar use the same name).
+# minTrainerSeparationBlocks: min horizontal blocks between ANY two trainers (use 8000–12000+ so duplicate displayNames never meet).
+# townSpawnWeight / wildernessSpawnWeight / nearPlayerSpawnWeight: random spawn strategy mix (nearPlayer default 0 = do not anchor on players).
+# wanderEnabled: short random walks while idle; never chases players. Pauses during dialogue/duel with that NPC.
+# dialogue: use "" entries for blank chat lines between lines of text.
+# proximity: how close you must stay to continue (sneak to advance lines).
+# dialogueUi: chat templates, wrap width, villager voice pitch, line prefix ("ding"), etc.
+# voiceProfile (per trainer): male | female | neutral — affects villager sound pitch.
+#
+# Lore placement: preferredHomeStructures lists structure id path fragments (e.g. pallet_town, pokecenter).
+# Matched against structures in loreStructureNamespaces (cobblemon / cobbletown / cobbletowns). Random spawn
+# tries these first; admin summon prefers a safe tile inside a matching structure near you when possible.
+# Tune tokens to match your datapack’s structure paths (/locate structure is a good reference).
+
+enabled: false
+randomPlacement: true
+requireRightClickToStart: true
+nametagAppendInteractHint: false
+nametagInteractHint: "Right-click to interact"
+dialogueChatPaddingBefore: 3
+dialogueChatPaddingAfter: 3
+dialogueShowTitleEveryStep: true
+dialogueBodyIndentSpaces: 3
+interactCooldownTicks: 15
+proximity: 4.5
+# Max blocks from the trainer NPC while dialogue / duel prompt is open (right-click range alone no longer cancels next tick).
+dialogueContinueMaxDistanceBlocks: 16
+sneakAdvanceCooldownTicks: 12
+reEngageCooldownTicks: 120
+loreStructureNamespaces:
+  - cobblemon
+  - cobbletown
+  - cobbletowns
+lorePlacementMaxAttempts: 220
+loreStructureSpreadMaxBlocks: 64
+loreWildernessProbeAttemptsPerPass: 48
+minTrainerSeparationBlocks: 10240
+placementMaxAttemptsPerTrainer: 280
+townSpawnWeight: 25
+wildernessSpawnWeight: 75
+nearPlayerSpawnWeight: 0
+wildernessSpawnMaxRadiusBlocks: 12000
+spawnDimensions:
+  - "minecraft:overworld"
+wanderEnabled: true
+wanderSpeed: 0.35
+dialogueUi:
+  shiftHintTemplate: "&8⌛ &7Hold &fSneak &7to advance &8· &8({current}/{total})&r"
+  chatLinePrefix: "&6❖ &r"
+  duelSeparator: "&8▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬"
+  duelHeaderTemplate: "&6&l⚔ Battle challenge&r"
+  duelWantsBattleTemplate: "&7Trainer &e&l{displayName}&r &7would like to battle!"
+  duelSublineTemplate: "&8» &7Click &aAccept &7or &cDecline &7in chat below."
+  duelShowSlashCommandHint: false
+  duelCommandHintTemplate: "&8⌨ &7/sogki trainer &aaccept {id} &8| &cdeny {id}"
+  duelActionBarTemplate: "&6⚔ &f{displayName}&8 — &aAccept &7or &cDecline"
+  playVillagerAmbientOnDialogueLine: true
+  villagerPitchMale: 0.72
+  villagerPitchFemale: 1.28
+  villagerPitchNeutral: 1.0
+  dialogueWrapWidth: 44
+  stripSpeakerPrefixFromDialogueLines: true
+  # --- Encounter FX (right-click first line) ---
+  showTitleScreenOnDialogueStart: true
+  trainerTitleFadeInTicks: 6
+  trainerTitleStayTicks: 45
+  trainerTitleFadeOutTicks: 14
+  trainerTitleSubtitleTemplate: "&7Wild Trainer encounter"
+  playDialogueOpenSound: true
+  playTrainerPositionSounds: true
+  trainerPositionSoundVolume: 0.92
+  spawnDialogueStartParticles: true
+  useActionBarForProgressHints: true
+  actionBarShiftHintTemplate: "&6Trainer &8» &eShift &7to continue &8({current}/{total})"
+  playDuelCueAtTrainer: true
+  spawnDuelPromptParticles: true
+trainers:
+  - id: ash
+    displayName: Ash
+    skinUsername: HINAGOD
+    voiceProfile: neutral
+    inPool: true
+    useFixedPosition: false
+    npcLevel: 50
+    skill: 4
+    dimension: minecraft:overworld
+    preferredHomeStructures:
+      - pallet_town
+    dialogue:
+      - "&eAsh:&r Hey! You look like a strong Trainer!"
+      - "&eAsh:&r I've been traveling all over with Pikachu — every battle gets us closer to being Pokémon Masters!"
+      - "&eAsh:&r So what do you say? Wanna have a real battle right here?"
+      - "&eAsh:&r I won't hold back — come at me with everything you've got!"
+    partyLines:
+      - "pikachu level=58 moves=thunderbolt,electroweb,quickattack,irontail"
+      - "lucario level=56 moves=aurasphere,dragonpulse,psychic,earthquake"
+      - "charizard level=55 moves=airslash,flamethrower,dragonclaw,roost"
+  - id: n
+    displayName: N
+    skinUsername: z0as
+    voiceProfile: neutral
+    inPool: true
+    useFixedPosition: false
+    npcLevel: 50
+    skill: 5
+    dimension: minecraft:overworld
+    preferredHomeStructures:
+      - dragonspiral
+      - n_castle
+      - castle
+    dialogue:
+      - "&bN:&r …You can hear their voices too, can't you? Pokémon speak in ways most Trainers never notice."
+      - "&bN:&r I don't see Pokémon as tools — they're partners, equals. If we battle, I want to understand how you treat yours."
+      - "&bN:&r Answer honestly with your team, not just your words. Shall we begin?"
+      - "&bN:&r I will not hold resentment toward the outcome — only learn from it."
+    partyLines:
+      - "zoroark level=54 moves=nightdaze,flamethrower,grassknot,focusblast"
+      - "carracosta level=52 moves=liquidation,crunch,rockslide,aquajet"
+      - "klinklang level=53 moves=flashcannon,thunderbolt,shiftgear,hyperbeam"
+  - id: leaf
+    displayName: Leaf
+    skinUsername: asulauv
+    voiceProfile: female
+    inPool: true
+    useFixedPosition: false
+    npcLevel: 50
+    skill: 3
+    dimension: minecraft:overworld
+    preferredHomeStructures:
+      - pallet_town
+      - kanto
+    dialogue:
+      - "&aLeaf:&r …Oh, hi. I was just mapping this route in my head."
+      - "&aLeaf:&r Kanto taught me to stay calm and read the field — every step matters in a battle."
+      - "&aLeaf:&r If you're up for it, I'd like to test your team. No hard feelings either way."
+      - "&aLeaf:&r Ready when you are."
+    partyLines:
+      - "venusaur level=55 moves=gigadrain,sludgebomb,earthpower,sleeppowder"
+      - "clefable level=52 moves=moonblast,softboiled,thunderwave,cosmicpower"
+      - "ninetales level=53 moves=heatwave,willowisp,hex,solarbeam"
+  - id: dawn
+    displayName: Dawn
+    skinUsername: lxcia125
+    voiceProfile: female
+    inPool: true
+    useFixedPosition: false
+    npcLevel: 50
+    skill: 3
+    dimension: minecraft:overworld
+    preferredHomeStructures:
+      - twinleaf
+      - jubilife
+      - sinnoh
+    dialogue:
+      - "&dDawn:&r No need to worry — but wow, you surprised me popping up like that!"
+      - "&dDawn:&r Coordinating contests taught me rhythm and flair, but battling? That's a whole different stage!"
+      - "&dDawn:&r Let's make this a performance worth remembering — you in?"
+      - "&dDawn:&r Starlight, spotlight… and go!"
+    partyLines:
+      - "empoleon level=54 moves=flashcannon,icebeam,surf,grassknot"
+      - "pachirisu level=50 moves=thunderbolt,nuzzle,swagger,irontail"
+      - "togekiss level=55 moves=airslash,dazzlinggleam,thunderwave,roost"
+  - id: serena
+    displayName: Serena
+    skinUsername: Fiw444
+    voiceProfile: female
+    inPool: true
+    useFixedPosition: false
+    npcLevel: 50
+    skill: 3
+    dimension: minecraft:overworld
+    preferredHomeStructures:
+      - vaniville
+      - lumiose
+      - kalos
+    dialogue:
+      - "&cSerena:&r Oh — hello. You carry yourself like someone who's seen quite a few battles."
+      - "&cSerena:&r Kalos refined my style: grace under pressure, and trusting your partner completely."
+      - "&cSerena:&r I'd love a battle that's sharp but respectful. May I challenge you?"
+      - "&cSerena:&r Wonderful. Let's both do our best."
+    partyLines:
+      - "delphox level=53 moves=psychic,flamethrower,shadowball,calmmind"
+      - "pancham level=50 moves=drainpunch,crunch,bulletpunch,rockslide"
+      - "absol level=52 moves=nightslash,playrough,swordsdance,psychocut"
+  - id: may
+    displayName: May
+    skinUsername: peepeeman6969
+    voiceProfile: female
+    inPool: true
+    useFixedPosition: false
+    npcLevel: 50
+    skill: 3
+    dimension: minecraft:overworld
+    preferredHomeStructures:
+      - littleroot
+      - hoenn
+      - petalburg
+    dialogue:
+      - "&6May:&r Hey, hey! Perfect timing — I was hoping someone tough would walk by!"
+      - "&6May:&r Hoenn's huge, and my team's been itching for a serious workout between contests."
+      - "&6May:&r How about a fiery, fun battle? Loser buys… well, imaginary berries!"
+      - "&6May:&r Awesome! Don't go easy on me, okay?"
+    partyLines:
+      - "blaziken level=56 moves=flareblitz,closecombat,thunderpunch,protect"
+      - "beautifly level=48 moves=bugbuzz,gigadrain,quiverdance,airslash"
+      - "swampert level=54 moves=earthquake,liquidation,icepunch,hammerarm"

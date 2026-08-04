@@ -3,6 +3,7 @@ package dev.sogki.rpmanager.server.config;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import dev.sogki.rpmanager.server.util.FileWriteUtil;
+import dev.sogki.rpmanager.server.wildtrainer.WildTrainerFileConfig;
 import net.fabricmc.loader.api.FabricLoader;
 
 import java.io.IOException;
@@ -12,6 +13,9 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import dev.sogki.rpmanager.server.wildtrainer.WildTrainerConfigLoader;
+import dev.sogki.rpmanager.server.wildtrainer.WildTrainerDialogueMessages;
+
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -40,8 +44,11 @@ public final class ServerConfigManager {
   private static final Path TEAMS_JSON_PATH = BASE_DIR.resolve("teams.json");
   private static final Path MESSAGES_JSON_PATH = BASE_DIR.resolve("messages.json");
   private static final Path COMMANDS_JSON_PATH = BASE_DIR.resolve("commands.json");
+  private static final Path TRAINERS_JSON_PATH = BASE_DIR.resolve("trainers.json");
+  private static final Path TRAINERS_YML_PATH = BASE_DIR.resolve("trainers.yml");
 
   private ServerFeatureConfig config;
+  private WildTrainerFileConfig wildTrainers = WildTrainerFileConfig.empty();
 
   public ServerConfigManager() {
     this.config = new ServerFeatureConfig();
@@ -59,7 +66,89 @@ public final class ServerConfigManager {
     loaded = applyRemoteOverrides(loaded);
     ensureDefaults(loaded);
     this.config = loaded;
+    loadWildTrainersFile();
     return loaded;
+  }
+
+  public synchronized WildTrainerFileConfig getWildTrainers() {
+    return wildTrainers == null ? WildTrainerFileConfig.empty() : wildTrainers;
+  }
+
+  private static void validateWildTrainerFileConfig(WildTrainerFileConfig c) {
+    if (c.wildernessSpawnMaxRadiusBlocks <= 0) {
+      c.wildernessSpawnMaxRadiusBlocks = 12000;
+    } else {
+      c.wildernessSpawnMaxRadiusBlocks = Math.max(256, Math.min(30_000_000, c.wildernessSpawnMaxRadiusBlocks));
+    }
+    if (c.ambientCobblemonNpcGraceTicks < 10) {
+      c.ambientCobblemonNpcGraceTicks = 10;
+    } else     if (c.ambientCobblemonNpcGraceTicks > 400) {
+      c.ambientCobblemonNpcGraceTicks = 400;
+    }
+    if (c.dialogueUi == null) {
+      c.dialogueUi = new WildTrainerDialogueMessages();
+    }
+    if (c.loreStructureNamespaces == null || c.loreStructureNamespaces.isEmpty()) {
+      c.loreStructureNamespaces = new ArrayList<>(List.of("cobblemon", "cobbletown", "cobbletowns"));
+    }
+    if (c.lorePlacementMaxAttempts < 20) {
+      c.lorePlacementMaxAttempts = 220;
+    }
+    if (c.loreStructureSpreadMaxBlocks < 8) {
+      c.loreStructureSpreadMaxBlocks = 64;
+    }
+    if (c.loreWildernessProbeAttemptsPerPass < 8) {
+      c.loreWildernessProbeAttemptsPerPass = 48;
+    }
+    if (c.trainers != null) {
+      for (var t : c.trainers) {
+        if (t != null && t.preferredHomeStructures == null) {
+          t.preferredHomeStructures = new ArrayList<>();
+        }
+      }
+    }
+  }
+
+  private void loadWildTrainersFile() {
+    try {
+      Files.createDirectories(BASE_DIR);
+      if (Files.notExists(TRAINERS_YML_PATH) && Files.notExists(TRAINERS_JSON_PATH)) {
+        writeDefaultTrainersYml();
+      }
+      WildTrainerFileConfig parsed;
+      if (Files.exists(TRAINERS_YML_PATH)) {
+        String rawYml = Files.readString(TRAINERS_YML_PATH, StandardCharsets.UTF_8);
+        parsed = WildTrainerConfigLoader.loadYaml(rawYml);
+      } else {
+        createJsonIfMissing(TRAINERS_JSON_PATH, WildTrainerFileConfig.exampleDefaults());
+        String raw = Files.readString(TRAINERS_JSON_PATH, StandardCharsets.UTF_8);
+        parsed = GSON.fromJson(raw, WildTrainerFileConfig.class);
+      }
+      if (parsed == null) {
+        wildTrainers = WildTrainerFileConfig.empty();
+      } else {
+        if (parsed.trainers == null) {
+          parsed.trainers = new ArrayList<>();
+        }
+        validateWildTrainerFileConfig(parsed);
+        wildTrainers = parsed;
+      }
+    } catch (Exception e) {
+      LOGGER.warn("[SogkiCobblemon] Failed to load trainers.yml / trainers.json: {}", e.getMessage());
+      wildTrainers = WildTrainerFileConfig.empty();
+    }
+  }
+
+  private void writeDefaultTrainersYml() throws IOException {
+    org.yaml.snakeyaml.DumperOptions options = new org.yaml.snakeyaml.DumperOptions();
+    options.setDefaultFlowStyle(org.yaml.snakeyaml.DumperOptions.FlowStyle.BLOCK);
+    options.setIndent(2);
+    options.setPrettyFlow(true);
+    org.yaml.snakeyaml.Yaml yaml = new org.yaml.snakeyaml.Yaml(options);
+    String dumped = yaml.dump(WildTrainerFileConfig.exampleDefaults());
+    String header = "# Sogki wild Cobblemon trainers — preferred over trainers.json when this file exists.\n"
+      + "# Same fields as JSON; use \"\" in dialogue: for blank chat lines.\n\n";
+    FileWriteUtil.writeStringAtomic(TRAINERS_YML_PATH, header + dumped);
   }
 
   private ServerFeatureConfig loadJson() {
@@ -805,6 +894,20 @@ public final class ServerConfigManager {
     cfg.commands.rtpMinRadiusBlocks = Math.max(0, cfg.commands.rtpMinRadiusBlocks);
     cfg.commands.rtpMaxRadiusBlocks = Math.max(cfg.commands.rtpMinRadiusBlocks, cfg.commands.rtpMaxRadiusBlocks);
     cfg.commands.rtpMaxAttempts = Math.max(8, Math.min(512, cfg.commands.rtpMaxAttempts));
+    if (cfg.commands.rtpAllowedFloorBlocks == null) {
+      cfg.commands.rtpAllowedFloorBlocks = new java.util.ArrayList<>();
+    }
+    if (cfg.commands.rtpMaxFeetY == null) {
+      cfg.commands.rtpMaxFeetY = 200;
+    } else if (cfg.commands.rtpMaxFeetY <= 0) {
+      cfg.commands.rtpMaxFeetY = null;
+    }
+    if (cfg.commands.rtpMinFeetY != null && cfg.commands.rtpMaxFeetY != null
+      && cfg.commands.rtpMinFeetY > cfg.commands.rtpMaxFeetY) {
+      int swap = cfg.commands.rtpMinFeetY;
+      cfg.commands.rtpMinFeetY = cfg.commands.rtpMaxFeetY;
+      cfg.commands.rtpMaxFeetY = swap;
+    }
     cfg.commands.playtimeCooldownSeconds = Math.max(0, cfg.commands.playtimeCooldownSeconds);
     cfg.commands.statsCooldownSeconds = Math.max(0, cfg.commands.statsCooldownSeconds);
     cfg.teams.scoreboard.hologramLineSpacing = Math.max(0.05D, cfg.teams.scoreboard.hologramLineSpacing);

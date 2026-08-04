@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { adminApi } from '../../lib/adminApi';
+import { useAdminToast } from '../../context/AdminToastContext';
 import { fetchCollectionMasterSetEntries, type CollectionMasterSetEntry } from '../../lib/siteData';
 import AdminPageLayout from './AdminPageLayout';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
 
 export default function AdminMasterSetCompletion() {
+  const { toast, confirm } = useAdminToast();
   const [entries, setEntries] = useState<CollectionMasterSetEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -33,13 +35,20 @@ export default function AdminMasterSetCompletion() {
   }, []);
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Delete this master set completion entry?')) return;
+    const ok = await confirm({
+      title: 'Delete this master set completion entry?',
+      description: 'This cannot be undone.',
+      confirmLabel: 'Delete',
+      danger: true,
+    });
+    if (!ok) return;
     try {
       await adminApi.deleteCollectionMasterSet(id);
       setEditingId(null);
+      toast.success('Entry deleted.');
       fetchList();
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Delete failed');
+      toast.error(e instanceof Error ? e.message : 'Delete failed');
     }
   };
 
@@ -149,6 +158,7 @@ function EntryFormCard({
   saving: boolean;
   setSaving: (v: boolean) => void;
 }) {
+  const { toast } = useAdminToast();
   const [title, setTitle] = useState(entry?.title ?? '');
   const [titleJp, setTitleJp] = useState(entry?.title_jp ?? '');
   const [description, setDescription] = useState(entry?.description ?? '');
@@ -159,7 +169,7 @@ function EntryFormCard({
   const save = async () => {
     const pct = Math.min(100, Math.max(0, parseInt(progressPercent, 10) || 0));
     if (!title.trim()) {
-      alert('Title is required');
+      toast.error('Title is required');
       return;
     }
     setSaving(true);
@@ -177,9 +187,10 @@ function EntryFormCard({
       } else {
         await adminApi.createCollectionMasterSet(payload);
       }
+      toast.success(entry?.id ? 'Entry saved.' : 'Entry created.');
       onSaved();
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Save failed');
+      toast.error(e instanceof Error ? e.message : 'Save failed');
     } finally {
       setSaving(false);
     }

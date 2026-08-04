@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { adminApi } from '../../lib/adminApi';
+import { useAdminToast } from '../../context/AdminToastContext';
 import AdminPageLayout from './AdminPageLayout';
 import { ExternalLink, Plus, Pencil, Trash2, X } from 'lucide-react';
 
@@ -16,6 +17,7 @@ type SocialLink = {
 const PLATFORMS = ['github', 'twitter', 'x', 'linkedin', 'youtube', 'instagram', 'discord'];
 
 export default function AdminSocial() {
+  const { toast, confirm } = useAdminToast();
   const [links, setLinks] = useState<SocialLink[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -43,22 +45,30 @@ export default function AdminSocial() {
         await adminApi.createSocial(data);
       }
       setEditing(null);
+      toast.success('Social link saved.');
       fetch();
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Failed to save');
+      toast.error(e instanceof Error ? e.message : 'Failed to save');
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Delete this social link?')) return;
+    const ok = await confirm({
+      title: 'Delete this social link?',
+      description: 'This cannot be undone.',
+      confirmLabel: 'Delete',
+      danger: true,
+    });
+    if (!ok) return;
     try {
       await adminApi.deleteSocial(id);
       setEditing(null);
+      toast.success('Social link deleted.');
       fetch();
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Failed to delete');
+      toast.error(e instanceof Error ? e.message : 'Failed to delete');
     }
   };
 

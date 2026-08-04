@@ -14,9 +14,11 @@ const corsHeaders = {
 
 const BUCKET_BLOG_IMAGES = 'blog-images';
 const BUCKET_RESOURCEPACKS = 'resourcepacks';
+const BUCKET_CV_DOCUMENTS = 'cv-documents';
 const MAX_BLOG_IMAGE_BYTES = 10 * 1024 * 1024; // 10 MB
 const MAX_BINDER_IMAGE_BYTES = 10 * 1024 * 1024;
 const MAX_RESOURCEPACK_BYTES = 200 * 1024 * 1024; // 200 MB
+const MAX_CV_BYTES = 15 * 1024 * 1024; // 15 MB
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
@@ -86,6 +88,9 @@ Deno.serve(async (req) => {
       }
       if (parts[0] === 'binder_showcases' && parts[1] === 'upload' && req.method === 'POST') {
         return await handleBinderShowcaseImageUpload(supabase, req);
+      }
+      if (parts[0] === 'cvs' && parts[1] === 'upload' && req.method === 'POST') {
+        return await handleCvUpload(supabase, req);
       }
       const body = req.method !== 'DELETE' ? await req.json().catch(() => ({})) : {};
       return await handleMutate(supabase, req.method, parts, body);
@@ -171,6 +176,28 @@ async function handleGet(supabase: any, parts: string[], url: URL) {
         .order('sort_order', { ascending: true });
       if (msErr) throw msErr;
       return json(msRows ?? []);
+    }
+    case 'cvs': {
+      if (id === undefined || id === '') {
+        const { data: cvRows, error: cvErr } = await supabase
+          .from('cv_documents')
+          .select('*')
+          .order('created_at', { ascending: false });
+        if (cvErr) throw cvErr;
+        const withUrls = await attachCvSignedUrls(supabase, cvRows ?? [], 60 * 60);
+        return json(withUrls);
+      }
+      if (parts[2] === 'signed-url') {
+        return await handleCvSignedUrl(supabase, id, url);
+      }
+      const { data: cvRow, error: cvOneErr } = await supabase
+        .from('cv_documents')
+        .select('*')
+        .eq('id', id)
+        .single();
+      if (cvOneErr) throw cvOneErr;
+      const [withUrl] = await attachCvSignedUrls(supabase, [cvRow], 60 * 60);
+      return json(withUrl);
     }
     default:
       return json({ error: 'Unknown resource' }, 404);
@@ -283,6 +310,103 @@ async function handleBinderShowcaseImageUpload(supabase: any, req: Request) {
   return json({ url: urlData.publicUrl, path: upload.path });
 }
 
+async function handleCvUpload(supabase: any, req: Request) {
+  const parsed = await parseUploadRequest(req);
+  const { fileBytes, filename, mimeType, title, notes, isActive, previewBytes } = parsed;
+  if (!fileBytes || !filename) return json({ error: 'file and filename required' }, 400);
+  if (fileBytes.byteLength > MAX_CV_BYTES) {
+    return json({ error: 'CV file too large. Max size is 15 MB.' }, 413);
+  }
+
+  const ext = filename.split('.').pop()?.toLowerCase() || 'pdf';
+  const allowedExt = ['pdf', 'doc', 'docx', 'txt', 'rtf'];
+  if (!allowedExt.includes(ext)) {
+    return json({ error: 'Only PDF, DOC, DOCX, TXT, and RTF files are allowed.' }, 400);
+  }
+
+  const safeTitle = (title ?? '').trim() || filename.replace(/\.[^.]+$/, '');
+  const safeFile = filename.replace(/[^a-zA-Z0-9._-]/g, '_');
+  const path = `documents/${Date.now()}-${Math.random().toString(36).slice(2, 9)}-${safeFile}`;
+  const contentType = mimeType || inferCvMimeType(ext);
+
+  const { data: upload, error: uploadErr } = await supabase.storage
+    .from(BUCKET_CV_DOCUMENTS)
+    .upload(path, fileBytes, { contentType, upsert: false });
+  if (uploadErr) return json({ error: uploadErr.message }, 400);
+
+  let previewPath: string | null = null;
+  if (previewBytes && previewBytes.byteLength > 0) {
+    const previewStoragePath = `previews/${Date.now()}-${Math.random().toString(36).slice(2, 9)}.png`;
+    const { data: previewUpload, error: previewErr } = await supabase.storage
+      .from(BUCKET_CV_DOCUMENTS)
+      .upload(previewStoragePath, previewBytes, { contentType: 'image/png', upsert: false });
+    if (!previewErr && previewUpload?.path) {
+      previewPath = previewUpload.path;
+    }
+  }
+
+  const { data, error } = await supabase
+    .from('cv_documents')
+    .insert({
+      title: safeTitle,
+      file_name: filename,
+      file_path: upload.path,
+      preview_path: previewPath,
+      public_url: null,
+      mime_type: contentType,
+      size: fileBytes.byteLength,
+      notes: notes ?? null,
+      is_active: isActive,
+    })
+    .select('*')
+    .single();
+
+  if (error) {
+    const cleanup = [upload.path, previewPath].filter(Boolean) as string[];
+    if (cleanup.length) await supabase.storage.from(BUCKET_CV_DOCUMENTS).remove(cleanup);
+    return json({ error: error.message }, 400);
+  }
+
+  const [withUrl] = await attachCvSignedUrls(supabase, [data], 60 * 60);
+  return json(withUrl);
+}
+
+async function handleCvSignedUrl(supabase: any, id: string, url: URL) {
+  const expiresIn = Math.min(
+    Math.max(Number(url.searchParams.get('expires_in') ?? 3600) || 3600, 60),
+    60 * 60 * 24 * 7
+  );
+  const { data: row, error } = await supabase
+    .from('cv_documents')
+    .select('id, file_path')
+    .eq('id', id)
+    .single();
+  if (error) throw error;
+  const { data: signed, error: signErr } = await supabase.storage
+    .from(BUCKET_CV_DOCUMENTS)
+    .createSignedUrl(row.file_path, expiresIn);
+  if (signErr) return json({ error: signErr.message }, 400);
+  return json({ id: row.id, signed_url: signed.signedUrl, expires_in: expiresIn });
+}
+
+async function attachCvSignedUrls(supabase: any, rows: any[], expiresIn: number) {
+  const out = [];
+  for (const row of rows) {
+    if (!row?.file_path) {
+      out.push({ ...row, signed_url: null });
+      continue;
+    }
+    const { data: signed, error } = await supabase.storage
+      .from(BUCKET_CV_DOCUMENTS)
+      .createSignedUrl(row.file_path, expiresIn);
+    out.push({
+      ...row,
+      signed_url: error ? null : signed?.signedUrl ?? null,
+    });
+  }
+  return out;
+}
+
 async function parseUploadRequest(req: Request) {
   const contentType = req.headers.get('content-type') ?? '';
   if (contentType.toLowerCase().includes('multipart/form-data')) {
@@ -301,9 +425,17 @@ async function parseUploadRequest(req: Request) {
         groupKey: '',
         blogId: null as string | null,
         alt: null as string | null,
+        title: '',
+        notes: null as string | null,
+        previewBytes: null as Uint8Array | null,
       };
     }
     const buffer = new Uint8Array(await fileField.arrayBuffer());
+    const previewField = form.get('preview');
+    let previewBytes: Uint8Array | null = null;
+    if (previewField instanceof File) {
+      previewBytes = new Uint8Array(await previewField.arrayBuffer());
+    }
     return {
       fileBytes: buffer,
       filename: fileField.name || String(form.get('filename') ?? ''),
@@ -316,6 +448,9 @@ async function parseUploadRequest(req: Request) {
       groupKey: String(form.get('group_key') ?? ''),
       blogId: nullableText(form.get('blog_id')),
       alt: nullableText(form.get('alt')),
+      title: String(form.get('title') ?? ''),
+      notes: nullableText(form.get('notes')),
+      previewBytes,
     };
   }
 
@@ -336,6 +471,9 @@ async function parseUploadRequest(req: Request) {
     groupKey: String(body?.group_key ?? ''),
     blogId: body?.blog_id == null ? null : String(body.blog_id),
     alt: body?.alt == null ? null : String(body.alt),
+    title: String(body?.title ?? ''),
+    notes: body?.notes == null ? null : String(body.notes),
+    previewBytes: null as Uint8Array | null,
   };
 }
 
@@ -431,6 +569,23 @@ async function handleMutate(supabase: any, method: string, parts: string[], body
     return json({ ok: true });
   }
 
+  if (resource === 'cvs' && method === 'DELETE' && id) {
+    const { data: existing, error: fetchErr } = await supabase
+      .from('cv_documents')
+      .select('file_path, preview_path')
+      .eq('id', id)
+      .single();
+    if (fetchErr) throw fetchErr;
+    const paths = [existing.file_path, existing.preview_path].filter(Boolean);
+    if (paths.length) {
+      const { error: storageErr } = await supabase.storage.from(BUCKET_CV_DOCUMENTS).remove(paths);
+      if (storageErr) throw storageErr;
+    }
+    const { error: delErr } = await supabase.from('cv_documents').delete().eq('id', id);
+    if (delErr) throw delErr;
+    return json({ ok: true });
+  }
+
   const tableMap: Record<string, string> = {
     collections: 'graphics_design_collections',
     assets: 'graphics_design_assets',
@@ -443,6 +598,7 @@ async function handleMutate(supabase: any, method: string, parts: string[], body
     binder_showcase_images: 'binder_showcase_images',
     binder_showcase_sets: 'binder_showcase_sets',
     collection_master_sets: 'collection_master_set_entries',
+    cvs: 'cv_documents',
   };
 
   const table = tableMap[resource];
@@ -527,4 +683,19 @@ function slugify(value: string) {
 
 async function sha1Hex(buf: Uint8Array) {
   return createHash('sha1').update(buf).digest('hex');
+}
+
+function inferCvMimeType(ext: string) {
+  switch (ext) {
+    case 'pdf':
+      return 'application/pdf';
+    case 'doc':
+      return 'application/msword';
+    case 'docx':
+      return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+    case 'rtf':
+      return 'application/rtf';
+    default:
+      return 'text/plain';
+  }
 }
