@@ -1,143 +1,290 @@
-import React from 'react';
-import { motion } from 'framer-motion';
-import { Calendar, Code, Rocket, Award, Clock, Globe, Zap, Palette } from 'lucide-react';
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  Calendar,
+  Code,
+  Rocket,
+  Award,
+  Globe,
+  Zap,
+  Palette,
+  ExternalLink,
+} from 'lucide-react';
 import ShinyText from './ShinyText';
 import { sectionRevealTransition, sectionViewport, smoothEase } from '../lib/motionPresets';
+
+type TimelineStatus =
+  | 'live'
+  | 'closed-beta'
+  | 'in-progress'
+  | 'completed'
+  | 'offline'
+  | 'ceased'
+  | 'milestone';
 
 interface TimelineEvent {
   year: string;
   title: string;
   titleJp: string;
   description: string;
+  hoverDetail?: string;
+  tech?: string[];
+  url?: string;
   icon: React.ReactNode;
   color: string;
-  status?: 'completed' | 'in-progress';
+  status: TimelineStatus;
   branch?: 'left' | 'right' | 'center';
 }
 
+const STATUS_META: Record<
+  TimelineStatus,
+  { label: string; className: string }
+> = {
+  live: { label: 'Live', className: 'bg-emerald-500/20 text-emerald-300 border-emerald-400/30' },
+  'closed-beta': {
+    label: 'Closed Beta',
+    className: 'bg-amber-500/20 text-amber-200 border-amber-400/35',
+  },
+  'in-progress': {
+    label: 'In Progress',
+    className: 'bg-sky-500/20 text-sky-200 border-sky-400/30',
+  },
+  completed: {
+    label: 'Completed',
+    className: 'bg-purple-500/20 text-purple-200 border-purple-400/30',
+  },
+  offline: { label: 'Offline', className: 'bg-white/10 text-gray-400 border-white/15' },
+  ceased: { label: 'Ceased', className: 'bg-white/10 text-gray-500 border-white/10' },
+  milestone: {
+    label: 'Milestone',
+    className: 'bg-indigo-500/20 text-indigo-200 border-indigo-400/30',
+  },
+};
+
 const events: TimelineEvent[] = [
-  // 2026 — Latest projects
   {
     year: '2026',
     title: 'ArcRaiders Companion',
     titleJp: 'アークレイダーズコンパニオン',
-    description: 'Launched and actively evolving a production Arc Raiders companion platform with an event tracker, interactive maps, item database (480+ items), and a raid planner workflow.',
+    description:
+      'Production Arc Raiders companion — events, maps, 480+ item database, raid planning.',
+    hoverDetail: 'Actively maintained in production with live game data.',
+    tech: ['Next.js', 'PostgreSQL', 'Supabase', 'TypeScript'],
+    url: 'https://arcraiders.50andbad.site',
     icon: <Rocket size={20} />,
     color: 'from-indigo-500 to-blue-500',
-    status: 'in-progress',
-    branch: 'left'
+    status: 'live',
+    branch: 'left',
   },
   {
     year: '2026',
     title: 'TikTok Live API',
     titleJp: 'TikTok Live API',
-    description: 'Developer API to check if any TikTok user is live. REST API with live status, viewer counts, per-developer keys, free tier, and Discord login. No official API? No problem.',
+    description: 'REST API for live status, viewer counts, OAuth keys, and embed badges.',
+    hoverDetail: 'Developer-facing API with rate limits and Discord login.',
+    tech: ['TypeScript', 'REST', 'Discord OAuth'],
+    url: 'https://api.50andbad.site',
     icon: <Zap size={20} />,
     color: 'from-pink-500 to-rose-500',
-    status: 'in-progress',
-    branch: 'right'
+    status: 'live',
+    branch: 'right',
   },
-  // 2025 — Shipped & in progress
   {
     year: '2025',
     title: "50andBad's VOD Archive",
     titleJp: '50andBad VODアーカイブ',
-    description: 'Creator-focused VOD archive with advanced admin features, scalable data models, and polished frontend UX. Part of the 50andBad ecosystem.',
+    description: 'Creator VOD archive with admin tooling and polished discovery UX.',
+    tech: ['Next.js', 'PostgreSQL', 'Supabase'],
+    url: 'https://50andbad.site',
     icon: <Globe size={20} />,
     color: 'from-emerald-500 to-teal-500',
     status: 'completed',
-    branch: 'left'
+    branch: 'left',
   },
   {
     year: '2025',
     title: 'Binderly TCG',
     titleJp: 'Binderly TCG',
-    description: 'Comprehensive Pokemon card collection platform with real-time pricing, market insights, and community features. Currently in active development.',
+    description: 'My main project — Pokémon collection platform with binders and pricing.',
+    hoverDetail: 'Passion project currently in closed beta.',
+    tech: ['Next.js', 'PostgreSQL', 'TypeScript'],
+    url: 'https://binderlytcg.com',
     icon: <Award size={20} />,
-    color: 'from-blue-500 to-cyan-500',
-    status: 'in-progress',
-    branch: 'right'
+    color: 'from-amber-500 to-orange-600',
+    status: 'closed-beta',
+    branch: 'right',
   },
   {
     year: '2025',
     title: 'RankTheGlobe',
     titleJp: '地球儀をランク付けする',
-    description: 'Full-Stack Software Engineer role. Interactive crowd-source consumer rankings and ratings platform. Built with React, React Native, Next.js, and PostgreSQL.',
+    description: 'Full-stack role building rankings across web and mobile.',
+    hoverDetail: 'Operations ceased due to funding at World Ranking Inc.',
+    tech: ['React Native', 'Next.js', 'PostgreSQL'],
     icon: <Globe size={20} />,
     color: 'from-cyan-500 to-teal-500',
-    status: 'completed',
-    branch: 'left'
+    status: 'ceased',
+    branch: 'left',
   },
   {
     year: '2025',
     title: 'Profiles After Dark',
     titleJp: 'プロフィールアフターダーク',
-    description: 'Aesthetic profile database serving 200+ users. Built with Next.js, PostgreSQL, and modern design principles.',
+    description: 'Aesthetic profile community that reached 200+ users.',
+    hoverDetail: 'Site is no longer live — kept here as a shipping milestone.',
+    tech: ['Next.js', 'PostgreSQL'],
     icon: <Code size={20} />,
     color: 'from-violet-500 to-purple-500',
-    status: 'completed',
-    branch: 'right'
+    status: 'offline',
+    branch: 'right',
   },
   {
     year: '2025',
     title: 'Marlow Marketing',
     titleJp: 'マーロウマーケティング',
-    description: 'Responsive, clean and minimalist website for a marketing agency. Built with React, TypeScript, and Framer Motion.',
+    description: 'Client website — clean, responsive marketing agency presence.',
+    tech: ['React', 'TypeScript', 'Framer Motion'],
+    url: 'https://marlowmarketing.org',
     icon: <Palette size={20} />,
-    color: 'from-amber-500 to-orange-500',
+    color: 'from-orange-500 to-amber-500',
     status: 'completed',
-    branch: 'left'
+    branch: 'left',
   },
-  // Milestones
   {
     year: '2023',
     title: 'Full-Stack Journey',
     titleJp: 'フルスタックの旅',
-    description: 'Expanded expertise across the entire stack, mastering React, Node.js, databases, and cloud infrastructure.',
+    description: 'Deepened skills across React, Node, databases, and cloud deployment.',
     icon: <Code size={20} />,
     color: 'from-green-500 to-emerald-500',
-    status: 'completed',
-    branch: 'center'
+    status: 'milestone',
+    branch: 'center',
   },
   {
     year: '2020',
     title: 'Started Development',
     titleJp: '開発を開始',
-    description: 'Began my journey as a software engineer, focusing on creating beautiful, functional digital experiences.',
+    description: 'Began building digital products — design-led, user-focused engineering.',
     icon: <Calendar size={20} />,
     color: 'from-yellow-500 to-orange-500',
-    status: 'completed',
-    branch: 'center'
-  }
+    status: 'milestone',
+    branch: 'center',
+  },
 ];
+
+function TimelineCard({
+  event,
+  align,
+}: {
+  event: TimelineEvent;
+  align: 'left' | 'right' | 'center';
+}) {
+  const [hovered, setHovered] = useState(false);
+  const status = STATUS_META[event.status];
+  const textAlign =
+    align === 'left' ? 'md:text-right' : align === 'right' ? 'md:text-left' : 'md:text-center';
+
+  return (
+    <motion.div
+      className={`relative overflow-hidden rounded-xl border border-white/10 bg-black/50 p-6 backdrop-blur-sm ${textAlign}`}
+      onHoverStart={() => setHovered(true)}
+      onHoverEnd={() => setHovered(false)}
+      whileHover={{ scale: 1.02, y: -4 }}
+      transition={{ duration: 0.2 }}
+    >
+      <div
+        className={`pointer-events-none absolute -inset-px rounded-xl bg-gradient-to-r opacity-0 transition-opacity duration-300 ${event.color} ${hovered ? 'opacity-25' : ''}`}
+      />
+
+      <div className="relative">
+        <div
+          className={`mb-3 flex flex-wrap items-center gap-2 ${align === 'left' ? 'md:justify-end' : align === 'center' ? 'justify-center' : ''}`}
+        >
+          <span
+            className={`rounded-full border px-2 py-0.5 text-[10px] font-mono uppercase tracking-wider ${status.className}`}
+          >
+            {status.label}
+          </span>
+          <span
+            className={`inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r px-2.5 py-1 text-xs font-semibold text-white ${event.color}`}
+          >
+            {event.icon}
+            {event.year}
+          </span>
+        </div>
+
+        <h3 className="font-mono text-xl font-bold text-white">{event.title}</h3>
+        <p className="mt-1 text-sm text-purple-300/80">{event.titleJp}</p>
+        <p className="mt-3 text-sm leading-relaxed text-gray-300">{event.description}</p>
+
+        <AnimatePresence>
+          {hovered && (event.hoverDetail || event.tech?.length) && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="overflow-hidden"
+            >
+              {event.hoverDetail && (
+                <p className="mt-3 text-xs leading-relaxed text-gray-400">{event.hoverDetail}</p>
+              )}
+              {event.tech && event.tech.length > 0 && (
+                <div
+                  className={`mt-3 flex flex-wrap gap-1.5 ${align === 'left' ? 'md:justify-end' : align === 'center' ? 'justify-center' : ''}`}
+                >
+                  {event.tech.map((t) => (
+                    <span
+                      key={t}
+                      className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 font-mono text-[10px] text-gray-300"
+                    >
+                      {t}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {event.url && event.status !== 'offline' && event.status !== 'ceased' && (
+          <a
+            href={event.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`mt-4 inline-flex items-center gap-1 text-xs text-purple-300 opacity-0 transition-opacity hover:text-purple-200 ${hovered ? 'opacity-100' : ''}`}
+          >
+            Visit <ExternalLink size={12} />
+          </a>
+        )}
+      </div>
+    </motion.div>
+  );
+}
 
 export const Timeline: React.FC = () => {
   return (
-    <section className="relative py-20 px-6 overflow-hidden">
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
+    <section className="relative overflow-hidden px-6 py-20">
+      <div className="mx-auto max-w-6xl">
         <motion.div
-          className="text-center mb-16"
+          className="mb-16 text-center"
           initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
           transition={sectionRevealTransition}
           viewport={sectionViewport}
         >
-          <h2 className="text-5xl md:text-6xl font-bold mb-4 font-mono">
+          <h2 className="font-mono text-5xl font-bold md:text-6xl">
             <ShinyText text="Journey" speed={3} />
           </h2>
-          <p className="text-purple-300 text-lg mb-2">旅路</p>
-          <p className="text-gray-400 max-w-2xl mx-auto">
-            Shipping milestones that show product thinking, full-stack execution, and measurable delivery
+          <p className="mb-2 mt-2 text-lg text-purple-300">旅路</p>
+          <p className="mx-auto max-w-2xl text-gray-400">
+            Projects shipped, paused, and milestones along the way — hover a card for more detail.
           </p>
         </motion.div>
 
-        {/* Tree Timeline */}
         <div className="relative">
-          {/* Main Trunk - Vertical Line */}
-          <div className="absolute left-1/2 top-0 bottom-0 w-0.5 bg-gradient-to-b from-yellow-500 via-green-500 via-purple-500 to-blue-500 transform -translate-x-1/2 hidden md:block" />
+          <div className="absolute bottom-0 left-1/2 top-0 hidden w-px -translate-x-1/2 bg-gradient-to-b from-amber-500 via-purple-500 to-blue-500 md:block" />
 
-          <div className="space-y-16 md:space-y-20">
+          <div className="space-y-14 md:space-y-16">
             {events.map((event, index) => {
               const isLeft = event.branch === 'left';
               const isRight = event.branch === 'right';
@@ -146,158 +293,43 @@ export const Timeline: React.FC = () => {
               return (
                 <motion.div
                   key={`${event.year}-${event.title}`}
-                  className="relative"
                   initial={{ opacity: 0, y: 24 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   transition={{
-                    duration: 0.6,
-                    delay: Math.min(index * 0.05, 0.28),
+                    duration: 0.55,
+                    delay: Math.min(index * 0.04, 0.25),
                     ease: smoothEase,
                   }}
                   viewport={sectionViewport}
+                  className="relative"
                 >
-                  {/* Branch Line (horizontal) */}
-                  {!isCenter && (
-                    <div className={`absolute top-1/2 ${isLeft ? 'right-1/2' : 'left-1/2'} w-1/4 h-0.5 bg-gradient-to-r ${isLeft ? 'from-purple-500 to-transparent' : 'from-transparent to-blue-500'} hidden md:block`} />
-                  )}
-
-                  {/* Timeline Node - Using grid for proper centering */}
-                  <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center relative">
-                    {/* Left Branch Card */}
+                  <div className="grid grid-cols-1 items-center gap-4 md:grid-cols-12">
                     {isLeft ? (
-                      <div className="md:col-span-5 md:pr-8 md:text-right order-1 md:order-1">
-                        <motion.div
-                          className="bg-black border border-white/10 rounded-xl p-6 hover:border-white/20 transition-all duration-200 group relative"
-                          whileHover={{ scale: 1.02, x: -8 }}
-                        >
-                          {/* Status Badge */}
-                          <div className="flex items-center gap-2 mb-3 md:justify-end">
-                            {event.status === 'in-progress' && (
-                              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-yellow-500/20 text-yellow-400 text-xs">
-                                <Clock size={12} />
-                                In Progress
-                              </span>
-                            )}
-                            {event.status === 'completed' && (
-                              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-green-500/20 text-green-400 text-xs">
-                                Completed
-                              </span>
-                            )}
-                          </div>
-
-                          {/* Year Badge */}
-                          <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gradient-to-r ${event.color} text-white text-sm font-semibold mb-4`}>
-                            {event.icon}
-                            <span>{event.year}</span>
-                          </div>
-
-                          <h3 className="text-xl font-bold text-white mb-2 group-hover:text-purple-300 transition-colors font-mono">
-                            {event.title}
-                          </h3>
-                          <p className="text-sm text-purple-300 mb-3">{event.titleJp}</p>
-                          <p className="text-gray-300 leading-relaxed text-sm">
-                            {event.description}
-                          </p>
-
-                          {/* Glow effect */}
-                          <div className={`absolute -inset-1 bg-gradient-to-r ${event.color} rounded-xl blur-xl opacity-0 group-hover:opacity-20 transition-opacity duration-300 -z-10`} />
-                        </motion.div>
+                      <div className="md:col-span-5 md:pr-8">
+                        <TimelineCard event={event} align="left" />
                       </div>
                     ) : (
-                      <div className="md:col-span-5 order-1 md:order-1"></div>
+                      <div className="hidden md:col-span-5 md:block" />
                     )}
 
-                    {/* Center Node - Always in the middle column */}
-                    <div className="flex justify-center md:col-span-2 order-2 md:order-2 relative z-10">
-                      <div className={`w-4 h-4 rounded-full bg-gradient-to-r ${event.color} shadow-lg relative`}>
-                        <div className="absolute inset-0 rounded-full bg-white animate-ping opacity-75" />
+                    <div className="flex justify-center md:col-span-2">
+                      <div
+                        className={`relative z-10 h-3 w-3 rounded-full bg-gradient-to-r shadow-lg ${event.color}`}
+                      >
+                        <span className="absolute inset-0 animate-ping rounded-full bg-white/40" />
                       </div>
                     </div>
 
-                    {/* Right Branch Card */}
                     {isRight ? (
-                      <div className="md:col-span-5 md:pl-8 md:text-left order-3 md:order-3">
-                        <motion.div
-                          className="bg-black border border-white/10 rounded-xl p-6 hover:border-white/20 transition-all duration-200 group relative"
-                          whileHover={{ scale: 1.02, x: 8 }}
-                        >
-                          {/* Status Badge */}
-                          <div className="flex items-center gap-2 mb-3">
-                            {event.status === 'in-progress' && (
-                              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-yellow-500/20 text-yellow-400 text-xs">
-                                <Clock size={12} />
-                                In Progress
-                              </span>
-                            )}
-                            {event.status === 'completed' && (
-                              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-green-500/20 text-green-400 text-xs">
-                                Completed
-                              </span>
-                            )}
-                          </div>
-
-                          {/* Year Badge */}
-                          <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gradient-to-r ${event.color} text-white text-sm font-semibold mb-4`}>
-                            {event.icon}
-                            <span>{event.year}</span>
-                          </div>
-
-                          <h3 className="text-xl font-bold text-white mb-2 group-hover:text-purple-300 transition-colors font-mono">
-                            {event.title}
-                          </h3>
-                          <p className="text-sm text-purple-300 mb-3">{event.titleJp}</p>
-                          <p className="text-gray-300 leading-relaxed text-sm">
-                            {event.description}
-                          </p>
-
-                          {/* Glow effect */}
-                          <div className={`absolute -inset-1 bg-gradient-to-r ${event.color} rounded-xl blur-xl opacity-0 group-hover:opacity-20 transition-opacity duration-300 -z-10`} />
-                        </motion.div>
+                      <div className="md:col-span-5 md:pl-8">
+                        <TimelineCard event={event} align="right" />
                       </div>
-                    ) : !isCenter ? (
-                      <div className="md:col-span-5 order-3 md:order-3"></div>
-                    ) : null}
-
-                    {/* Center Card - Spans both sides */}
-                    {isCenter && (
-                      <div className="md:col-span-10 md:col-start-2 md:text-center order-3 md:order-3">
-                        <motion.div
-                          className="bg-black border border-white/10 rounded-xl p-6 hover:border-white/20 transition-all duration-200 group relative"
-                          whileHover={{ scale: 1.02 }}
-                        >
-                          {/* Status Badge */}
-                          <div className="flex items-center justify-center gap-2 mb-3">
-                            {event.status === 'in-progress' && (
-                              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-yellow-500/20 text-yellow-400 text-xs">
-                                <Clock size={12} />
-                                In Progress
-                              </span>
-                            )}
-                            {event.status === 'completed' && (
-                              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-green-500/20 text-green-400 text-xs">
-                                Completed
-                              </span>
-                            )}
-                          </div>
-
-                          {/* Year Badge */}
-                          <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gradient-to-r ${event.color} text-white text-sm font-semibold mb-4`}>
-                            {event.icon}
-                            <span>{event.year}</span>
-                          </div>
-
-                          <h3 className="text-xl font-bold text-white mb-2 group-hover:text-purple-300 transition-colors font-mono">
-                            {event.title}
-                          </h3>
-                          <p className="text-sm text-purple-300 mb-3">{event.titleJp}</p>
-                          <p className="text-gray-300 leading-relaxed text-sm">
-                            {event.description}
-                          </p>
-
-                          {/* Glow effect */}
-                          <div className={`absolute -inset-1 bg-gradient-to-r ${event.color} rounded-xl blur-xl opacity-0 group-hover:opacity-20 transition-opacity duration-300 -z-10`} />
-                        </motion.div>
+                    ) : isCenter ? (
+                      <div className="md:col-span-10 md:col-start-2">
+                        <TimelineCard event={event} align="center" />
                       </div>
+                    ) : (
+                      <div className="hidden md:col-span-5 md:block" />
                     )}
                   </div>
                 </motion.div>

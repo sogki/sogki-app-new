@@ -14,8 +14,6 @@ const sections: Section[] = [
   { id: 'about', kanji: '私', label: 'About', color: 'text-blue-400' },
   { id: 'features', kanji: '特', label: 'Features', color: 'text-pink-400' },
   { id: 'projects', kanji: '作', label: 'Projects', color: 'text-green-400' },
-  { id: 'timeline', kanji: '時', label: 'Timeline', color: 'text-orange-400' },
-  { id: 'tech-stack', kanji: '技', label: 'Tech', color: 'text-yellow-400' },
   { id: 'contact', kanji: '話', label: 'Contact', color: 'text-red-400' }
 ];
 

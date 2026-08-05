@@ -33,12 +33,12 @@ const features: Feature[] = [
     descriptionJp: 'ArcRaiders Companionで、イベント追跡・地図探索・実用的なワークフローを本番運用。'
   },
   {
-    id: 'community-platforms',
+    id: 'collector-products',
     icon: <Sparkles size={32} />,
-    title: 'Community Platforms',
-    titleJp: 'コミュニティプラットフォーム',
-    description: 'Profiles After Dark highlights creator-friendly content architecture, discoverability, and repeat engagement loops.',
-    descriptionJp: 'Profiles After Darkで、発見性と継続利用を重視したコミュニティ基盤を構築。'
+    title: 'Collector-Focused Products',
+    titleJp: 'コレクター向けプロダクト',
+    description: 'Binderly TCG — my main project — brings binders, pricing, and discovery together for Pokémon collectors in closed beta.',
+    descriptionJp: 'メインプロジェクトのBinderly TCGで、バインダー・価格・発見をコレクター向けに統合。'
   },
   {
     id: 'full-stack-ownership',
@@ -88,7 +88,7 @@ export const FeatureShowcase: React.FC = () => {
           </p>
         </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+        <div className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
           {features.map((feature, index) => (
             <motion.div
               key={feature.id}

@@ -1,229 +1,147 @@
-import React, { useEffect, useRef } from 'react';
-import { motion, useInView, useMotionValue, useSpring } from 'framer-motion';
+import React, { useState } from 'react';
+import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
 import ShinyText from './ShinyText';
-import { Code2, Users, Rocket, Award } from 'lucide-react';
+import { Palette, Layers, Sparkles, ArrowRight } from 'lucide-react';
 import { useSiteData } from '../context/SiteDataContext';
-import { getString, getJson } from '../lib/siteContent';
+import { getString } from '../lib/siteContent';
 import { sectionRevealTransition, sectionViewport, smoothEase } from '../lib/motionPresets';
 
-interface StatItem {
-  icon: React.ReactNode;
-  value: number;
-  suffix?: string;
-  label: string;
-  labelJp: string;
-  color: string;
-  maxValue: number; // For graph scaling
-}
-
-const defaultStats: StatItem[] = [
+const focusAreas = [
   {
-    icon: <Code2 size={24} />,
-    value: 12,
-    suffix: '+',
-    label: 'Projects Built',
-    labelJp: '構築されたプロジェクト',
-    color: 'from-purple-500 to-indigo-500',
-    maxValue: 15
+    id: 'binderly',
+    icon: <Sparkles size={22} />,
+    title: 'Building Binderly',
+    titleJp: 'Binderlyを構築中',
+    body: 'My main project — a Pokémon TCG home for binders, pricing, and collection care. Closed beta.',
+    accent: 'from-amber-500/20 to-orange-600/10 border-amber-400/25',
+    glow: 'group-hover:shadow-amber-500/10',
   },
   {
-    icon: <Users size={24} />,
-    value: 200,
-    suffix: '+',
-    label: 'Users Served',
-    labelJp: 'サービス提供ユーザー',
-    color: 'from-purple-500 to-indigo-500',
-    maxValue: 250
+    id: 'craft',
+    icon: <Palette size={22} />,
+    title: 'Design & Frontend',
+    titleJp: 'デザインとフロントエンド',
+    body: 'Interfaces with personality — branded UI, motion, and graphic design work alongside code.',
+    accent: 'from-purple-500/20 to-indigo-500/10 border-purple-400/25',
+    glow: 'group-hover:shadow-purple-500/10',
   },
   {
-    icon: <Rocket size={24} />,
-    value: 3,
-    suffix: '+',
-    label: 'Live Platforms',
-    labelJp: '本番公開プラットフォーム',
-    color: 'from-purple-500 to-indigo-500',
-    maxValue: 5
+    id: 'stack',
+    icon: <Layers size={22} />,
+    title: 'Full-Stack Products',
+    titleJp: 'フルスタックプロダクト',
+    body: 'From schema design to deployed UI — companion apps, APIs, and creator tools end to end.',
+    accent: 'from-cyan-500/20 to-blue-500/10 border-cyan-400/25',
+    glow: 'group-hover:shadow-cyan-500/10',
   },
-  {
-    icon: <Award size={24} />,
-    value: 480,
-    suffix: '+',
-    label: 'Arc Items Indexed',
-    labelJp: 'Arcアイテム登録数',
-    color: 'from-purple-500 to-indigo-500',
-    maxValue: 600
-  }
 ];
 
-const AnimatedCounter: React.FC<{ value: number; suffix?: string; duration?: number }> = ({ 
-  value, 
-  suffix = '', 
-  duration = 2 
-}) => {
-  const ref = useRef<HTMLSpanElement>(null);
-  const isInView = useInView(ref, { once: true, margin: "-100px" });
-  const motionValue = useMotionValue(0);
-  const springValue = useSpring(motionValue, {
-    damping: 60,
-    stiffness: 100
-  });
-
-  useEffect(() => {
-    if (isInView) {
-      motionValue.set(value);
-    }
-  }, [motionValue, isInView, value]);
-
-  useEffect(() => {
-    const unsubscribe = springValue.on('change', (latest) => {
-      if (ref.current) {
-        const rounded = Math.floor(latest);
-        ref.current.textContent = `${rounded}${suffix}`;
-      }
-    });
-    return () => unsubscribe();
-  }, [springValue, suffix]);
-
-  return <span ref={ref}>0{suffix}</span>;
-};
-
-type StatRow = { value: number; suffix?: string; label: string; labelJp: string };
-
 export const About: React.FC = () => {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const isInView = useInView(containerRef, { once: true, margin: "-100px" });
   const { siteContent } = useSiteData();
-  const statsFromContent = getJson<StatRow[]>(siteContent, 'about.stats', []);
-  const stats: StatItem[] = statsFromContent.length > 0
-    ? statsFromContent.map((s, i) => ({
-        icon: [Code2, Users, Rocket, Award][i] ? React.createElement([Code2, Users, Rocket, Award][i], { size: 24 }) : <Code2 size={24} />,
-        value: s.value,
-        suffix: s.suffix ?? '',
-        label: s.label,
-        labelJp: s.labelJp,
-        color: 'from-purple-500 to-indigo-500',
-        maxValue: Math.max(s.value * 1.2, 1),
-      }))
-    : defaultStats;
+  const [activeId, setActiveId] = useState(focusAreas[0]!.id);
+  const active = focusAreas.find((f) => f.id === activeId) ?? focusAreas[0]!;
 
   return (
-    <section className="relative py-12 sm:py-16 md:py-20 px-4 sm:px-6 bg-transparent" ref={containerRef}>
-      <div className="max-w-7xl mx-auto">
-        {/* Section Header */}
+    <section className="relative bg-transparent px-4 py-12 sm:px-6 sm:py-16 md:py-20">
+      <div className="mx-auto max-w-7xl">
         <motion.div
-          className="text-center mb-8 sm:mb-12"
+          className="mb-10 text-center sm:mb-12"
           initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
           transition={sectionRevealTransition}
           viewport={sectionViewport}
         >
-          <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-3 sm:mb-4 font-mono">
+          <h2 className="mb-3 font-mono text-3xl font-bold sm:text-4xl md:text-5xl lg:text-6xl">
             <ShinyText text={getString(siteContent, 'about.section_title', 'About Me')} speed={3} />
           </h2>
-          <p className="text-purple-300 text-base sm:text-lg">{getString(siteContent, 'about.section_title_jp', '私について')}</p>
+          <p className="text-base text-purple-300 sm:text-lg">
+            {getString(siteContent, 'about.section_title_jp', '私について')}
+          </p>
         </motion.div>
 
-        {/* Side by Side Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-start">
-          {/* About Content - Left Side */}
+        <div className="grid grid-cols-1 items-start gap-10 lg:grid-cols-2 lg:gap-14">
           <motion.div
-            className="space-y-6"
+            className="space-y-5 text-base leading-relaxed text-gray-300 sm:text-lg"
             initial={{ opacity: 0, x: -24 }}
             whileInView={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.64, delay: 0.06, ease: smoothEase }}
             viewport={sectionViewport}
           >
-            <div className="text-gray-300 text-base sm:text-lg leading-relaxed space-y-4">
-              <p>{getString(siteContent, 'about.bio_1', 'I am Sogki, or you can call me Jay, a full-stack software engineer focused on shipping production products that users return to.')}</p>
-              <p>{getString(siteContent, 'about.bio_2', 'My work spans creator ecosystems, companion tools, and community platforms. I build the full stack: data models, backend logic, frontend UX, and iteration loops.')}</p>
-              <p>{getString(siteContent, 'about.bio_3', 'Projects like 50andBad, ArcRaiders Companion, and Profiles After Dark represent my approach: strong visual direction, practical product value, and scalable engineering.')}</p>
-            </div>
+            <p>
+              {getString(
+                siteContent,
+                'about.bio_1',
+                "I'm Sogki (Jay) — a software engineer and designer who builds products people actually use."
+              )}
+            </p>
+            <p>
+              {getString(
+                siteContent,
+                'about.bio_2',
+                'Most of my work sits at the intersection of games, collectors, and communities: companion tools, collection platforms, and APIs that solve real friction.'
+              )}
+            </p>
+            <p>
+              {getString(
+                siteContent,
+                'about.bio_3',
+                'Right now my energy is on Binderly TCG in closed beta, while keeping ArcRaiders Companion and other live projects sharp.'
+              )}
+            </p>
+            <Link
+              to="/about"
+              className="inline-flex items-center gap-2 text-sm font-medium text-purple-300 transition hover:text-purple-200"
+            >
+              Full journey & stack
+              <ArrowRight size={14} />
+            </Link>
           </motion.div>
 
-          {/* Stats Graph - Right Side */}
           <motion.div
-            className="space-y-6"
             initial={{ opacity: 0, x: 24 }}
             whileInView={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.64, delay: 0.1, ease: smoothEase }}
             viewport={sectionViewport}
           >
-            <div className="mb-6">
-              <h3 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 text-white font-mono">
-                {getString(siteContent, 'about.stats_title', 'By The Numbers')}
-              </h3>
-              <p className="text-purple-300 text-sm sm:text-base">{getString(siteContent, 'about.stats_title_jp', '数字で見る実績')}</p>
+            <p className="mb-4 font-mono text-xs uppercase tracking-[0.2em] text-purple-300/70">
+              Current focus
+            </p>
+
+            <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+              {focusAreas.map((area) => (
+                <button
+                  key={area.id}
+                  type="button"
+                  onClick={() => setActiveId(area.id)}
+                  className={`rounded-lg border px-3 py-2 text-left text-sm transition ${
+                    activeId === area.id
+                      ? 'border-purple-400/50 bg-purple-500/15 text-white'
+                      : 'border-white/10 bg-white/[0.03] text-gray-400 hover:border-white/20'
+                  }`}
+                >
+                  {area.title}
+                </button>
+              ))}
             </div>
 
-            {/* Graph Container */}
-            <div className="bg-black/40 border border-white/10 rounded-xl p-4 sm:p-6 space-y-6">
-              {stats.map((stat, index) => {
-                const percentage = (stat.value / stat.maxValue) * 100;
-                
-                return (
-                  <motion.div
-                    key={stat.label}
-                    className="space-y-2"
-                    initial={{ opacity: 0, y: 16 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.48, delay: index * 0.06, ease: smoothEase }}
-                    viewport={sectionViewport}
-                  >
-                    {/* Label and Value */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 sm:gap-3">
-                        <div className={`p-2 rounded-lg bg-gradient-to-r ${stat.color} text-white`}>
-                          {stat.icon}
-                        </div>
-                        <div>
-                          <div className="text-white text-sm sm:text-base font-medium font-mono">
-                            {stat.label}
-                          </div>
-                          <div className="text-purple-300 text-xs">
-                            {stat.labelJp}
-                          </div>
-                        </div>
-                      </div>
-                      <div className={`text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r ${stat.color} bg-clip-text text-transparent font-mono`}>
-                        <AnimatedCounter value={stat.value} suffix={stat.suffix} />
-                      </div>
-                    </div>
-
-                    {/* Bar Chart */}
-                    <div className="relative h-3 sm:h-4 bg-white/5 rounded-full overflow-hidden">
-                      {/* Background */}
-                      <div className="absolute inset-0 bg-white/5 rounded-full" />
-                      
-                      {/* Animated Bar */}
-                      <motion.div
-                        className={`h-full bg-gradient-to-r ${stat.color} rounded-full relative overflow-hidden`}
-                        initial={{ width: 0 }}
-                        animate={isInView ? { width: `${percentage}%` } : { width: 0 }}
-                        transition={{ 
-                          duration: 1.2, 
-                          delay: 0.35 + (index * 0.08),
-                          ease: smoothEase
-                        }}
-                      >
-                        {/* Shimmer effect */}
-                        <motion.div
-                          className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
-                          animate={{
-                            x: ['-100%', '200%'],
-                          }}
-                          transition={{
-                            duration: 2,
-                            repeat: Infinity,
-                            repeatDelay: 1,
-                            ease: "linear"
-                          }}
-                        />
-                      </motion.div>
-                    </div>
-                  </motion.div>
-                );
-              })}
-            </div>
+            <motion.div
+              key={active.id}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className={`group relative overflow-hidden rounded-2xl border bg-gradient-to-br p-6 shadow-xl transition-shadow ${active.accent} ${active.glow}`}
+            >
+              <div className="mb-3 flex items-center gap-3 text-purple-200">
+                <span className="rounded-lg border border-white/10 bg-black/30 p-2">
+                  {active.icon}
+                </span>
+                <div>
+                  <h3 className="font-mono text-lg font-semibold text-white">{active.title}</h3>
+                  <p className="text-xs text-purple-300/80">{active.titleJp}</p>
+                </div>
+              </div>
+              <p className="text-sm leading-relaxed text-gray-300">{active.body}</p>
+            </motion.div>
           </motion.div>
         </div>
       </div>

@@ -1,17 +1,37 @@
 import { supabase } from './supabase';
+import {
+  type Project,
+  parseProjectMetrics,
+} from './projectTypes';
 
-export type Project = {
-  id: string;
-  title: string;
-  title_jp: string | null;
-  description: string;
-  technologies: string[];
-  github: string | null;
-  demo: string | null;
-  featured: boolean;
-  color: string | null;
-  sort_order: number;
-};
+export type { Project, ProjectMetric, ProjectStatus, ProjectTier } from './projectTypes';
+export { PROJECT_STATUS_LABELS, projectAccent, projectHref } from './projectTypes';
+
+function mapProjectRow(row: Record<string, unknown>): Project {
+  return {
+    id: row.id as string,
+    title: row.title as string,
+    title_jp: (row.title_jp as string | null) ?? null,
+    description: row.description as string,
+    technologies: (row.technologies as string[]) ?? [],
+    github: (row.github as string | null) ?? null,
+    demo: (row.demo as string | null) ?? null,
+    featured: Boolean(row.featured),
+    color: (row.color as string | null) ?? null,
+    sort_order: (row.sort_order as number) ?? 0,
+    slug: (row.slug as string | null) ?? null,
+    status: (row.status as Project['status']) ?? 'live',
+    tier: (row.tier as Project['tier']) ?? 'supporting',
+    tagline: (row.tagline as string | null) ?? null,
+    status_note: (row.status_note as string | null) ?? null,
+    long_description: (row.long_description as string | null) ?? null,
+    hero_image_url: (row.hero_image_url as string | null) ?? null,
+    screenshots: (row.screenshots as string[]) ?? [],
+    metrics: parseProjectMetrics(row.metrics),
+    accent_color: (row.accent_color as string | null) ?? null,
+    show_demo_link: row.show_demo_link !== false,
+  };
+}
 
 export type SocialLink = {
   id: string;
@@ -94,7 +114,18 @@ export async function fetchProjects(): Promise<Project[]> {
     .select('*')
     .order('sort_order', { ascending: true });
   if (error) throw new Error(`Failed to fetch projects: ${error.message}`);
-  return (data ?? []) as Project[];
+  return (data ?? []).map((row) => mapProjectRow(row as Record<string, unknown>));
+}
+
+export async function fetchProjectBySlug(slug: string): Promise<Project | null> {
+  const { data, error } = await supabase
+    .from('projects')
+    .select('*')
+    .eq('slug', slug)
+    .maybeSingle();
+  if (error) throw new Error(`Failed to fetch project: ${error.message}`);
+  if (!data) return null;
+  return mapProjectRow(data as Record<string, unknown>);
 }
 
 export async function fetchSocialLinks(): Promise<SocialLink[]> {

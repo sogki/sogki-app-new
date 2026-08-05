@@ -1,6 +1,7 @@
 import React from "react";
 import { motion } from "framer-motion";
 import ShinyText from "./ShinyText";
+import LiquidBackground from "./LiquidBackground";
 import { ChevronDown, Github } from "lucide-react";
 import { useSiteData } from "../context/SiteDataContext";
 import { getString } from "../lib/siteContent";
@@ -17,27 +18,16 @@ export const Hero: React.FC = () => {
   };
 
   return (
-    <section className="relative min-h-screen flex items-center justify-center px-6 pt-24 overflow-hidden">
-      {/* Subtle background elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {[...Array(5)].map((_, i) => (
-          <div
-            key={i}
-            className="absolute rounded-full blur-3xl opacity-20"
-            style={{
-              width: `${200 + i * 100}px`,
-              height: `${200 + i * 100}px`,
-              background: `radial-gradient(circle, ${
-                i % 2 === 0 ? 'rgba(147, 51, 234, 0.4)' : 'rgba(59, 130, 246, 0.4)'
-              } 0%, transparent 70%)`,
-              left: `${20 + i * 15}%`,
-              top: `${30 + i * 10}%`,
-            }}
-          />
-        ))}
+    <section className="relative flex min-h-screen items-center justify-center overflow-hidden px-6 pt-24">
+      <div className="absolute inset-0 z-0">
+        <LiquidBackground
+          intensity="medium"
+          colors={['#0a0a0a', '#1a1a2e', '#16213e', '#533483', '#7209b7']}
+          speed={1.2}
+        />
       </div>
 
-      <div className="text-center max-w-4xl mx-auto relative z-10">
+      <div className="relative z-10 mx-auto max-w-4xl text-center">
         {/* Japanese subtitle */}
         <motion.p
           className="text-purple-300 text-sm tracking-widest mb-4 font-light"
@@ -60,21 +50,20 @@ export const Hero: React.FC = () => {
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.3 }}
         >
-          {getString(siteContent, 'hero.subtitle', 'Full-stack engineer shipping production products end-to-end')}
+          {getString(siteContent, 'hero.subtitle', 'Software engineer & designer. I build products for collectors, gamers, and communities.')}
         </motion.p>
 
-        {/* Description - toned down entry motion */}
         <motion.div
-          className="text-xl md:text-2xl text-gray-300 mb-12 leading-relaxed"
+          className="mb-12 text-lg leading-relaxed text-gray-300 md:text-xl"
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.45, delay: 0.45 }}
         >
-          <p className="block mb-4">
+          <p className="mb-4 block">
             {getString(siteContent, 'hero.description_1', 'Crafting digital products that combine visual identity, real-world utility, and scalable architecture.')}
           </p>
-          <p className="text-purple-300 text-lg">
-            {getString(siteContent, 'hero.description_2', 'Production-ready work across companion apps, creator platforms, and community experiences.')}
+          <p className="text-base text-purple-300/90">
+            {getString(siteContent, 'hero.description_2', 'Currently focused on Binderly TCG — my main project for Pokémon collectors.')}
           </p>
         </motion.div>
 
@@ -91,23 +80,19 @@ export const Hero: React.FC = () => {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
-            <span className="relative z-10">{getString(siteContent, 'hero.cta_projects', 'View Projects')}</span>
+            <span className="relative z-10">{getString(siteContent, 'hero.cta_projects', 'View work')}</span>
             <motion.div
               className="absolute inset-0 bg-gradient-to-r from-blue-600 to-cyan-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
               initial={false}
             />
           </motion.button>
           <motion.a
-            href="#contact"
-            className="px-8 py-4 border-2 border-purple-400/50 rounded-full text-purple-300 hover:bg-purple-500/10 hover:border-purple-400 transition-all duration-150 hover:scale-[1.02] transform-gpu relative overflow-hidden group"
+            href="/graphic-design"
+            className="group relative transform-gpu overflow-hidden rounded-full border-2 border-purple-400/50 px-8 py-4 text-purple-300 transition-all duration-150 hover:scale-[1.02] hover:border-purple-400 hover:bg-purple-500/10"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
-            <span className="relative z-10">{getString(siteContent, 'hero.cta_contact', 'Get in Touch')}</span>
-            <motion.div
-              className="absolute inset-0 bg-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-              initial={false}
-            />
+            <span className="relative z-10">{getString(siteContent, 'hero.cta_design', 'Graphic design')}</span>
           </motion.a>
         </motion.div>
 
