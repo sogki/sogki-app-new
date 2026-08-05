@@ -1,4 +1,6 @@
-const FUNCTIONS_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`;
+import { SUPABASE_URL } from '../config/bootstrap';
+
+const FUNCTIONS_URL = `${SUPABASE_URL}/functions/v1`;
 
 export type ContactFormPayload = {
   name: string;
