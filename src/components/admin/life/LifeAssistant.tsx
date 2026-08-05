@@ -24,7 +24,7 @@ const BAND_COUNT = 32;
 const EI_NAME = 'Ei';
 
 const OFFLINE_REPLY =
-  "I've hit my cloud limit for now. Overview, Vanguard, and Weather still work offline — top up OpenAI billing and I'll be sharp again.";
+  "I've hit my cloud limit for now. Overview, Vanguard, and Weather still work offline — try again shortly and I'll be sharp again.";
 
 type SpeechRec = {
   continuous: boolean;
@@ -64,9 +64,10 @@ function pickRecorderMime(): string | undefined {
 type LifeAssistantProps = {
   payload: LifeDashboardPayload;
   expanded?: boolean;
+  onDashboardMutate?: () => void;
 };
 
-export default function LifeAssistant({ payload, expanded }: LifeAssistantProps) {
+export default function LifeAssistant({ payload, expanded, onDashboardMutate }: LifeAssistantProps) {
   const { toast } = useAdminToast();
   const [listening, setListening] = useState(false);
   const [speaking, setSpeaking] = useState(false);
@@ -400,6 +401,7 @@ export default function LifeAssistant({ payload, expanded }: LifeAssistantProps)
             context: buildContext(),
           });
           reply = chat.reply;
+          if (chat.didMutate) onDashboardMutate?.();
         } catch (e) {
           const msg = e instanceof Error ? e.message : '';
           if (isQuotaOrBillingError(msg)) {
@@ -605,7 +607,7 @@ export default function LifeAssistant({ payload, expanded }: LifeAssistantProps)
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -4 }}
                 transition={{ duration: 0.2 }}
-                className="text-sm leading-relaxed text-gray-300"
+                className="whitespace-pre-line text-left text-sm leading-relaxed text-gray-300"
               >
                 {statusCopy}
               </motion.p>

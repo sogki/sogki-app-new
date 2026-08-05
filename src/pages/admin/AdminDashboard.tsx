@@ -115,6 +115,18 @@ export default function AdminDashboard() {
     scheduleSave();
   };
 
+  const reloadQuiet = useCallback(async () => {
+    try {
+      const state = await fetchLifeDashboard();
+      setPayload(state.payload);
+      setLayout(state.layout);
+      latest.current = { payload: state.payload, layout: state.layout };
+      setError(null);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Failed to refresh dashboard');
+    }
+  }, [toast]);
+
   const onExpand = (id: DashboardWidgetId | null) => {
     const next = new URLSearchParams(searchParams);
     if (id) next.set('focus', id);
@@ -149,6 +161,7 @@ export default function AdminDashboard() {
           onLayoutChange={onLayoutChange}
           expandedId={expandedId}
           onExpand={onExpand}
+          onDashboardMutate={() => void reloadQuiet()}
         />
       )}
     </AdminPageLayout>

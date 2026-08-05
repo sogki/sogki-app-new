@@ -45,6 +45,11 @@ export type SpeakController = {
 /** Written "Ei" → spoken "Aye"; VUAG → Vanguard for clear TTS. */
 export function toSpokenText(text: string): string {
   return text
+    .replace(/^#{1,3}\s+/gm, '')
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/\*([^*]+)\*/g, '$1')
+    .replace(/`([^`]+)`/g, '$1')
+    .replace(/^[-*•]\s+/gm, '')
     .replace(/\bEi\b/g, 'Aye')
     .replace(/\bEI\b/g, 'Aye')
     .replace(/\bVUAG\.L\b/gi, 'Vanguard')

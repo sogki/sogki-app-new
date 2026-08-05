@@ -5,6 +5,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import * as jose from 'https://deno.land/x/jose@v5.2.0/index.ts';
 import { createHash } from 'node:crypto';
+import { extractAndStoreCvText, extractTextFromBytes } from '../_shared/cvTextExtract.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -96,6 +97,9 @@ Deno.serve(async (req) => {
       if (parts[0] === 'cvs' && parts[1] === 'upload' && req.method === 'POST') {
         return await handleCvUpload(supabase, req);
       }
+      if (parts[0] === 'cvs' && parts[2] === 'reextract' && req.method === 'POST') {
+        return await handleCvReextract(supabase, parts[1]);
+      }
       const body = req.method !== 'DELETE' ? await req.json().catch(() => ({})) : {};
       return await handleMutate(supabase, req.method, parts, body);
     }
@@ -185,11 +189,18 @@ async function handleGet(supabase: any, parts: string[], url: URL) {
       if (id === undefined || id === '') {
         const { data: cvRows, error: cvErr } = await supabase
           .from('cv_documents')
-          .select('*')
+          .select(
+            'id, title, file_name, file_path, preview_path, public_url, mime_type, size, notes, is_active, created_at, updated_at, extracted_at'
+          )
           .order('created_at', { ascending: false });
         if (cvErr) throw cvErr;
         const withUrls = await attachCvSignedUrls(supabase, cvRows ?? [], 60 * 60);
-        return json(withUrls);
+        return json(
+          withUrls.map((row: Record<string, unknown>) => ({
+            ...row,
+            has_text: Boolean(row.extracted_at),
+          }))
+        );
       }
       if (parts[2] === 'signed-url') {
         return await handleCvSignedUrl(supabase, id, url);
@@ -201,7 +212,10 @@ async function handleGet(supabase: any, parts: string[], url: URL) {
         .single();
       if (cvOneErr) throw cvOneErr;
       const [withUrl] = await attachCvSignedUrls(supabase, [cvRow], 60 * 60);
-      return json(withUrl);
+      return json({
+        ...withUrl,
+        has_text: Boolean(withUrl?.extracted_text || withUrl?.extracted_at),
+      });
     }
     case 'life_investments': {
       const symbol = (url.searchParams.get('symbol') || 'VUAG.L').toUpperCase();
@@ -412,8 +426,51 @@ async function handleCvUpload(supabase: any, req: Request) {
     return json({ error: error.message }, 400);
   }
 
-  const [withUrl] = await attachCvSignedUrls(supabase, [data], 60 * 60);
-  return json(withUrl);
+  let extracted_text = '';
+  let extracted_at: string | null = null;
+  try {
+    extracted_text = await extractTextFromBytes(
+      new Uint8Array(fileBytes),
+      contentType,
+      filename
+    );
+    extracted_at = new Date().toISOString();
+    await supabase
+      .from('cv_documents')
+      .update({ extracted_text: extracted_text || null, extracted_at })
+      .eq('id', data.id);
+  } catch (extractErr) {
+    console.error('CV extract-on-upload failed:', extractErr);
+  }
+
+  const [withUrl] = await attachCvSignedUrls(
+    supabase,
+    [{ ...data, extracted_text, extracted_at }],
+    60 * 60
+  );
+  return json({ ...withUrl, has_text: Boolean(extracted_text) });
+}
+
+async function handleCvReextract(supabase: any, id: string) {
+  if (!id) return json({ error: 'id required' }, 400);
+  const { data: row, error } = await supabase
+    .from('cv_documents')
+    .select('id, file_path, mime_type, file_name')
+    .eq('id', id)
+    .single();
+  if (error) return json({ error: error.message }, 404);
+  try {
+    const result = await extractAndStoreCvText(supabase, row);
+    return json({
+      id: row.id,
+      ok: true,
+      extracted_at: result.extracted_at,
+      chars: result.extracted_text.length,
+      has_text: result.extracted_text.length > 0,
+    });
+  } catch (e) {
+    return json({ error: e instanceof Error ? e.message : 'Extract failed' }, 500);
+  }
 }
 
 async function handleCvSignedUrl(supabase: any, id: string, url: URL) {

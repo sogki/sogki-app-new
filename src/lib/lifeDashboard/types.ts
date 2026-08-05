@@ -80,6 +80,14 @@ export type LifeNote = {
   updatedAt: string;
 };
 
+export type LifeReminder = {
+  id: string;
+  title: string;
+  dueAt?: string | null;
+  done: boolean;
+  createdAt: string;
+};
+
 export type LifeWeather = {
   location: string;
   temperatureC: number;
@@ -98,6 +106,7 @@ export type LifeDashboardData = {
   jobSearch: LifeJobSearch;
   projects: LifeProject[];
   notes: LifeNote[];
+  reminders: LifeReminder[];
   weather: LifeWeather;
   links: {
     portfolio: string;

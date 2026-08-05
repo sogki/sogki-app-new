@@ -58,6 +58,7 @@ export function normalizePayload(raw: unknown): LifeDashboardPayload {
     habits: Array.isArray(obj.habits) ? obj.habits : base.habits,
     projects: Array.isArray(obj.projects) ? obj.projects : base.projects,
     notes: Array.isArray(obj.notes) ? obj.notes : base.notes,
+    reminders: Array.isArray(obj.reminders) ? obj.reminders : base.reminders,
     reading: obj.reading ? { ...base.reading, ...obj.reading } : base.reading,
     jobSearch: obj.jobSearch ? { ...base.jobSearch, ...obj.jobSearch } : base.jobSearch,
     weather: obj.weather ? { ...base.weather, ...obj.weather } : base.weather,

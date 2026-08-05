@@ -33,6 +33,10 @@ verify_jwt = false
 [functions.ei-transcribe]
 verify_jwt = false
 
+# Ei vision (identify/translate) — uses custom admin JWT
+[functions.ei-vision]
+verify_jwt = false
+
 # Public portfolio contact form
 [functions.site-contact]
 verify_jwt = false

@@ -1,23 +1,22 @@
-import type { InvestmentSnapshot, LifeDashboardPayload } from './types';
+import type { InvestmentSnapshot, LifeDashboardPayload, LifeReminder } from './types';
 import { getInvested, loadVuagConfig } from './vuagConfig';
-import { resolveMarketSession, speakMarketSession } from './marketHours';
+import { marketSessionBadge, resolveMarketSession } from './marketHours';
 
-/** Conversational money phrasing for TTS. */
-export function speakMoney(value: number): string {
+/** Display money as £100.50 (readable in UI; TTS engines handle this fine). */
+export function speakMoney(value: number, digits = 2): string {
   const abs = Math.abs(value);
-  const pounds = Math.floor(abs);
-  const pence = Math.round((abs - pounds) * 100);
-  const sign = value < 0 ? 'minus ' : '';
-  if (pence <= 0) return `${sign}${pounds} pounds`;
-  if (pence === 1) return `${sign}${pounds} pounds and 1 pence`;
-  return `${sign}${pounds} pounds and ${pence} pence`;
+  const formatted = abs.toLocaleString('en-GB', {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+  });
+  return `${value < 0 ? '−' : ''}£${formatted}`;
 }
 
 export function speakPct(value: number): string {
   const rounded = Math.abs(value).toFixed(Math.abs(value) >= 10 ? 1 : 2);
-  if (value > 0.05) return `up about ${rounded} percent`;
-  if (value < -0.05) return `down about ${rounded} percent`;
-  return 'pretty much flat';
+  if (value > 0.05) return `+${rounded}%`;
+  if (value < -0.05) return `−${rounded}%`;
+  return 'flat';
 }
 
 function trendFromSeries(series: { value: number }[]): 'up' | 'down' | 'flat' {
@@ -29,79 +28,115 @@ function trendFromSeries(series: { value: number }[]): 'up' | 'down' | 'flat' {
   return delta > 0 ? 'up' : 'down';
 }
 
+function section(title: string, lines: string[]): string {
+  if (!lines.length) return '';
+  return [title, ...lines.map((l) => `• ${l}`)].join('\n');
+}
+
 export function buildInvestmentOverview(inv: InvestmentSnapshot | null): string {
   if (!inv || !(inv.price > 0)) {
-    return `I couldn't get a live Vanguard quote just now — refresh investments and ask me again.`;
+    return section('Vanguard', ['Live quote unavailable — refresh and try again.']);
   }
 
   const session = inv.marketSession ?? resolveMarketSession(inv.marketState);
-  const dayMove = speakPct(inv.dailyChangePct);
   const series = inv.series?.['1M']?.length
     ? inv.series['1M']
     : inv.series?.['1W']?.length
       ? inv.series['1W']
       : inv.series?.['1D'] ?? [];
   const chartTrend = trendFromSeries(series);
-  const chartPhrase =
+  const chartLine =
     chartTrend === 'up'
-      ? 'Over the last month, the chart has been drifting higher'
+      ? '1M trend: higher'
       : chartTrend === 'down'
-        ? 'Over the last month, the chart has been drifting lower'
-        : 'Over the last month, the chart has mostly been sideways';
+        ? '1M trend: lower'
+        : '1M trend: sideways';
 
-  const bits: string[] = [
-    `${speakMarketSession(session)}.`,
-    `Vanguard is ${dayMove} on the day, around ${speakMoney(inv.price)} a share.`,
+  const lines: string[] = [
+    marketSessionBadge(session).label,
+    `Day ${speakPct(inv.dailyChangePct)} · ${speakMoney(inv.price, 3)}/share`,
   ];
 
   if (inv.holdings > 0) {
-    bits.push(`That puts your portfolio at about ${speakMoney(inv.portfolioValue)}.`);
+    lines.push(`Portfolio ${speakMoney(inv.portfolioValue)}`);
     const invested = inv.invested ?? getInvested(loadVuagConfig());
     if (invested != null && invested > 0) {
       const pnl = inv.portfolioValue - invested;
-      bits.push(
-        pnl >= 0
-          ? `You're sitting on an unrealised gain of roughly ${speakMoney(pnl)}.`
-          : `You're down about ${speakMoney(Math.abs(pnl))} unrealised.`
-      );
+      lines.push(`Unrealised ${speakMoney(pnl)}`);
     }
     if (Math.abs(inv.todayGainLoss) >= 0.01) {
-      bits.push(
-        inv.todayGainLoss >= 0
-          ? `Today's move is worth about ${speakMoney(inv.todayGainLoss)}.`
-          : `Today's move costs you about ${speakMoney(Math.abs(inv.todayGainLoss))}.`
-      );
+      lines.push(`Today ${speakMoney(inv.todayGainLoss)}`);
     }
+  } else {
+    lines.push('No holdings set');
   }
 
-  bits.push(`${chartPhrase}.`);
-  return bits.join(' ');
+  lines.push(chartLine);
+  return section('Vanguard', lines);
 }
 
 export function buildWeatherOverview(payload: LifeDashboardPayload): string {
   const w = payload.weather;
+  if (!w?.location) return section('Weather', ['No weather data loaded.']);
+  const place = w.location.replace(/United Kingdom/i, 'UK');
+  const lines = [
+    `${w.condition} in ${place}`,
+    `Now ${w.temperatureC}°C · H ${w.highC}° / L ${w.lowC}°`,
+  ];
   const next = w.forecast?.[0];
-  const place = w.location.replace(/United Kingdom/i, 'the UK');
-  let line = `It's ${w.condition.toLowerCase()} in ${place}, around ${w.temperatureC} degrees — highs near ${w.highC}, lows around ${w.lowC}.`;
   if (next) {
-    line += ` Looking ahead to ${next.day}, it's shaping up ${next.condition.toLowerCase()} with a high of about ${next.highC}.`;
+    lines.push(`${next.day}: ${next.condition}, high ${next.highC}°`);
   }
-  return line;
+  return section('Weather', lines);
 }
 
 export function buildHabitsOverview(payload: LifeDashboardPayload): string {
   const habits = payload.habits ?? [];
   const done = habits.filter((h) => h.completed).length;
   const left = habits.filter((h) => !h.completed);
-  if (!habits.length) return `You haven't set up any habits yet.`;
-  if (!left.length) return `Nice one — you've cleared all ${done} habits for today.`;
-  if (left.length === 1) return `You've done ${done} of ${habits.length} habits. Still left: ${left[0]!.label}.`;
-  const names = left
-    .slice(0, 3)
-    .map((h) => h.label)
-    .join(', ');
-  const more = left.length > 3 ? `, plus ${left.length - 3} more` : '';
-  return `You've knocked out ${done} of ${habits.length} habits. Still on the list: ${names}${more}.`;
+  if (!habits.length) return section('Habits', ['None configured.']);
+  if (!left.length) return section('Habits', [`All ${done} done for today.`]);
+  const names = left.slice(0, 4).map((h) => h.label);
+  const more = left.length > 4 ? ` (+${left.length - 4} more)` : '';
+  return section('Habits', [
+    `${done} of ${habits.length} complete`,
+    `Left: ${names.join(', ')}${more}`,
+  ]);
+}
+
+function formatReminderLine(r: LifeReminder): string {
+  if (r.dueAt) {
+    const d = new Date(r.dueAt);
+    if (!Number.isNaN(d.getTime())) {
+      const label = d.toLocaleDateString('en-GB', {
+        weekday: 'short',
+        day: 'numeric',
+        month: 'short',
+      });
+      return `${r.title} · ${label}`;
+    }
+  }
+  return r.title;
+}
+
+export function buildRemindersOverview(payload: LifeDashboardPayload): string {
+  const reminders = (payload.reminders ?? []).filter((r) => !r.done);
+  if (!reminders.length) return section('Reminders', ['None open.']);
+  const lines = reminders.slice(0, 5).map((r) => formatReminderLine(r));
+  if (reminders.length > 5) lines.push(`+${reminders.length - 5} more`);
+  return section('Reminders', lines);
+}
+
+export function buildGoalsOverview(payload: LifeDashboardPayload): string {
+  const goals = payload.goals ?? [];
+  if (!goals.length) return '';
+  const lines = goals.slice(0, 3).map((g) => {
+    const cur = g.currency ?? '£';
+    const pct = g.target > 0 ? Math.round((g.current / g.target) * 100) : 0;
+    return `${g.title}: ${cur}${Math.round(g.current).toLocaleString('en-GB')} / ${cur}${Math.round(g.target).toLocaleString('en-GB')} (${pct}%)`;
+  });
+  if (goals.length > 3) lines.push(`+${goals.length - 3} more`);
+  return section('Goals', lines);
 }
 
 export function buildFullOverview(
@@ -109,10 +144,20 @@ export function buildFullOverview(
   inv: InvestmentSnapshot | null
 ): string {
   return [
-    `Here's a quick rundown.`,
+    'Overview',
+    '',
+    buildRemindersOverview(payload),
+    '',
     buildInvestmentOverview(inv),
-    buildWeatherOverview(payload),
+    '',
+    buildGoalsOverview(payload),
+    '',
     buildHabitsOverview(payload),
-    `Want me to dig into anything?`,
-  ].join(' ');
+    '',
+    buildWeatherOverview(payload),
+  ]
+    .filter(Boolean)
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
 }

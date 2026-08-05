@@ -140,6 +140,15 @@ export async function fetchLifeDashboardData(): Promise<LifeDashboardData> {
         updatedAt: '2026-08-03T16:00:00.000Z',
       },
     ],
+    reminders: [
+      {
+        id: 'r1',
+        title: 'UC appointment — bring bank statements & job log',
+        dueAt: '2026-08-12T10:30:00.000Z',
+        done: false,
+        createdAt: '2026-08-03T16:00:00.000Z',
+      },
+    ],
     weather: {
       location: 'United Kingdom',
       temperatureC: 18,

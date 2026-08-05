@@ -208,6 +208,7 @@ export const adminApi = {
   createCv: (data: unknown) => adminApi.post('cvs', data),
   updateCv: (id: string, data: unknown) => adminApi.patch(`cvs/${id}`, data),
   deleteCv: (id: string) => adminApi.delete(`cvs/${id}`),
+  reextractCv: (id: string) => adminApi.post(`cvs/${id}/reextract`, {}),
   cvSignedUrl: (id: string, expiresIn = 3600) =>
     adminApi.get(`cvs/${id}/signed-url?expires_in=${expiresIn}`),
 
@@ -300,12 +301,12 @@ export const adminApi = {
     return { buffer: await res.arrayBuffer(), provider, voiceId };
   },
 
-  /** Ask Ei (LLM) for a spoken-style reply. */
+  /** Ask Ei (LLM) for a spoken-style reply. May mutate dashboard/CVs via tools. */
   eiChat: async (payload: {
     message: string;
     displayName?: string;
     context?: string;
-  }): Promise<{ reply: string }> => {
+  }): Promise<{ reply: string; didMutate?: boolean }> => {
     const token = getAdminToken();
     if (!token) throw new Error('Not authenticated');
     let res: Response;
@@ -329,7 +330,10 @@ export const adminApi = {
       ? (data as { reply: string }).reply.trim()
       : '';
     if (!reply) throw new Error('Empty reply from Ei');
-    return { reply };
+    return {
+      reply,
+      didMutate: Boolean((data as { didMutate?: boolean }).didMutate),
+    };
   },
 
   /** Transcribe a recorded utterance with OpenAI Whisper. */

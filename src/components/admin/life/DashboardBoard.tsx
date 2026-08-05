@@ -58,6 +58,7 @@ type DashboardBoardProps = {
   onLayoutChange: (next: DashboardLayout) => void;
   expandedId: DashboardWidgetId | null;
   onExpand: (id: DashboardWidgetId | null) => void;
+  onDashboardMutate?: () => void;
 };
 
 export default function DashboardBoard({
@@ -68,6 +69,7 @@ export default function DashboardBoard({
   onLayoutChange,
   expandedId,
   onExpand,
+  onDashboardMutate,
 }: DashboardBoardProps) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -101,7 +103,7 @@ export default function DashboardBoard({
       case 'welcome':
         return <LifeWelcome displayName={payload.displayName} />;
       case 'assistant':
-        return <LifeAssistant payload={payload} expanded={expanded} />;
+        return <LifeAssistant payload={payload} expanded={expanded} onDashboardMutate={onDashboardMutate} />;
       case 'investments':
         return <LifeInvestments fallback={investmentFallback} expanded={expanded} />;
       case 'goals':
