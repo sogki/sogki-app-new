@@ -21,6 +21,7 @@ export function defaultPayload(): LifeDashboardPayload {
     },
     projects: [],
     notes: [],
+    scans: [],
     reminders: [],
     weather: {
       location: '',
@@ -53,6 +54,9 @@ export function normalizeDashboard(data: unknown): LifeDashboardState {
       habits: Array.isArray(obj.habits) ? obj.habits : base.habits,
       projects: Array.isArray(obj.projects) ? obj.projects : base.projects,
       notes: Array.isArray(obj.notes) ? obj.notes : base.notes,
+      scans: Array.isArray((obj as { scans?: unknown }).scans)
+        ? ((obj as { scans: LifeDashboardPayload['scans'] }).scans)
+        : base.scans,
       reminders: Array.isArray((obj as { reminders?: unknown }).reminders)
         ? ((obj as { reminders: LifeDashboardPayload['reminders'] }).reminders)
         : base.reminders,

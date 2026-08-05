@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Card } from '@/src/components/ui/Card';
 import { SectionHeader } from '@/src/components/ui/SectionHeader';
@@ -9,6 +9,7 @@ import { colors, radius } from '@/src/theme/colors';
 type JobSearchCardProps = {
   jobSearch: LifeJobSearch;
   onChange: (jobSearch: LifeJobSearch) => void;
+  editRequest?: number;
 };
 
 const FIELDS: Array<{ key: keyof LifeJobSearch; label: string }> = [
@@ -18,7 +19,7 @@ const FIELDS: Array<{ key: keyof LifeJobSearch; label: string }> = [
   { key: 'rejected', label: 'Rejected' },
 ];
 
-export function JobSearchCard({ jobSearch, onChange }: JobSearchCardProps) {
+export function JobSearchCard({ jobSearch, onChange, editRequest }: JobSearchCardProps) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(jobSearch);
   const [ucDraft, setUcDraft] = useState(
@@ -36,6 +37,11 @@ export function JobSearchCard({ jobSearch, onChange }: JobSearchCardProps) {
     );
     setEditing(true);
   };
+
+  useEffect(() => {
+    if (editRequest && editRequest > 0) startEdit();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editRequest]);
 
   const save = () => {
     const upcomingUcAppointment = /^\d{4}-\d{2}-\d{2}$/.test(ucDraft.trim())
@@ -56,9 +62,11 @@ export function JobSearchCard({ jobSearch, onChange }: JobSearchCardProps) {
       <SectionHeader
         title="Job Search"
         action={
-          <Pressable onPress={() => (editing ? save() : startEdit())}>
-            <Text style={styles.editLink}>{editing ? 'Save' : 'Edit'}</Text>
-          </Pressable>
+          editing ? (
+            <Pressable onPress={save} hitSlop={8}>
+              <Text style={styles.editLink}>Save</Text>
+            </Pressable>
+          ) : null
         }
       />
       <Card>
@@ -115,7 +123,7 @@ export function JobSearchCard({ jobSearch, onChange }: JobSearchCardProps) {
           </Text>
         ) : null}
         {!editing && !jobSearch.upcomingUcAppointment ? (
-          <Text style={styles.appointmentMuted}>No UC appointment set — tap Edit</Text>
+          <Text style={styles.appointmentMuted}>No UC appointment set — use ⋯ → Edit</Text>
         ) : null}
       </Card>
     </View>

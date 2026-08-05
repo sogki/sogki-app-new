@@ -55,6 +55,7 @@ export default function RootLayout() {
           <Stack.Screen name="login" />
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="tools/cvs" options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen name="tools/scans" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="tools/blogs" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="tools/packs" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="tools/binders" options={{ animation: 'slide_from_right' }} />

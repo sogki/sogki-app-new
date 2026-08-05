@@ -30,6 +30,7 @@ import LifeReadingWidget from './LifeReading';
 import LifeJobSearchWidget from './LifeJobSearch';
 import LifeProjects from './LifeProjects';
 import LifeNotes from './LifeNotes';
+import LifeScans from './LifeScans';
 import LifeWeatherWidget from './LifeWeather';
 import LifeSiteTools from './LifeSiteTools';
 import LifeQuickActions from './LifeQuickActions';
@@ -45,6 +46,7 @@ const TITLES: Record<DashboardWidgetId, string> = {
   jobSearch: 'Job Search',
   projects: 'Projects',
   notes: 'Notes',
+  scans: 'Scans',
   weather: 'Weather',
   siteTools: 'Site tools',
   quickActions: 'Quick Actions',
@@ -157,6 +159,14 @@ export default function DashboardBoard({
             expanded={expanded}
           />
         );
+      case 'scans':
+        return (
+          <LifeScans
+            scans={payload.scans ?? []}
+            onChange={(scans) => patchPayload({ scans })}
+            expanded={expanded}
+          />
+        );
       case 'weather':
         return <LifeWeatherWidget weather={payload.weather} />;
       case 'siteTools':
@@ -172,7 +182,7 @@ export default function DashboardBoard({
     <>
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
         <SortableContext items={order} strategy={rectSortingStrategy}>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-2 xl:grid-cols-4">
             {order.map((id) => {
               const span = (spans[id] ?? 1) as DashboardWidgetSpan;
               return (

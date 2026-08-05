@@ -15,6 +15,7 @@ export function defaultDashboardLayout(): DashboardLayout {
       'jobSearch',
       'projects',
       'notes',
+      'scans',
       'weather',
       'siteTools',
       'quickActions',
@@ -29,6 +30,7 @@ export function defaultDashboardLayout(): DashboardLayout {
       jobSearch: 1,
       projects: 2,
       notes: 2,
+      scans: 2,
       weather: 1,
       siteTools: 2,
       quickActions: 1,
@@ -105,6 +107,7 @@ export function defaultLifeDashboardPayload(): LifeDashboardPayload {
         updatedAt: '2026-08-03T16:00:00.000Z',
       },
     ],
+    scans: [],
     reminders: [
       {
         id: 'r1',

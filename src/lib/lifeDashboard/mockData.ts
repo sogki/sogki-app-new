@@ -140,6 +140,7 @@ export async function fetchLifeDashboardData(): Promise<LifeDashboardData> {
         updatedAt: '2026-08-03T16:00:00.000Z',
       },
     ],
+    scans: [],
     reminders: [
       {
         id: 'r1',

@@ -80,6 +80,22 @@ export type LifeNote = {
   updatedAt: string;
 };
 
+export type LifeScan = {
+  id: string;
+  title: string;
+  text: string;
+  createdAt: string;
+  source?: 'camera' | 'library' | 'qr';
+  mode?: 'ocr' | 'qr' | 'barcode' | 'identify' | 'translate';
+  /** Compressed JPEG data URL for the captured camera/library frame (optional). */
+  imageDataUrl?: string | null;
+  /** Catalog / product lookup image URL (barcode scans). */
+  productImageUrl?: string | null;
+  locationLabel?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+};
+
 export type LifeReminder = {
   id: string;
   title: string;
@@ -106,6 +122,7 @@ export type LifeDashboardData = {
   jobSearch: LifeJobSearch;
   projects: LifeProject[];
   notes: LifeNote[];
+  scans: LifeScan[];
   reminders: LifeReminder[];
   weather: LifeWeather;
   links: {
@@ -130,6 +147,7 @@ export type DashboardWidgetId =
   | 'jobSearch'
   | 'projects'
   | 'notes'
+  | 'scans'
   | 'weather'
   | 'siteTools'
   | 'quickActions';

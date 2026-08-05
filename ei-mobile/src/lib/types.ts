@@ -76,6 +76,24 @@ export type LifeNote = {
   updatedAt: string;
 };
 
+/** OCR / QR capture saved from Camera → Tools → Scans. */
+export type LifeScan = {
+  id: string;
+  title: string;
+  text: string;
+  createdAt: string;
+  source?: 'camera' | 'library' | 'qr';
+  mode?: 'ocr' | 'qr' | 'barcode' | 'identify' | 'translate';
+  /** Compressed JPEG data URL for the captured camera/library frame (optional). */
+  imageDataUrl?: string | null;
+  /** Catalog / product lookup image URL (barcode scans). */
+  productImageUrl?: string | null;
+  /** Human-readable place name from reverse geocode. */
+  locationLabel?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+};
+
 export type LifeReminder = {
   id: string;
   title: string;
@@ -101,6 +119,7 @@ export type LifeDashboardPayload = {
   jobSearch: LifeJobSearch;
   projects: LifeProject[];
   notes: LifeNote[];
+  scans: LifeScan[];
   reminders: LifeReminder[];
   weather: LifeWeather;
   links: {
@@ -119,6 +138,8 @@ export type LifeDashboardState = {
   layout: {
     order: string[];
     spans: Record<string, number>;
+    /** Section ids hidden from the mobile dashboard (still in order). */
+    hidden?: string[];
   };
 };
 

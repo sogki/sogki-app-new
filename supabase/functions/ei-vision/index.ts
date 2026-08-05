@@ -74,7 +74,8 @@ async function handleVision(req: Request) {
   }
 
   const body = await req.json().catch(() => ({} as Record<string, unknown>));
-  const mode = body.mode === 'translate' ? 'translate' : 'identify';
+  const mode =
+    body.mode === 'translate' ? 'translate' : body.mode === 'ocr' ? 'ocr' : 'identify';
   let imageBase64 = typeof body.imageBase64 === 'string' ? body.imageBase64.trim() : '';
   if (!imageBase64) return json({ error: 'imageBase64 is required' }, 400);
 
@@ -89,7 +90,21 @@ async function handleVision(req: Request) {
   }
 
   const prompt =
-    mode === 'translate'
+    mode === 'ocr'
+      ? [
+          'You are a pure OCR engine. Transcribe ALL readable text from the image.',
+          'Rules:',
+          '- Output ONLY the transcribed text — no commentary.',
+          '- Reflow soft line wraps into natural sentences and paragraphs.',
+          '- Use a blank line between paragraphs.',
+          '- Keep real list items as separate lines starting with • ',
+          '- Keep short section titles on their own line when they are clear headings.',
+          '- Do NOT put one word per line. Do NOT break mid-sentence unless the source is a list.',
+          '- Do not summarize, translate, or identify objects.',
+          '- If no readable text is present, reply with exactly: (no text found)',
+          'Never mention Google, Gemini, or that you are an AI.',
+        ].join('\n')
+      : mode === 'translate'
       ? [
           'You are Ei, a pocket translator for a private personal app.',
           'Read any visible text in the image.',

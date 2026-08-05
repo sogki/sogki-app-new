@@ -1,13 +1,14 @@
-import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useState } from 'react';
 import { Button } from '@/src/components/ui/Button';
 import { GradientBackground } from '@/src/components/ui/GradientBackground';
 import { useAuth } from '@/src/context/AuthContext';
 import { colors } from '@/src/theme/colors';
 
 export default function LoginScreen() {
+  const insets = useSafeAreaInsets();
   const { login } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -25,30 +26,36 @@ export default function LoginScreen() {
   };
 
   return (
-    <GradientBackground style={styles.container}>
+    <GradientBackground vivid style={styles.container}>
       <StatusBar style="light" />
-      <View style={styles.content}>
-        <View style={styles.iconWrap}>
-          <Ionicons name="shield-checkmark" size={48} color={colors.accentLight} />
+      <View
+        style={[
+          styles.inner,
+          { paddingTop: insets.top + 48, paddingBottom: insets.bottom + 28 },
+        ]}
+      >
+        <View style={styles.hero}>
+          <Text style={styles.kicker}>Private access</Text>
+          <Text style={styles.brand}>Ei</Text>
+          <View style={styles.rule} />
+          <Text style={styles.tagline}>Personal command system</Text>
+          <Text style={styles.subtitle}>
+            Dashboards, camera tools, and site ops — one authenticated surface for you.
+          </Text>
         </View>
-        <Text style={styles.brand}>Ei</Text>
-        <Text style={styles.tagline}>Personal Command System</Text>
-        <Text style={styles.subtitle}>
-          Your pocket access point to dashboards, projects, and tools.
-        </Text>
 
-        <View style={styles.actions}>
+        <View style={styles.footer}>
           <Button
-            label="Login with Discord"
+            label={loading ? 'Connecting…' : 'Continue with Discord'}
             onPress={handleLogin}
             loading={loading}
+            style={styles.cta}
           />
           {error ? <Text style={styles.error}>{error}</Text> : null}
+          <Text style={styles.fine}>
+            Authorised Discord account only. Session stays on this device.
+          </Text>
         </View>
-
-        <Text style={styles.footer}>
-          Private access only. Authorised Discord account required.
-        </Text>
       </View>
     </GradientBackground>
   );
@@ -56,63 +63,75 @@ export default function LoginScreen() {
 
 const styles = StyleSheet.create({
   container: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
+    flex: 1,
   },
-  content: {
+  inner: {
+    flex: 1,
+    paddingHorizontal: 28,
+    justifyContent: 'space-between',
+  },
+  hero: {
+    flex: 1,
+    justifyContent: 'center',
+    maxWidth: 420,
+    alignSelf: 'center',
     width: '100%',
-    maxWidth: 360,
-    alignItems: 'center',
   },
-  iconWrap: {
-    width: 88,
-    height: 88,
-    borderRadius: 24,
-    backgroundColor: 'rgba(139,92,246,0.15)',
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 24,
+  kicker: {
+    color: colors.accentLight,
+    fontSize: 12,
+    fontWeight: '600',
+    letterSpacing: 2.4,
+    textTransform: 'uppercase',
+    marginBottom: 18,
   },
   brand: {
     color: colors.text,
-    fontSize: 48,
+    fontSize: 72,
     fontWeight: '700',
-    letterSpacing: 8,
+    letterSpacing: 10,
     fontFamily: 'SpaceMono',
+    lineHeight: 80,
+  },
+  rule: {
+    width: 48,
+    height: 2,
+    backgroundColor: colors.accent,
+    marginTop: 18,
+    marginBottom: 18,
+    borderRadius: 1,
   },
   tagline: {
-    color: colors.accentLight,
-    fontSize: 13,
-    letterSpacing: 3,
-    textTransform: 'uppercase',
-    marginTop: 8,
+    color: colors.text,
+    fontSize: 20,
+    fontWeight: '600',
+    letterSpacing: -0.3,
   },
   subtitle: {
     color: colors.textSecondary,
     fontSize: 15,
-    textAlign: 'center',
-    lineHeight: 22,
-    marginTop: 20,
-    marginBottom: 40,
+    lineHeight: 23,
+    marginTop: 12,
+    maxWidth: 340,
   },
-  actions: {
+  footer: {
     width: '100%',
-    gap: 12,
-    alignItems: 'center',
+    maxWidth: 420,
+    alignSelf: 'center',
+    gap: 14,
+  },
+  cta: {
+    width: '100%',
   },
   error: {
     color: colors.danger,
     fontSize: 13,
     textAlign: 'center',
   },
-  footer: {
+  fine: {
     color: colors.textMuted,
     fontSize: 12,
     textAlign: 'center',
-    marginTop: 32,
     lineHeight: 18,
   },
 });

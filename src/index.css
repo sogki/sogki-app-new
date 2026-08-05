@@ -79,6 +79,36 @@ body {
   background: rgba(147, 51, 234, 0.5);
 }
 
+/* Ei chat thread — visible scrollbar so long conversations feel scrollable */
+.ei-chat-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(167, 139, 250, 0.55) rgba(255, 255, 255, 0.06);
+}
+
+.ei-chat-scroll::-webkit-scrollbar {
+  display: block;
+  width: 8px;
+}
+
+.ei-chat-scroll::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 999px;
+  margin: 4px 0;
+}
+
+.ei-chat-scroll::-webkit-scrollbar-thumb {
+  background: rgba(167, 139, 250, 0.45);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.ei-chat-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(167, 139, 250, 0.7);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
 
 /* Global motion tuning */
 :root {

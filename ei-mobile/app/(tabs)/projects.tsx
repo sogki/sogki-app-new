@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   Linking,
   Pressable,
-  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -13,6 +12,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Badge } from '@/src/components/ui/Badge';
 import { Card } from '@/src/components/ui/Card';
+import { AppRefreshControl, RefreshBanner } from '@/src/components/ui/AppRefreshControl';
 import { GradientBackground } from '@/src/components/ui/GradientBackground';
 import { LoadingState } from '@/src/components/ui/LoadingState';
 import { SectionHeader } from '@/src/components/ui/SectionHeader';
@@ -80,10 +80,10 @@ export default function ProjectsScreen() {
           { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 100 },
         ]}
         refreshControl={
-          <RefreshControl
+          <AppRefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor={colors.accent}
+            progressViewOffset={insets.top + 8}
           />
         }
       >
@@ -188,6 +188,7 @@ export default function ProjectsScreen() {
           </View>
         )}
       </ScrollView>
+      <RefreshBanner visible={refreshing} label="Refreshing projects…" />
     </GradientBackground>
   );
 }

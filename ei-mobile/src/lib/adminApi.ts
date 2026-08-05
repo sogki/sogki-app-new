@@ -221,7 +221,7 @@ export const adminApi = {
 
   eiVision: async (payload: {
     imageBase64: string;
-    mode: 'identify' | 'translate';
+    mode: 'identify' | 'translate' | 'ocr';
   }): Promise<{ reply: string; mode: string }> => {
     const token = await getAdminToken();
     if (!token) throw new Error('Not authenticated');

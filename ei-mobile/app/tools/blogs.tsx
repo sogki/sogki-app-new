@@ -3,7 +3,6 @@ import {
   Alert,
   Image,
   Pressable,
-  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -13,6 +12,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Badge } from '@/src/components/ui/Badge';
 import { Card } from '@/src/components/ui/Card';
+import { AppRefreshControl, RefreshBanner } from '@/src/components/ui/AppRefreshControl';
 import { GradientBackground } from '@/src/components/ui/GradientBackground';
 import { LoadingState } from '@/src/components/ui/LoadingState';
 import { ToolScreenHeader } from '@/src/components/ui/ToolScreenHeader';
@@ -69,7 +69,11 @@ export default function BlogsToolScreen() {
       <ScrollView
         contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + 32 }]}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} />
+          <AppRefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            progressViewOffset={insets.top + 8}
+          />
         }
       >
         {blogs.map((blog) => {
@@ -137,6 +141,7 @@ export default function BlogsToolScreen() {
           </Card>
         ) : null}
       </ScrollView>
+      <RefreshBanner visible={refreshing} label="Refreshing blogs…" />
     </GradientBackground>
   );
 }

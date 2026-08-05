@@ -29,7 +29,7 @@ function trendFromSeries(series: { value: number }[]): 'up' | 'down' | 'flat' {
 
 function section(title: string, lines: string[]): string {
   if (!lines.length) return '';
-  return [title, ...lines.map((l) => `• ${l}`)].join('\n');
+  return [`## ${title}`, ...lines.map((l) => `• ${l}`)].join('\n');
 }
 
 export function buildInvestmentOverview(inv: InvestmentSnapshot | null): string {
@@ -150,7 +150,7 @@ export function buildFullOverview(
   weatherOverride?: LifeWeather | null
 ): string {
   return [
-    'Overview',
+    '# Overview',
     '',
     buildRemindersOverview(payload),
     '',

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Pressable,
   ScrollView,
   StyleSheet,
   Switch,
@@ -9,13 +10,13 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAuth } from '@/src/context/AuthContext';
 import { Card } from '@/src/components/ui/Card';
 import { AppRefreshControl, RefreshBanner } from '@/src/components/ui/AppRefreshControl';
 import { GradientBackground } from '@/src/components/ui/GradientBackground';
 import { LoadingState } from '@/src/components/ui/LoadingState';
-import { ToolScreenHeader } from '@/src/components/ui/ToolScreenHeader';
 import { adminApi } from '@/src/lib/adminApi';
-import { colors } from '@/src/theme/colors';
+import { colors, radius } from '@/src/theme/colors';
 
 type SiteContentItem = {
   id: string;
@@ -35,8 +36,9 @@ const FLAG_GROUPS: { label: string; keys: string[] }[] = [
   { label: 'Contact', keys: ['feature.show_contact'] },
 ];
 
-export default function SettingsToolScreen() {
+export default function SettingsTabScreen() {
   const insets = useSafeAreaInsets();
+  const { logout } = useAuth();
   const [items, setItems] = useState<SiteContentItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -84,12 +86,11 @@ export default function SettingsToolScreen() {
   return (
     <GradientBackground>
       <StatusBar style="light" />
-      <ToolScreenHeader
-        title="Settings"
-        subtitle="Feature flags for sogki.dev"
-      />
       <ScrollView
-        contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + 32 }]}
+        contentContainerStyle={[
+          styles.scroll,
+          { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 110 },
+        ]}
         refreshControl={
           <AppRefreshControl
             refreshing={refreshing}
@@ -98,6 +99,9 @@ export default function SettingsToolScreen() {
           />
         }
       >
+        <Text style={styles.title}>Settings</Text>
+        <Text style={styles.subtitle}>Feature flags · account</Text>
+
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
         {FLAG_GROUPS.map((group) => {
@@ -110,10 +114,7 @@ export default function SettingsToolScreen() {
                 {groupItems.map((item, i) => {
                   const on = item.value === true || item.value === 'true';
                   return (
-                    <View
-                      key={item.id}
-                      style={[styles.row, i > 0 && styles.rowBorder]}
-                    >
+                    <View key={item.id} style={[styles.row, i > 0 && styles.rowBorder]}>
                       <Text style={styles.label}>{item.label ?? item.key}</Text>
                       {saving === item.key ? (
                         <ActivityIndicator color={colors.accent} />
@@ -133,11 +134,12 @@ export default function SettingsToolScreen() {
           );
         })}
 
-        {items.length === 0 ? (
-          <Card>
-            <Text style={styles.empty}>No feature flags found</Text>
-          </Card>
-        ) : null}
+        <Card style={styles.accountCard}>
+          <Text style={styles.groupTitle}>Account</Text>
+          <Pressable style={styles.logoutBtn} onPress={() => void logout()}>
+            <Text style={styles.logoutText}>Log out</Text>
+          </Pressable>
+        </Card>
       </ScrollView>
       <RefreshBanner visible={refreshing} label="Refreshing settings…" />
     </GradientBackground>
@@ -146,14 +148,17 @@ export default function SettingsToolScreen() {
 
 const styles = StyleSheet.create({
   scroll: { paddingHorizontal: 16, gap: 16 },
+  title: { color: colors.text, fontSize: 28, fontWeight: '700', letterSpacing: -0.4 },
+  subtitle: { color: colors.textSecondary, fontSize: 13, marginTop: -8, marginBottom: 4 },
   error: { color: colors.danger, fontSize: 13, textAlign: 'center' },
   group: { gap: 8 },
   groupTitle: {
     color: colors.textSecondary,
-    fontSize: 13,
-    fontWeight: '600',
+    fontSize: 12,
+    fontWeight: '700',
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 0.6,
+    marginBottom: 4,
   },
   card: { paddingVertical: 4 },
   row: {
@@ -164,5 +169,15 @@ const styles = StyleSheet.create({
   },
   rowBorder: { borderTopWidth: 1, borderTopColor: colors.borderSubtle },
   label: { color: colors.text, fontSize: 15, flex: 1, paddingRight: 12 },
-  empty: { color: colors.textMuted, textAlign: 'center', paddingVertical: 16 },
+  accountCard: { gap: 10 },
+  logoutBtn: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: radius.full,
+    backgroundColor: 'rgba(239,68,68,0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(239,68,68,0.35)',
+  },
+  logoutText: { color: colors.danger, fontSize: 14, fontWeight: '600' },
 });

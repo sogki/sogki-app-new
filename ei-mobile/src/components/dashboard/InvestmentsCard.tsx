@@ -22,9 +22,10 @@ const RANGES: InvestmentRange[] = ['1D', '1W', '1M', '6M', '1Y', 'ALL'];
 
 type InvestmentsCardProps = {
   initial?: InvestmentSnapshot | null;
+  editRequest?: number;
 };
 
-export function InvestmentsCard({ initial }: InvestmentsCardProps) {
+export function InvestmentsCard({ initial, editRequest }: InvestmentsCardProps) {
   const [range, setRange] = useState<InvestmentRange>('1M');
   const [data, setData] = useState<InvestmentSnapshot | null>(initial ?? null);
   const [loading, setLoading] = useState(!initial);
@@ -54,6 +55,17 @@ export function InvestmentsCard({ initial }: InvestmentsCardProps) {
     void load(range);
   }, [load, range]);
 
+  const startEdit = () => {
+    setHoldingsDraft(String(data?.holdings ?? 0));
+    setInvestedDraft(data?.invested != null ? String(data.invested) : '');
+    setEditing(true);
+  };
+
+  useEffect(() => {
+    if (editRequest && editRequest > 0) startEdit();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editRequest]);
+
   const points = data?.series[range] ?? [];
   const invested = data?.invested;
   const unrealized =
@@ -74,12 +86,6 @@ export function InvestmentsCard({ initial }: InvestmentsCardProps) {
 
   const session = data?.marketSession ?? resolveMarketSession(data?.marketState);
   const marketBadge = marketSessionBadge(session);
-
-  const startEdit = () => {
-    setHoldingsDraft(String(data?.holdings ?? 0));
-    setInvestedDraft(data?.invested != null ? String(data.invested) : '');
-    setEditing(true);
-  };
 
   const saveHoldings = async () => {
     const holdings = Number(holdingsDraft);
@@ -116,15 +122,15 @@ export function InvestmentsCard({ initial }: InvestmentsCardProps) {
         subtitle="VUAG · LSE"
         action={
           <View style={styles.headerActions}>
-            <Pressable
-              onPress={() => (editing ? void saveHoldings() : startEdit())}
-              hitSlop={8}
-              disabled={saving}
-            >
-              <Text style={styles.editLink}>
-                {saving ? 'Saving…' : editing ? 'Save' : 'Edit'}
-              </Text>
-            </Pressable>
+            {editing ? (
+              <Pressable
+                onPress={() => void saveHoldings()}
+                hitSlop={8}
+                disabled={saving}
+              >
+                <Text style={styles.editLink}>{saving ? 'Saving…' : 'Save'}</Text>
+              </Pressable>
+            ) : null}
             <Pressable
               onPress={() => void load(range)}
               hitSlop={8}

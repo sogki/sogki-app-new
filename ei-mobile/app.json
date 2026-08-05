@@ -20,8 +20,8 @@
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSLocationWhenInUseUsageDescription": "Ei uses your location to answer where you are and look up nearby store hours.",
-        "NSCameraUsageDescription": "Ei uses the camera to identify objects and translate text.",
-        "NSPhotoLibraryUsageDescription": "Ei can analyse photos you pick for identification or translation."
+        "NSCameraUsageDescription": "Ei uses the camera to scan text (OCR), identify objects, and translate.",
+        "NSPhotoLibraryUsageDescription": "Ei can scan text from photos or analyse them for identification and translation."
       }
     },
     "android": {
@@ -30,6 +30,7 @@
         "foregroundImage": "./assets/images/icon.png"
       },
       "package": "dev.sogki.ei",
+      "softwareKeyboardLayoutMode": "resize",
       "permissions": [
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION",

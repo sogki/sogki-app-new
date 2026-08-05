@@ -21,9 +21,12 @@ type NotesCardProps = {
 };
 
 export function NotesCard({ notes, onChange }: NotesCardProps) {
-  const [draft, setDraft] = useState('');
+  const [draftTitle, setDraftTitle] = useState('');
+  const [draftBody, setDraftBody] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState('');
   const [editBody, setEditBody] = useState('');
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const sorted = [...notes].sort((a, b) => {
     if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
@@ -31,18 +34,20 @@ export function NotesCard({ notes, onChange }: NotesCardProps) {
   });
 
   const addNote = () => {
-    const body = draft.trim();
-    if (!body) return;
+    const body = draftBody.trim();
+    const title = draftTitle.trim() || body.slice(0, 40) + (body.length > 40 ? '…' : '');
+    if (!body && !draftTitle.trim()) return;
     const note: LifeNote = {
       id: `note-${Date.now()}`,
-      title: body.slice(0, 40) + (body.length > 40 ? '…' : ''),
-      body,
+      title: title || 'Untitled',
+      body: body || title,
       pinned: false,
       updatedAt: new Date().toISOString(),
     };
     onChange([note, ...notes]);
-    setDraft('');
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setDraftTitle('');
+    setDraftBody('');
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
   const togglePin = (id: string) => {
@@ -57,19 +62,22 @@ export function NotesCard({ notes, onChange }: NotesCardProps) {
 
   const startEdit = (note: LifeNote) => {
     setEditingId(note.id);
+    setEditTitle(note.title);
     setEditBody(note.body);
+    setExpandedId(note.id);
   };
 
   const saveEdit = (id: string) => {
     const body = editBody.trim();
-    if (!body) return;
+    const title = editTitle.trim() || body.slice(0, 40) + (body.length > 40 ? '…' : '');
+    if (!body && !title) return;
     onChange(
       notes.map((n) =>
         n.id === id
           ? {
               ...n,
-              body,
-              title: body.slice(0, 40) + (body.length > 40 ? '…' : ''),
+              title: title || 'Untitled',
+              body: body || title,
               updatedAt: new Date().toISOString(),
             }
           : n
@@ -91,20 +99,27 @@ export function NotesCard({ notes, onChange }: NotesCardProps) {
 
   return (
     <View>
-      <SectionHeader title="Notes" subtitle={`${notes.length} total`} />
+      <SectionHeader title="Notes" subtitle={`${notes.length} total · pin · expand · edit`} />
       <Card>
         <TextInput
+          style={styles.titleInput}
+          value={draftTitle}
+          onChangeText={setDraftTitle}
+          placeholder="Title (optional)"
+          placeholderTextColor={colors.textMuted}
+        />
+        <TextInput
           style={styles.input}
-          value={draft}
-          onChangeText={setDraft}
-          placeholder="Quick note…"
+          value={draftBody}
+          onChangeText={setDraftBody}
+          placeholder="Write a note…"
           placeholderTextColor={colors.textMuted}
           multiline
         />
         <Pressable
-          style={[styles.addBtn, !draft.trim() && styles.addDisabled]}
+          style={[styles.addBtn, !draftBody.trim() && !draftTitle.trim() && styles.addDisabled]}
           onPress={addNote}
-          disabled={!draft.trim()}
+          disabled={!draftBody.trim() && !draftTitle.trim()}
         >
           <Text style={styles.addText}>Add note</Text>
         </Pressable>
@@ -114,40 +129,80 @@ export function NotesCard({ notes, onChange }: NotesCardProps) {
         ) : (
           sorted.map((note, i) => {
             const editing = editingId === note.id;
+            const expanded = expandedId === note.id || editing;
             return (
               <View key={note.id} style={[styles.note, i > 0 && styles.noteBorder]}>
-                <View style={styles.noteHeader}>
-                  {editing ? (
+                {editing ? (
+                  <View style={styles.editBlock}>
                     <TextInput
-                      style={[styles.input, styles.editInput]}
+                      style={styles.titleInput}
+                      value={editTitle}
+                      onChangeText={setEditTitle}
+                      placeholder="Title"
+                      placeholderTextColor={colors.textMuted}
+                    />
+                    <TextInput
+                      style={styles.input}
                       value={editBody}
                       onChangeText={setEditBody}
                       multiline
                       autoFocus
                     />
-                  ) : (
-                    <Text style={styles.noteBody}>{note.body}</Text>
-                  )}
-                  <View style={styles.noteActions}>
-                    <Pressable
-                      onPress={() => (editing ? saveEdit(note.id) : startEdit(note))}
-                      hitSlop={8}
-                    >
-                      <Text style={styles.editLink}>{editing ? 'Save' : 'Edit'}</Text>
-                    </Pressable>
-                    <Pressable onPress={() => togglePin(note.id)} hitSlop={8}>
-                      <Ionicons
-                        name={note.pinned ? 'pin' : 'pin-outline'}
-                        size={16}
-                        color={note.pinned ? colors.accentLight : colors.textMuted}
-                      />
-                    </Pressable>
-                    <Pressable onPress={() => removeNote(note.id)} hitSlop={8}>
-                      <Ionicons name="trash-outline" size={16} color={colors.danger} />
-                    </Pressable>
+                    <View style={styles.editActions}>
+                      <Pressable onPress={() => setEditingId(null)}>
+                        <Text style={styles.linkMuted}>Cancel</Text>
+                      </Pressable>
+                      <Pressable onPress={() => saveEdit(note.id)}>
+                        <Text style={styles.link}>Save</Text>
+                      </Pressable>
+                    </View>
                   </View>
-                </View>
-                <Text style={styles.date}>{relativeDate(note.updatedAt)}</Text>
+                ) : (
+                  <>
+                    <Pressable
+                      onPress={() =>
+                        setExpandedId((id) => (id === note.id ? null : note.id))
+                      }
+                      style={styles.noteMain}
+                    >
+                      <View style={styles.noteHeader}>
+                        <Text style={styles.noteTitle} numberOfLines={expanded ? 3 : 1}>
+                          {note.pinned ? '📌 ' : ''}
+                          {note.title}
+                        </Text>
+                        <Ionicons
+                          name={expanded ? 'chevron-up' : 'chevron-down'}
+                          size={16}
+                          color={colors.textMuted}
+                        />
+                      </View>
+                      <Text
+                        style={styles.noteBody}
+                        numberOfLines={expanded ? undefined : 2}
+                      >
+                        {note.body}
+                      </Text>
+                    </Pressable>
+                    <View style={styles.footer}>
+                      <Text style={styles.date}>{relativeDate(note.updatedAt)}</Text>
+                      <View style={styles.noteActions}>
+                        <Pressable onPress={() => startEdit(note)} hitSlop={8}>
+                          <Text style={styles.link}>Edit</Text>
+                        </Pressable>
+                        <Pressable onPress={() => togglePin(note.id)} hitSlop={8}>
+                          <Ionicons
+                            name={note.pinned ? 'pin' : 'pin-outline'}
+                            size={16}
+                            color={note.pinned ? colors.accentLight : colors.textMuted}
+                          />
+                        </Pressable>
+                        <Pressable onPress={() => removeNote(note.id)} hitSlop={8}>
+                          <Ionicons name="trash-outline" size={16} color={colors.danger} />
+                        </Pressable>
+                      </View>
+                    </View>
+                  </>
+                )}
               </View>
             );
           })
@@ -158,8 +213,21 @@ export function NotesCard({ notes, onChange }: NotesCardProps) {
 }
 
 const styles = StyleSheet.create({
+  titleInput: {
+    minHeight: 42,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    color: colors.text,
+    fontSize: 14,
+    fontWeight: '600',
+    backgroundColor: colors.surfaceElevated,
+    marginBottom: 8,
+  },
   input: {
-    minHeight: 64,
+    minHeight: 72,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radius.md,
@@ -169,7 +237,6 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
     backgroundColor: colors.surfaceElevated,
   },
-  editInput: { flex: 1, minHeight: 56, marginRight: 8 },
   addBtn: {
     alignSelf: 'flex-end',
     marginTop: 8,
@@ -187,11 +254,32 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingVertical: 8,
   },
-  note: { paddingVertical: 10 },
+  note: { paddingVertical: 12 },
   noteBorder: { borderTopWidth: 1, borderTopColor: colors.borderSubtle },
-  noteHeader: { flexDirection: 'row', gap: 8 },
-  noteBody: { color: colors.text, fontSize: 14, lineHeight: 20, flex: 1 },
-  noteActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  editLink: { color: colors.accentLight, fontSize: 12, fontWeight: '600' },
-  date: { color: colors.textMuted, fontSize: 11, marginTop: 4 },
+  noteMain: { gap: 4 },
+  noteHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  noteTitle: { color: colors.text, fontSize: 15, fontWeight: '600', flex: 1 },
+  noteBody: { color: colors.textSecondary, fontSize: 14, lineHeight: 20 },
+  footer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 8,
+  },
+  noteActions: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  link: { color: colors.accentLight, fontSize: 12, fontWeight: '600' },
+  linkMuted: { color: colors.textMuted, fontSize: 12, fontWeight: '600' },
+  date: { color: colors.textMuted, fontSize: 11 },
+  editBlock: { gap: 0 },
+  editActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 16,
+    marginTop: 10,
+  },
 });

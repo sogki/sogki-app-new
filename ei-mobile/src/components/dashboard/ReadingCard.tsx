@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Card } from '@/src/components/ui/Card';
 import { SectionHeader } from '@/src/components/ui/SectionHeader';
@@ -9,9 +9,11 @@ import { colors, radius } from '@/src/theme/colors';
 type ReadingCardProps = {
   reading: LifeReading;
   onChange: (reading: LifeReading) => void;
+  /** Bump from widget menu to open editor. */
+  editRequest?: number;
 };
 
-export function ReadingCard({ reading, onChange }: ReadingCardProps) {
+export function ReadingCard({ reading, onChange, editRequest }: ReadingCardProps) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(reading);
 
@@ -21,6 +23,11 @@ export function ReadingCard({ reading, onChange }: ReadingCardProps) {
     setDraft(reading);
     setEditing(true);
   };
+
+  useEffect(() => {
+    if (editRequest && editRequest > 0) startEdit();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editRequest]);
 
   const save = () => {
     onChange({
@@ -38,9 +45,11 @@ export function ReadingCard({ reading, onChange }: ReadingCardProps) {
         title="Reading"
         subtitle={`${reading.booksCompleted} books completed`}
         action={
-          <Pressable onPress={() => (editing ? save() : startEdit())}>
-            <Text style={styles.editLink}>{editing ? 'Save' : 'Edit'}</Text>
-          </Pressable>
+          editing ? (
+            <Pressable onPress={save} hitSlop={8}>
+              <Text style={styles.editLink}>Save</Text>
+            </Pressable>
+          ) : null
         }
       />
       <Card>
@@ -108,7 +117,7 @@ export function ReadingCard({ reading, onChange }: ReadingCardProps) {
             </Text>
           </>
         ) : (
-          <Text style={styles.empty}>No book set — tap Edit</Text>
+          <Text style={styles.empty}>No book set — use ⋯ → Edit reading</Text>
         )}
       </Card>
     </View>

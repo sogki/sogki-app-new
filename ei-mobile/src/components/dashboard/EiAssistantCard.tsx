@@ -1,12 +1,16 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Keyboard,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
+  type NativeSyntheticEvent,
+  type TextInputContentSizeChangeEventData,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Card } from '@/src/components/ui/Card';
@@ -66,28 +70,50 @@ export function EiAssistantCard({
       text: [
         "Hello — I'm Ei.",
         '',
-        'Type anything: CVs, job search, habits, Vanguard, store hours…',
-        'I can read your saved CVs and update the life dashboard when you ask.',
+        'Ask about CVs, jobs, habits, Vanguard, or store hours.',
+        'I can update your life dashboard when you ask.',
       ].join('\n'),
     },
   ]);
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
+  const [inputHeight, setInputHeight] = useState(44);
   const scrollRef = useRef<ScrollView>(null);
+  const composerY = useRef(0);
+
+  const scrollThreadEnd = () => {
+    requestAnimationFrame(() => {
+      scrollRef.current?.scrollToEnd({ animated: true });
+    });
+  };
+
+  const scrollComposerIntoView = () => {
+    setTimeout(() => {
+      scrollRef.current?.scrollToEnd({ animated: true });
+    }, 120);
+  };
+
+  useEffect(() => {
+    const show = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      () => scrollComposerIntoView()
+    );
+    return () => show.remove();
+  }, []);
 
   const push = (role: Message['role'], text: string) => {
     setMessages((prev) => [...prev, { id: `${Date.now()}-${role}-${Math.random()}`, role, text }]);
-    setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 50);
+    setTimeout(scrollThreadEnd, 40);
   };
 
   const ask = async (message: string) => {
     const trimmed = message.trim();
     if (!trimmed || busy) return;
     setInput('');
+    setInputHeight(44);
     push('you', trimmed);
     setBusy(true);
     try {
-      // Prefer on-device answers for practical / dashboard questions — except CV/apply/writes
       if (!prefersCloudTools(trimmed)) {
         const local = await tryLocalEiReply(trimmed, ctx);
         if (local) {
@@ -112,6 +138,7 @@ export function EiAssistantCard({
       }
     } finally {
       setBusy(false);
+      scrollComposerIntoView();
     }
   };
 
@@ -157,22 +184,16 @@ export function EiAssistantCard({
       build: () => buildWeatherOverview(payload, weather),
     },
     {
+      id: 'cvs',
+      label: 'CV advice',
+      kind: 'ask',
+      prompt: 'Where should I apply based on my saved CVs?',
+    },
+    {
       id: 'city',
       label: 'My city',
       kind: 'ask',
       prompt: 'What city am I in?',
-    },
-    {
-      id: 'ip',
-      label: 'My IP',
-      kind: 'ask',
-      prompt: "What's my IP?",
-    },
-    {
-      id: 'time',
-      label: 'Time',
-      kind: 'ask',
-      prompt: 'What time is it?',
     },
     {
       id: 'hours',
@@ -180,17 +201,18 @@ export function EiAssistantCard({
       kind: 'ask',
       prompt: 'What time does Asda close in Nottingham?',
     },
-    {
-      id: 'postcode',
-      label: 'Store address',
-      kind: 'ask',
-      prompt: "What's the postcode for Home Bargains in Nottingham?",
-    },
   ];
+
+  const onContentSizeChange = (
+    e: NativeSyntheticEvent<TextInputContentSizeChangeEventData>
+  ) => {
+    const h = Math.min(120, Math.max(44, e.nativeEvent.contentSize.height + 16));
+    setInputHeight(h);
+  };
 
   return (
     <View>
-      <SectionHeader title="Ei" subtitle="Ask freely · works offline too" />
+      <SectionHeader title="Ei" subtitle="Chat · dashboard & CVs" />
       <Card style={styles.card}>
         <ScrollView
           ref={scrollRef}
@@ -198,6 +220,9 @@ export function EiAssistantCard({
           contentContainerStyle={styles.threadContent}
           nestedScrollEnabled
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          onScrollBeginDrag={Keyboard.dismiss}
+          onContentSizeChange={scrollThreadEnd}
         >
           {messages.map((msg) => (
             <View
@@ -230,35 +255,47 @@ export function EiAssistantCard({
           keyboardShouldPersistTaps="handled"
         >
           {chips.map((chip) => (
-            <Chip
+            <Pressable
               key={chip.id}
-              label={chip.label}
               onPress={() => {
+                Keyboard.dismiss();
                 if (chip.kind === 'briefing') briefing(chip.prompt, chip.build());
                 else void ask(chip.prompt);
               }}
-            />
+              style={styles.chip}
+            >
+              <Text style={styles.chipText}>{chip.label}</Text>
+            </Pressable>
           ))}
         </ScrollView>
 
-        <View style={styles.composer}>
+        <View
+          style={styles.composer}
+          onLayout={(e) => {
+            composerY.current = e.nativeEvent.layout.y;
+          }}
+        >
           <TextInput
-            style={styles.input}
+            style={[styles.input, { height: inputHeight }]}
             value={input}
             onChangeText={setInput}
-            placeholder="Ask anything — city, IP, hours, habits…"
+            onContentSizeChange={onContentSizeChange}
+            onFocus={scrollComposerIntoView}
+            placeholder="Message Ei…"
             placeholderTextColor={colors.textMuted}
             editable={!busy}
             returnKeyType="send"
-            blurOnSubmit
+            blurOnSubmit={false}
             multiline
-            onSubmitEditing={() => {
-              if (input.trim()) void ask(input);
-            }}
+            textAlignVertical="top"
+            onSubmitEditing={() => void ask(input)}
           />
           <Pressable
             style={[styles.send, (!input.trim() || busy) && styles.sendDisabled]}
-            onPress={() => void ask(input)}
+            onPress={() => {
+              Keyboard.dismiss();
+              void ask(input);
+            }}
             disabled={!input.trim() || busy}
           >
             <Ionicons name="send" size={16} color={colors.text} />
@@ -269,32 +306,23 @@ export function EiAssistantCard({
   );
 }
 
-function Chip({ label, onPress }: { label: string; onPress: () => void }) {
-  return (
-    <Pressable onPress={onPress} style={styles.chip}>
-      <Text style={styles.chipText}>{label}</Text>
-    </Pressable>
-  );
-}
-
 const styles = StyleSheet.create({
   card: { gap: 12, paddingVertical: 14 },
-  thread: { maxHeight: 320 },
-  threadContent: { gap: 10, paddingBottom: 4 },
+  thread: { maxHeight: 620, minHeight: 360 },
+  threadContent: { gap: 12, paddingBottom: 8, paddingHorizontal: 2 },
   bubble: {
-    borderRadius: 14,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    maxWidth: '94%',
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    width: '100%',
+    maxWidth: '100%',
   },
   bubbleEi: {
-    alignSelf: 'flex-start',
     backgroundColor: 'rgba(139,92,246,0.12)',
     borderWidth: 1,
     borderColor: 'rgba(139,92,246,0.25)',
   },
   bubbleYou: {
-    alignSelf: 'flex-end',
     backgroundColor: colors.surfaceElevated,
     borderWidth: 1,
     borderColor: colors.border,
@@ -305,12 +333,13 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 0.6,
     textTransform: 'uppercase',
-    marginBottom: 4,
+    marginBottom: 6,
   },
   bubbleText: {
     color: colors.text,
     fontSize: 14,
-    lineHeight: 21,
+    lineHeight: 22,
+    textAlign: 'left',
   },
   typing: {
     flexDirection: 'row',
@@ -345,24 +374,24 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     minHeight: 44,
-    maxHeight: 100,
     backgroundColor: colors.surfaceElevated,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: 18,
     paddingHorizontal: 14,
-    paddingVertical: 10,
+    paddingTop: 12,
+    paddingBottom: 12,
     color: colors.text,
-    fontSize: 14,
+    fontSize: 15,
+    lineHeight: 20,
   },
   send: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: colors.accent,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 2,
   },
   sendDisabled: {
     opacity: 0.4,

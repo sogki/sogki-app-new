@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   Linking,
   Pressable,
-  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -13,6 +12,7 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Card } from '@/src/components/ui/Card';
+import { AppRefreshControl, RefreshBanner } from '@/src/components/ui/AppRefreshControl';
 import { GradientBackground } from '@/src/components/ui/GradientBackground';
 import { LoadingState } from '@/src/components/ui/LoadingState';
 import { SectionHeader } from '@/src/components/ui/SectionHeader';
@@ -23,7 +23,7 @@ import { colors } from '@/src/theme/colors';
 
 type ToolItem = {
   id: string;
-  href: '/tools/cvs' | '/tools/blogs' | '/tools/packs' | '/tools/binders' | '/tools/settings';
+  href: '/tools/cvs' | '/tools/scans' | '/tools/blogs' | '/tools/packs' | '/tools/binders';
   icon: keyof typeof Ionicons.glyphMap;
   title: string;
   subtitle: string;
@@ -38,6 +38,7 @@ export default function ToolsScreen() {
   const [counts, setCounts] = useState({
     blogs: 0,
     cvs: 0,
+    scans: 0,
     packs: 0,
     binders: 0,
     masters: 0,
@@ -58,6 +59,7 @@ export default function ToolsScreen() {
     setCounts({
       blogs: Array.isArray(blogs) ? blogs.length : 0,
       cvs: Array.isArray(cvs) ? cvs.length : 0,
+      scans: Array.isArray(dash.payload?.scans) ? dash.payload.scans.length : 0,
       packs: Array.isArray(packs) ? packs.length : 0,
       binders: Array.isArray(binders) ? binders.length : 0,
       masters: Array.isArray(masters) ? masters.length : 0,
@@ -86,6 +88,14 @@ export default function ToolsScreen() {
       count: counts.cvs,
     },
     {
+      id: 'scans',
+      href: '/tools/scans',
+      icon: 'scan-outline',
+      title: 'Scans',
+      subtitle: 'OCR captures from Camera',
+      count: counts.scans,
+    },
+    {
       id: 'blogs',
       href: '/tools/blogs',
       icon: 'document-text-outline',
@@ -109,13 +119,6 @@ export default function ToolsScreen() {
       subtitle: 'Binders & master sets',
       count: counts.binders + counts.masters,
     },
-    {
-      id: 'settings',
-      href: '/tools/settings',
-      icon: 'settings-outline',
-      title: 'Settings',
-      subtitle: 'Site feature flags',
-    },
   ];
 
   const quickLinks = [
@@ -136,10 +139,10 @@ export default function ToolsScreen() {
           { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 100 },
         ]}
         refreshControl={
-          <RefreshControl
+          <AppRefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor={colors.accent}
+            progressViewOffset={insets.top + 8}
           />
         }
       >
@@ -185,6 +188,7 @@ export default function ToolsScreen() {
           <Text style={styles.logoutText}>Sign Out</Text>
         </Pressable>
       </ScrollView>
+      <RefreshBanner visible={refreshing} label="Refreshing tools…" />
     </GradientBackground>
   );
 }

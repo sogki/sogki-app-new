@@ -4,7 +4,6 @@ import {
   Dimensions,
   Image,
   Pressable,
-  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -14,6 +13,7 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Card } from '@/src/components/ui/Card';
+import { AppRefreshControl, RefreshBanner } from '@/src/components/ui/AppRefreshControl';
 import { GradientBackground } from '@/src/components/ui/GradientBackground';
 import { LoadingState } from '@/src/components/ui/LoadingState';
 import { SectionHeader } from '@/src/components/ui/SectionHeader';
@@ -89,7 +89,11 @@ export default function BindersToolScreen() {
       <ScrollView
         contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + 32 }]}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} />
+          <AppRefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            progressViewOffset={insets.top + 8}
+          />
         }
       >
         {masterSets.length > 0 ? (
@@ -192,6 +196,7 @@ export default function BindersToolScreen() {
           ) : null}
         </View>
       </ScrollView>
+      <RefreshBanner visible={refreshing} label="Refreshing collection…" />
     </GradientBackground>
   );
 }

@@ -3,7 +3,6 @@ import {
   Alert,
   Linking,
   Pressable,
-  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -14,6 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Badge } from '@/src/components/ui/Badge';
 import { Card } from '@/src/components/ui/Card';
+import { AppRefreshControl, RefreshBanner } from '@/src/components/ui/AppRefreshControl';
 import { GradientBackground } from '@/src/components/ui/GradientBackground';
 import { LoadingState } from '@/src/components/ui/LoadingState';
 import { ToolScreenHeader } from '@/src/components/ui/ToolScreenHeader';
@@ -64,7 +64,11 @@ export default function PacksToolScreen() {
       <ScrollView
         contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + 32 }]}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} />
+          <AppRefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            progressViewOffset={insets.top + 8}
+          />
         }
       >
         {packs.map((pack) => (
@@ -107,6 +111,7 @@ export default function PacksToolScreen() {
           </Card>
         ) : null}
       </ScrollView>
+      <RefreshBanner visible={refreshing} label="Refreshing packs…" />
     </GradientBackground>
   );
 }
