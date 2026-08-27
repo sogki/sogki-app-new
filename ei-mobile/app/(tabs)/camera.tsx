@@ -16,10 +16,7 @@ import {
   CameraView,
   useCameraPermissions,
   type BarcodeScanningResult,
-  type BarcodeType,
 } from 'expo-camera';
-import * as FileSystem from 'expo-file-system/legacy';
-import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
@@ -33,10 +30,20 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
-import { Card } from '@/src/components/ui/Card';
+import { ScanResultCard } from '@/src/components/camera/ScanResultCard';
 import { GradientBackground } from '@/src/components/ui/GradientBackground';
 import { MarkdownText } from '@/src/components/ui/MarkdownText';
+import { useLifeDashboard } from '@/src/context/LifeDashboardContext';
+import { usePendingEiAsk } from '@/src/context/PendingEiAskContext';
 import { adminApi } from '@/src/lib/adminApi';
+import {
+  CLASSIFY_MIN,
+  CODE_TYPES,
+  MAX_SCANS,
+  prepareVisionImage,
+  titleFromText,
+  type VisionMode,
+} from '@/src/lib/cameraVision';
 import {
   analyseQrPayload,
   riskLabel,
@@ -46,71 +53,37 @@ import { normalizeOcrText } from '@/src/lib/ocrText';
 import {
   isProductBarcodeType,
   lookupProductBarcode,
-  productKindLabel,
   productToScanText,
   type ProductLookup,
 } from '@/src/lib/productLookup';
 import { captureScanLocation, compressScanImage } from '@/src/lib/scanCapture';
+import {
+  buildScanFingerprint,
+  findScanMemory,
+  memoryBannerCopy,
+  productCategoryLabel,
+  productEmoji,
+  productInfoBullets,
+  qrInfoBullets,
+  relativeAgoLong,
+  textInfoBullets,
+  type ScanMemoryHit,
+} from '@/src/lib/scanMemory';
 import type { LifeScan } from '@/src/lib/types';
 import { colors, radius } from '@/src/theme/colors';
-
-type VisionMode = 'ocr' | 'code' | 'identify' | 'translate';
-
-const MAX_SCANS = 100;
-
-const CODE_TYPES: BarcodeType[] = [
-  'qr',
-  'ean13',
-  'ean8',
-  'upc_a',
-  'upc_e',
-  'code128',
-  'code39',
-  'itf14',
-  'codabar',
-];
-
-async function prepareVisionImage(uri: string): Promise<string> {
-  const manipulated = await ImageManipulator.manipulateAsync(
-    uri,
-    [{ resize: { width: 1280 } }],
-    {
-      compress: 0.55,
-      format: ImageManipulator.SaveFormat.JPEG,
-      base64: true,
-    }
-  );
-  if (manipulated.base64) return manipulated.base64;
-  return FileSystem.readAsStringAsync(manipulated.uri, {
-    encoding: FileSystem.EncodingType.Base64,
-  });
-}
-
-function titleFromText(text: string): string {
-  const line =
-    text
-      .split(/\r?\n/)
-      .map((l) => l.trim())
-      .find((l) => l && l !== '(no text found)') ?? 'Scan';
-  return line.length > 48 ? `${line.slice(0, 47)}…` : line;
-}
-
-function riskColor(risk: QrAnalysis['risk']) {
-  if (risk === 'high') return colors.danger;
-  if (risk === 'medium') return colors.warning;
-  if (risk === 'low') return colors.success;
-  return colors.textMuted;
-}
 
 export default function CameraScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { dashboard, refresh, savePayload } = useLifeDashboard();
+  const { setPendingEiAsk } = usePendingEiAsk();
   const { height: windowHeight } = useWindowDimensions();
   const cameraRef = useRef<CameraView>(null);
   const scanLockRef = useRef(false);
   const [permission, requestPermission] = useCameraPermissions();
-  const [mode, setMode] = useState<VisionMode>('ocr');
+  const [resolvedMode, setResolvedMode] = useState<VisionMode | 'qr' | 'barcode'>('ocr');
   const [busy, setBusy] = useState(false);
+  const [busyPhase, setBusyPhase] = useState<'classify' | 'analyse' | 'product' | null>(null);
   const [saving, setSaving] = useState(false);
   const [previewUri, setPreviewUri] = useState<string | null>(null);
   const [result, setResult] = useState<string | null>(null);
@@ -120,25 +93,31 @@ export default function CameraScreen() {
   const [resultSource, setResultSource] = useState<'camera' | 'library'>('camera');
   const [error, setError] = useState<string | null>(null);
   const [savedId, setSavedId] = useState<string | null>(null);
+  const [modePrompt, setModePrompt] = useState(false);
+  const [pendingUri, setPendingUri] = useState<string | null>(null);
+  const [classifyReason, setClassifyReason] = useState<string | null>(null);
+  const [memoryHit, setMemoryHit] = useState<ScanMemoryHit | null>(null);
+  const [compareOpen, setCompareOpen] = useState(false);
 
   const showingResult = Boolean(result || error || qrAnalysis || product);
-
-  // Large finder when idle; compact strip once results land.
-  const compactPreviewH = 128;
+  const tabClearance = 110 + Math.max(insets.bottom, 8);
+  const headerBlock = insets.top + 58;
+  const compactPreviewH = 120;
   const idlePreviewH = Math.round(
     Math.min(
-      Math.max(windowHeight - (insets.top + insets.bottom + 250), 340),
-      windowHeight * 0.62
+      Math.max(windowHeight - headerBlock - tabClearance - 8, 300),
+      windowHeight * 0.7
     )
   );
   const previewHeight = useSharedValue(idlePreviewH);
 
   useEffect(() => {
-    previewHeight.value = withTiming(showingResult ? compactPreviewH : idlePreviewH, {
-      duration: 440,
+    const next = showingResult || modePrompt ? compactPreviewH : idlePreviewH;
+    previewHeight.value = withTiming(next, {
+      duration: 420,
       easing: Easing.out(Easing.cubic),
     });
-  }, [showingResult, idlePreviewH, compactPreviewH, previewHeight]);
+  }, [showingResult, modePrompt, idlePreviewH, compactPreviewH, previewHeight]);
 
   const previewAnimStyle = useAnimatedStyle(() => ({
     height: previewHeight.value,
@@ -154,12 +133,42 @@ export default function CameraScreen() {
     setError(null);
     setSavedId(null);
     setBusy(false);
+    setBusyPhase(null);
+    setModePrompt(false);
+    setPendingUri(null);
+    setClassifyReason(null);
+    setMemoryHit(null);
+    setCompareOpen(false);
+    setResolvedMode('ocr');
   };
 
-  const switchMode = (next: VisionMode) => {
-    setMode(next);
-    reset();
-  };
+  const refreshMemory = useCallback(
+    async (input: {
+      mode: LifeScan['mode'];
+      barcode?: string | null;
+      qrRaw?: string | null;
+      qrDestination?: string | null;
+      title?: string | null;
+      text?: string | null;
+    }) => {
+      const fingerprint = buildScanFingerprint(input);
+      if (!fingerprint) {
+        setMemoryHit(null);
+        return null;
+      }
+      try {
+        const dash = dashboard ?? (await refresh());
+        const scans = dash?.payload.scans ?? [];
+        const hit = findScanMemory(scans, fingerprint);
+        setMemoryHit(hit);
+        return hit;
+      } catch {
+        setMemoryHit(null);
+        return null;
+      }
+    },
+    [dashboard, refresh]
+  );
 
   const grabStill = async (): Promise<string | null> => {
     try {
@@ -184,20 +193,35 @@ export default function CameraScreen() {
     if (scanLockRef.current) return;
     scanLockRef.current = true;
     setScanLock(true);
+    setModePrompt(false);
+    setPendingUri(null);
+    setResolvedMode('qr');
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     const uri = await grabStill();
-    setQrAnalysis(analyseQrPayload(payload));
+    const analysis = analyseQrPayload(payload);
+    setQrAnalysis(analysis);
     setProduct(null);
     setResult(null);
     setError(null);
+    setCompareOpen(false);
     await finishWithStill(uri);
+    void refreshMemory({
+      mode: 'qr',
+      qrRaw: payload,
+      qrDestination: analysis.destination,
+      title: `QR · ${analysis.destination}`,
+    });
   };
 
   const applyProductBarcode = async (code: string) => {
     if (scanLockRef.current) return;
     scanLockRef.current = true;
     setScanLock(true);
+    setModePrompt(false);
+    setPendingUri(null);
+    setResolvedMode('barcode');
     setBusy(true);
+    setBusyPhase('product');
     setError(null);
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     const uri = await grabStill();
@@ -206,10 +230,17 @@ export default function CameraScreen() {
       setProduct(found);
       setQrAnalysis(null);
       setResult(null);
+      setCompareOpen(false);
       if (!found.found) {
         setError(`No product found for ${code}. You can still Save the barcode.`);
       }
       await finishWithStill(uri);
+      void refreshMemory({
+        mode: 'barcode',
+        barcode: code,
+        title: found.name,
+        text: productToScanText(found),
+      });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Product lookup failed');
       setProduct({
@@ -239,12 +270,12 @@ export default function CameraScreen() {
       await finishWithStill(uri);
     } finally {
       setBusy(false);
+      setBusyPhase(null);
     }
   };
 
   const onBarcodeScanned = (scan: BarcodeScanningResult) => {
-    // Only live-scan in Code mode so Scan/Identify/Translate stay shutter-driven.
-    if (mode !== 'code' || scanLockRef.current || busy || previewUri) return;
+    if (scanLockRef.current || busy || previewUri || modePrompt || showingResult) return;
     const data = typeof scan.data === 'string' ? scan.data.trim() : '';
     if (!data) return;
     const type = scan.type;
@@ -257,14 +288,52 @@ export default function CameraScreen() {
       void applyProductBarcode(data);
       return;
     }
-    // Fallback: treat unknown payloads as QR/text analysis
     void applyQr(data);
   };
 
-  const analyse = useCallback(
+  const runVision = useCallback(
     async (uri: string, nextMode: VisionMode, source: 'camera' | 'library') => {
-      if (nextMode === 'code') return;
       setBusy(true);
+      setBusyPhase('analyse');
+      setError(null);
+      setResult(null);
+      setQrAnalysis(null);
+      setProduct(null);
+      setSavedId(null);
+      setModePrompt(false);
+      setPendingUri(null);
+      setPreviewUri(uri);
+      setResultSource(source);
+      setResolvedMode(nextMode);
+      try {
+        const base64 = await prepareVisionImage(uri);
+        const { reply } = await adminApi.eiVision({
+          imageBase64: `data:image/jpeg;base64,${base64}`,
+          mode: nextMode,
+        });
+        const cleaned = nextMode === 'ocr' ? normalizeOcrText(reply) : reply.trim();
+        setResult(cleaned);
+        setCompareOpen(false);
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        void refreshMemory({
+          mode: nextMode,
+          title: titleFromText(cleaned),
+          text: cleaned,
+        });
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Vision failed');
+      } finally {
+        setBusy(false);
+        setBusyPhase(null);
+      }
+    },
+    [refreshMemory]
+  );
+
+  const classifyAndRun = useCallback(
+    async (uri: string, source: 'camera' | 'library') => {
+      setBusy(true);
+      setBusyPhase('classify');
       setError(null);
       setResult(null);
       setQrAnalysis(null);
@@ -272,54 +341,71 @@ export default function CameraScreen() {
       setSavedId(null);
       setPreviewUri(uri);
       setResultSource(source);
+      setModePrompt(false);
+      setPendingUri(null);
+      setClassifyReason(null);
       try {
         const base64 = await prepareVisionImage(uri);
-        const { reply } = await adminApi.eiVision({
+        const { decision } = await adminApi.eiVision({
           imageBase64: `data:image/jpeg;base64,${base64}`,
-          mode: nextMode === 'ocr' ? 'ocr' : nextMode,
+          mode: 'classify',
         });
-        const cleaned =
-          nextMode === 'ocr' ? normalizeOcrText(reply) : reply.trim();
-        setResult(cleaned);
-        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : 'Vision failed');
-      } finally {
+        const mode = decision?.mode;
+        const confidence = decision?.confidence ?? 0;
+        const reason = decision?.reason ?? null;
+        setClassifyReason(reason);
+
+        if (mode && confidence >= CLASSIFY_MIN) {
+          await runVision(uri, mode, source);
+          return;
+        }
+
         setBusy(false);
+        setBusyPhase(null);
+        setPendingUri(uri);
+        setModePrompt(true);
+        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      } catch (e) {
+        // If classify fails, fall back to manual pick rather than a hard error.
+        setBusy(false);
+        setBusyPhase(null);
+        setPendingUri(uri);
+        setModePrompt(true);
+        setClassifyReason(e instanceof Error ? e.message : 'Could not auto-detect');
       }
     },
-    []
+    [runVision]
   );
 
   const capture = async () => {
-    if (!cameraRef.current || busy || mode === 'code') return;
+    if (!cameraRef.current || busy || scanLockRef.current) return;
     try {
       const photo = await cameraRef.current.takePictureAsync({
         quality: 0.5,
         skipProcessing: false,
       });
       if (!photo?.uri) throw new Error('No photo captured');
-      await analyse(photo.uri, mode, 'camera');
+      await classifyAndRun(photo.uri, 'camera');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not capture');
     }
   };
 
   const pickFromLibrary = async () => {
-    if (mode === 'code') {
-      Alert.alert(
-        'Code scan',
-        'Point the live camera at a QR or product barcode — it scans automatically.'
-      );
-      return;
-    }
+    if (busy) return;
     const picked = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
       quality: 0.55,
       allowsEditing: false,
     });
     if (picked.canceled || !picked.assets?.[0]?.uri) return;
-    await analyse(picked.assets[0].uri, mode, 'library');
+    await classifyAndRun(picked.assets[0].uri, 'library');
+  };
+
+  const pickMode = (mode: VisionMode) => {
+    const uri = pendingUri || previewUri;
+    if (!uri) return;
+    void runVision(uri, mode, resultSource);
   };
 
   const saveScan = async () => {
@@ -338,10 +424,34 @@ export default function CameraScreen() {
         : result ?? '';
     if (!text.trim()) return;
 
+    const mode: LifeScan['mode'] =
+      resolvedMode === 'barcode'
+        ? 'barcode'
+        : resolvedMode === 'qr'
+          ? 'qr'
+          : resolvedMode === 'identify' || resolvedMode === 'translate'
+            ? resolvedMode
+            : 'ocr';
+    const title = product
+      ? product.name.slice(0, 48)
+      : qrAnalysis
+        ? `QR · ${qrAnalysis.destination.slice(0, 40)}`
+        : titleFromText(text);
+    const fingerprint =
+      buildScanFingerprint({
+        mode,
+        barcode: product?.barcode,
+        qrRaw: qrAnalysis?.raw,
+        qrDestination: qrAnalysis?.destination,
+        title,
+        text,
+      }) ?? undefined;
+
     setSaving(true);
     setError(null);
     try {
-      const dash = await adminApi.lifeDashboard();
+      const dash = dashboard ?? (await refresh());
+      if (!dash) throw new Error('Dashboard unavailable');
       const existing = Array.isArray(dash.payload.scans) ? dash.payload.scans : [];
       const location = await captureScanLocation();
       let imageDataUrl: string | undefined;
@@ -355,38 +465,71 @@ export default function CameraScreen() {
       const productImageUrl = product?.imageUrl
         ? product.imageUrl.replace(/^http:\/\//i, 'https://')
         : undefined;
-      const id = `scan_${Date.now()}`;
-      const entry: LifeScan = {
-        id,
-        title: product
-          ? product.name.slice(0, 48)
-          : qrAnalysis
-            ? `QR · ${qrAnalysis.destination.slice(0, 40)}`
-            : titleFromText(text),
-        text,
-        createdAt: new Date().toISOString(),
-        source: resultSource,
-        mode: product
-          ? 'barcode'
-          : qrAnalysis
-            ? 'qr'
-            : mode === 'identify' || mode === 'translate'
-              ? mode
-              : 'ocr',
-        ...(imageDataUrl ? { imageDataUrl } : {}),
-        ...(productImageUrl ? { productImageUrl } : {}),
-        ...(location
-          ? {
-              locationLabel: location.label,
-              latitude: location.latitude,
-              longitude: location.longitude,
-            }
-          : {}),
-      };
-      const next = [entry, ...existing].slice(0, MAX_SCANS);
-      await adminApi.saveLifeDashboard({
-        payload: { ...dash.payload, scans: next },
-      });
+      const now = new Date().toISOString();
+      const prior =
+        fingerprint != null ? findScanMemory(existing, fingerprint)?.scan : null;
+
+      let next: LifeScan[];
+      let id: string;
+
+      if (prior) {
+        id = prior.id;
+        const updated: LifeScan = {
+          ...prior,
+          title,
+          text,
+          mode,
+          source: resultSource,
+          fingerprint: fingerprint ?? prior.fingerprint,
+          lastSeenAt: now,
+          scanCount: Math.max(1, prior.scanCount ?? 1) + 1,
+          ...(imageDataUrl ? { imageDataUrl } : {}),
+          ...(productImageUrl
+            ? { productImageUrl }
+            : productImageUrl === undefined && prior.productImageUrl
+              ? {}
+              : {}),
+          ...(location
+            ? {
+                locationLabel: location.label,
+                latitude: location.latitude,
+                longitude: location.longitude,
+              }
+            : {}),
+        };
+        next = [updated, ...existing.filter((s) => s.id !== prior.id)].slice(0, MAX_SCANS);
+        setMemoryHit({
+          scan: updated,
+          fingerprint: updated.fingerprint ?? fingerprint!,
+          agoLabel: 'just now',
+          timesSeen: updated.scanCount ?? 1,
+        });
+      } else {
+        id = `scan_${Date.now()}`;
+        const entry: LifeScan = {
+          id,
+          title,
+          text,
+          createdAt: now,
+          lastSeenAt: now,
+          scanCount: 1,
+          source: resultSource,
+          mode,
+          ...(fingerprint ? { fingerprint } : {}),
+          ...(imageDataUrl ? { imageDataUrl } : {}),
+          ...(productImageUrl ? { productImageUrl } : {}),
+          ...(location
+            ? {
+                locationLabel: location.label,
+                latitude: location.latitude,
+                longitude: location.longitude,
+              }
+            : {}),
+        };
+        next = [entry, ...existing].slice(0, MAX_SCANS);
+      }
+
+      await savePayload({ ...dash.payload, scans: next });
       setSavedId(id);
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (e) {
@@ -394,6 +537,24 @@ export default function CameraScreen() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const askEiAboutScan = () => {
+    const title = product?.name
+      ?? (qrAnalysis ? qrAnalysis.destination : null)
+      ?? (result ? titleFromText(result) : 'this scan');
+    const memoryBit = memoryHit
+      ? ` I previously saved this ${memoryHit.agoLabel} (seen ${memoryHit.timesSeen} time${memoryHit.timesSeen === 1 ? '' : 's'}).`
+      : '';
+    const detail = product
+      ? productToScanText(product).slice(0, 350)
+      : qrAnalysis
+        ? `${qrAnalysis.summary}. Destination: ${qrAnalysis.destination}`
+        : (result ?? '').slice(0, 350);
+    setPendingEiAsk(
+      `Tell me about this scan: ${title}.${memoryBit} Details:\n${detail}`
+    );
+    router.push('/');
   };
 
   const openLink = async () => {
@@ -434,8 +595,7 @@ export default function CameraScreen() {
           <Ionicons name="camera-outline" size={40} color={colors.accentLight} />
           <Text style={styles.permTitle}>Camera access</Text>
           <Text style={styles.permBody}>
-            Ei uses the camera to scan text, QR codes, product barcodes, identify objects, and
-            translate.
+            Ei uses a universal scanner for text, QR codes, barcodes, objects, and translation.
           </Text>
           <Pressable style={styles.primaryBtn} onPress={() => void requestPermission()}>
             <Text style={styles.primaryBtnText}>Allow camera</Text>
@@ -449,15 +609,18 @@ export default function CameraScreen() {
   }
 
   const busyLabel =
-    mode === 'code'
-      ? 'Looking up product…'
-      : mode === 'ocr'
-        ? 'Scanning text…'
-        : mode === 'translate'
-          ? 'Reading text…'
-          : 'Identifying…';
+    busyPhase === 'classify'
+      ? 'Ei is deciding…'
+      : busyPhase === 'product'
+        ? 'Looking up product…'
+        : resolvedMode === 'ocr'
+          ? 'Scanning text…'
+          : resolvedMode === 'translate'
+            ? 'Translating…'
+            : 'Identifying…';
 
   const hasResultCard = Boolean(qrAnalysis || product || result);
+  const liveCamera = !previewUri && !showingResult && !modePrompt;
 
   return (
     <GradientBackground>
@@ -467,15 +630,14 @@ export default function CameraScreen() {
           styles.screen,
           {
             paddingTop: insets.top + 6,
-            paddingBottom: Math.max(insets.bottom, 8) + 88,
+            paddingBottom: tabClearance,
           },
         ]}
       >
-        {/* Header — fixed, always visible */}
         <View style={styles.topRow}>
           <View style={styles.topText}>
-            <Text style={styles.title}>Camera</Text>
-            <Text style={styles.subtitle}>Text · codes · identify · translate</Text>
+            <Text style={styles.title}>Scan</Text>
+            <Text style={styles.subtitle}>Ei picks the mode · QR & barcodes auto</Text>
           </View>
           <Pressable style={styles.libraryLink} onPress={() => router.push('/tools/scans')}>
             <Ionicons name="folder-open-outline" size={15} color={colors.accentLight} />
@@ -483,30 +645,19 @@ export default function CameraScreen() {
           </Pressable>
         </View>
 
-        {/* Mode chips — plain row (no horizontal ScrollView) so they never collapse */}
-        <View style={styles.modeRow}>
-          <ModeChip label="Scan" active={mode === 'ocr'} onPress={() => switchMode('ocr')} />
-          <ModeChip label="Code" active={mode === 'code'} onPress={() => switchMode('code')} />
-          <ModeChip
-            label="Identify"
-            active={mode === 'identify'}
-            onPress={() => switchMode('identify')}
-          />
-          <ModeChip
-            label="Translate"
-            active={mode === 'translate'}
-            onPress={() => switchMode('translate')}
-          />
-        </View>
-
-        {/* Camera / preview — large when idle, animates compact when results appear */}
         <Animated.View style={[styles.previewFrame, previewAnimStyle]}>
           {previewUri ? (
             <Image source={{ uri: previewUri }} style={styles.previewImage} />
           ) : showingResult ? (
             <View style={styles.previewPlaceholder}>
               <Ionicons
-                name={product ? 'barcode-outline' : qrAnalysis ? 'qr-code-outline' : 'image-outline'}
+                name={
+                  product
+                    ? 'barcode-outline'
+                    : qrAnalysis
+                      ? 'qr-code-outline'
+                      : 'image-outline'
+                }
                 size={32}
                 color={colors.textMuted}
               />
@@ -516,359 +667,353 @@ export default function CameraScreen() {
               ref={cameraRef}
               style={styles.camera}
               facing="back"
-              barcodeScannerSettings={
-                mode === 'code' ? { barcodeTypes: CODE_TYPES } : undefined
-              }
+              barcodeScannerSettings={{ barcodeTypes: CODE_TYPES }}
               onBarcodeScanned={
-                mode === 'code' && !scanLock && !previewUri ? onBarcodeScanned : undefined
+                liveCamera && !scanLock ? onBarcodeScanned : undefined
               }
             />
           )}
+
           {busy ? (
             <View style={styles.busyOverlay}>
               <ActivityIndicator color={colors.text} size="large" />
               <Text style={styles.busyText}>{busyLabel}</Text>
             </View>
           ) : null}
-          {!showingResult && !busy ? (
-            <View style={styles.hintOverlay} pointerEvents="none">
-              <Text style={styles.hintPill}>
-                {mode === 'code'
-                  ? 'Align QR or barcode — toys, TCG, books, food & more'
-                  : mode === 'ocr'
-                    ? 'Point at text, then tap shutter'
-                    : mode === 'translate'
-                      ? 'Point at foreign text, then tap shutter'
-                      : 'Point at an object, then tap shutter'}
-              </Text>
+
+          {/* Controls live ON the camera so they never sink under the tab bar */}
+          {!showingResult && !modePrompt ? (
+            <View style={styles.cameraControls} pointerEvents="box-none">
+              {!busy ? (
+                <Text style={styles.hintPill}>
+                  Point at anything — codes scan live, shutter for the rest
+                </Text>
+              ) : null}
+              <View style={styles.overlayActions}>
+                <Pressable
+                  style={styles.actionBtn}
+                  onPress={() => void pickFromLibrary()}
+                  disabled={busy}
+                >
+                  <Ionicons name="images-outline" size={16} color={colors.text} />
+                  <Text style={styles.actionBtnText}>Library</Text>
+                </Pressable>
+                <Pressable
+                  style={styles.shutter}
+                  onPress={() => void capture()}
+                  disabled={busy}
+                >
+                  <View style={styles.shutterInner} />
+                </Pressable>
+                <View style={styles.spacer} />
+              </View>
+            </View>
+          ) : null}
+
+          {showingResult && hasResultCard ? (
+            <View style={styles.cameraControls} pointerEvents="box-none">
+              <View style={styles.overlayActions}>
+                <Pressable
+                  style={styles.actionBtn}
+                  onPress={reset}
+                  disabled={busy || saving}
+                >
+                  <Ionicons name="refresh" size={16} color={colors.text} />
+                  <Text style={styles.actionBtnText}>Scan again</Text>
+                </Pressable>
+                <View style={styles.spacer} />
+              </View>
             </View>
           ) : null}
         </Animated.View>
 
-        {/* Actions */}
-        <View style={styles.actions}>
-          {showingResult && hasResultCard ? (
-            <>
-              <Pressable style={styles.actionBtn} onPress={reset} disabled={busy || saving}>
-                <Ionicons name="refresh" size={16} color={colors.text} />
-                <Text style={styles.actionBtnText}>
-                  {mode === 'code' ? 'Scan again' : 'Retake'}
-                </Text>
-              </Pressable>
-              <Pressable
-                style={[styles.saveBtn, savedId ? styles.saveBtnDone : null]}
-                onPress={() => void saveScan()}
-                disabled={saving || Boolean(savedId)}
-              >
-                {saving ? (
-                  <ActivityIndicator color={colors.text} size="small" />
-                ) : (
-                  <Ionicons
-                    name={savedId ? 'checkmark-circle' : 'save-outline'}
-                    size={16}
-                    color={colors.text}
-                  />
-                )}
-                <Text style={styles.saveBtnText}>{savedId ? 'Saved' : 'Save'}</Text>
-              </Pressable>
-            </>
-          ) : mode === 'code' ? (
-            <Text style={styles.liveHint}>Live code scanning — no shutter</Text>
-          ) : (
-            <>
-              <Pressable
-                style={styles.actionBtn}
-                onPress={() => void pickFromLibrary()}
-                disabled={busy}
-              >
-                <Ionicons name="images-outline" size={16} color={colors.text} />
-                <Text style={styles.actionBtnText}>Library</Text>
-              </Pressable>
-              <Pressable style={styles.shutter} onPress={() => void capture()} disabled={busy}>
-                <View style={styles.shutterInner} />
-              </Pressable>
-              <View style={styles.spacer} />
-            </>
-          )}
-        </View>
+        {modePrompt ? (
+          <Animated.View entering={FadeInDown.duration(280)} style={styles.promptCard}>
+            <Text style={styles.promptTitle}>Not sure what this is — pick a mode</Text>
+            {classifyReason ? (
+              <Text style={styles.promptReason}>{classifyReason}</Text>
+            ) : null}
+            <View style={styles.promptRow}>
+              <ModeChip label="Text" onPress={() => pickMode('ocr')} />
+              <ModeChip label="Identify" onPress={() => pickMode('identify')} />
+              <ModeChip label="Translate" onPress={() => pickMode('translate')} />
+            </View>
+            <Pressable style={styles.promptCancel} onPress={reset}>
+              <Text style={styles.promptCancelText}>Cancel</Text>
+            </Pressable>
+          </Animated.View>
+        ) : null}
 
-        {/* Results — slide in under the compacted camera */}
         {showingResult ? (
           <Animated.View
-            entering={FadeInDown.duration(380).delay(80)}
+            entering={FadeInDown.duration(360).delay(60)}
             style={styles.resultShell}
           >
             <ScrollView
               style={styles.resultScroll}
               contentContainerStyle={styles.resultScrollContent}
-              showsVerticalScrollIndicator={false}
+              showsVerticalScrollIndicator
               keyboardShouldPersistTaps="handled"
             >
-          {error && !product ? (
-            <Card style={styles.resultCard}>
-              <Text style={styles.errorText}>{error}</Text>
-            </Card>
-          ) : null}
-
-          {product ? (
-            <Card style={styles.resultCard}>
-              <View style={styles.resultHeader}>
-                <Text style={styles.resultLabel}>{productKindLabel(product.kind)}</Text>
-                {savedId ? (
-                  <Pressable onPress={() => router.push('/tools/scans')}>
-                    <Text style={styles.viewScans}>View in Tools →</Text>
-                  </Pressable>
-                ) : null}
-              </View>
-
-              {product.imageUrl ? (
-                <Image
-                  source={{ uri: product.imageUrl }}
-                  style={styles.productImage}
-                  resizeMode="contain"
-                />
-              ) : null}
-
-              <Text style={styles.productName} selectable>
-                {product.name}
-              </Text>
-              {product.authors ? (
-                <Text style={styles.metaText}>Author(s): {product.authors}</Text>
-              ) : null}
-              {product.brand ? (
-                <Text style={styles.metaText}>
-                  {product.kind === 'book' || product.kind === 'manga'
-                    ? `Publisher: ${product.brand}`
-                    : `Brand: ${product.brand}`}
-                </Text>
-              ) : null}
-              {product.quantity ? (
-                <Text style={styles.metaText}>
-                  {product.kind === 'book' || product.kind === 'manga'
-                    ? `Details: ${product.quantity}`
-                    : `Size / pack: ${product.quantity}`}
-                </Text>
-              ) : null}
-              <Text style={styles.metaText}>Barcode: {product.barcode}</Text>
-
-              {product.description ? (
-                <>
-                  <Text style={styles.sectionTitle}>About</Text>
-                  <Text style={styles.metaText}>{product.description}</Text>
-                </>
-              ) : null}
-
-              {product.categories ? (
-                <>
-                  <Text style={styles.sectionTitle}>Categories</Text>
-                  <Text style={styles.metaText}>{product.categories}</Text>
-                </>
-              ) : null}
-
-              {product.kind === 'medicine' ? (
-                <>
-                  {product.activeIngredients ? (
-                    <>
-                      <Text style={styles.sectionTitle}>Active ingredients</Text>
-                      <Text style={styles.bodyText} selectable>
-                        {product.activeIngredients}
-                      </Text>
-                    </>
-                  ) : null}
-                  {product.dosageForm ? (
-                    <Text style={styles.metaText}>Form: {product.dosageForm}</Text>
-                  ) : null}
-                  {product.route ? (
-                    <Text style={styles.metaText}>Route: {product.route}</Text>
-                  ) : null}
-                  {product.warnings ? (
-                    <Text style={styles.errorText}>{product.warnings}</Text>
-                  ) : null}
-                </>
-              ) : null}
-
-              {(product.nutriscore || product.nova != null) && (
-                <View style={styles.badgeRow}>
-                  {product.nutriscore ? (
-                    <View style={styles.infoBadge}>
-                      <Text style={styles.infoBadgeText}>Nutri-Score {product.nutriscore}</Text>
-                    </View>
-                  ) : null}
-                  {product.nova != null ? (
-                    <View style={styles.infoBadge}>
-                      <Text style={styles.infoBadgeText}>NOVA {product.nova}</Text>
-                    </View>
-                  ) : null}
+              {error && !product && !qrAnalysis && !result ? (
+                <View style={styles.errorBox}>
+                  <Text style={styles.errorText}>{error}</Text>
                 </View>
-              )}
-
-              {product.allergens ? (
-                <>
-                  <Text style={styles.sectionTitle}>Allergens</Text>
-                  <Text style={styles.metaText}>{product.allergens}</Text>
-                </>
               ) : null}
 
-              {product.ingredients ? (
-                <>
-                  <Text style={styles.sectionTitle}>Ingredients</Text>
-                  <Text style={styles.bodyText} selectable>
-                    {product.ingredients}
-                  </Text>
-                </>
-              ) : null}
-
-              {product.nutrition.length ? (
-                <>
-                  <Text style={styles.sectionTitle}>Nutrition (per 100g)</Text>
-                  {product.nutrition.map((row) => (
-                    <View key={row.label} style={styles.nutriRow}>
-                      <Text style={styles.nutriLabel}>{row.label}</Text>
-                      <Text style={styles.nutriValue}>
-                        {row.per100g}
-                        {row.perServing ? ` · serving ${row.perServing}` : ''}
+              {product ? (
+                <ScanResultCard
+                  title={product.name}
+                  emoji={productEmoji(product)}
+                  category={productCategoryLabel(product)}
+                  bullets={productInfoBullets(product)}
+                  memoryBanner={memoryHit ? memoryBannerCopy(memoryHit) : null}
+                  heroImageUrl={
+                    product.imageUrl
+                      ? product.imageUrl.replace(/^http:\/\//i, 'https://')
+                      : null
+                  }
+                  footerNote={
+                    product.found
+                      ? `Via ${productSourceLabel(product.source)}`
+                      : error ?? product.summary
+                  }
+                  actions={[
+                    {
+                      id: 'save',
+                      label: memoryHit
+                        ? savedId
+                          ? 'Updated'
+                          : 'Update memory'
+                        : savedId
+                          ? 'Saved'
+                          : 'Save',
+                      icon: 'save-outline',
+                      primary: !savedId,
+                      done: Boolean(savedId),
+                      disabled: saving || Boolean(savedId),
+                      onPress: () => void saveScan(),
+                    },
+                    ...(memoryHit
+                      ? [
+                          {
+                            id: 'compare',
+                            label: compareOpen ? 'Hide' : 'Compare',
+                            icon: 'swap-horizontal-outline' as const,
+                            onPress: () => setCompareOpen((v) => !v),
+                          },
+                        ]
+                      : []),
+                    {
+                      id: 'ask',
+                      label: 'Ask Ei',
+                      icon: 'chatbubble-ellipses-outline',
+                      onPress: askEiAboutScan,
+                    },
+                  ]}
+                >
+                  {compareOpen && memoryHit ? (
+                    <View style={styles.compareBox}>
+                      <Text style={styles.compareLabel}>Previously saved</Text>
+                      <Text style={styles.compareMeta}>
+                        First: {relativeAgoSafe(memoryHit.scan.createdAt)} · Seen{' '}
+                        {memoryHit.timesSeen}×
+                        {memoryHit.scan.locationLabel
+                          ? ` · ${memoryHit.scan.locationLabel}`
+                          : ''}
+                      </Text>
+                      <Text style={styles.compareBody} selectable>
+                        {memoryHit.scan.text.slice(0, 500)}
+                        {memoryHit.scan.text.length > 500 ? '…' : ''}
                       </Text>
                     </View>
-                  ))}
-                </>
+                  ) : null}
+                </ScanResultCard>
               ) : null}
 
-              {!product.found ? (
-                <Text style={styles.errorText}>{error ?? product.summary}</Text>
-              ) : (
-                <Text style={styles.sourceNote}>
-                  Via{' '}
-                  {product.source === 'openfoodfacts'
-                    ? 'Open Food Facts'
-                    : product.source === 'openbeautyfacts'
-                      ? 'Open Beauty Facts'
-                      : product.source === 'openproductsfacts'
-                        ? 'Open Products Facts'
-                        : product.source === 'openpetfoodfacts'
-                          ? 'Open Pet Food Facts'
-                          : product.source === 'upcitemdb'
-                            ? 'UPCitemdb'
-                            : product.source === 'openfda'
-                              ? 'openFDA (NDC)'
-                              : product.source === 'openlibrary'
-                                ? 'Open Library'
-                                : product.source === 'googlebooks'
-                                  ? 'Google Books'
-                                  : product.source === 'gs1-prefix'
-                                    ? 'Manufacturer barcode prefix'
-                                    : 'lookup'}
-                </Text>
-              )}
-            </Card>
-          ) : null}
-
-          {qrAnalysis ? (
-            <Card style={styles.resultCard}>
-              <View style={styles.resultHeader}>
-                <Text style={styles.resultLabel}>QR analysis</Text>
-                {savedId ? (
-                  <Pressable onPress={() => router.push('/tools/scans')}>
-                    <Text style={styles.viewScans}>View in Tools →</Text>
-                  </Pressable>
-                ) : null}
-              </View>
-
-              <View style={[styles.riskBadge, { borderColor: riskColor(qrAnalysis.risk) }]}>
-                <Text style={[styles.riskText, { color: riskColor(qrAnalysis.risk) }]}>
-                  {riskLabel(qrAnalysis.risk)}
-                </Text>
-              </View>
-
-              <Text style={styles.sectionTitle}>Destination</Text>
-              <Text style={styles.bodyText} selectable>
-                {qrAnalysis.destination}
-              </Text>
-
-              <Text style={styles.sectionTitle}>Summary</Text>
-              <Text style={styles.metaText}>{qrAnalysis.summary}</Text>
-
-              <Text style={styles.sectionTitle}>Brand match</Text>
-              <Text style={styles.metaText}>
-                {qrAnalysis.officialHints.length
-                  ? `Recognized: ${qrAnalysis.officialHints.join(', ')}`
-                  : 'No brand match in Ei’s list — common for campaign URLs, and not automatically unsafe.'}
-              </Text>
-
-              <Text style={styles.sectionTitle}>Safety notes</Text>
-              {qrAnalysis.riskReasons.map((reason) => (
-                <Text key={reason} style={styles.bullet}>
-                  • {reason}
-                </Text>
-              ))}
-
-              <Text style={styles.sectionTitle}>Raw payload</Text>
-              <Text style={styles.rawText} selectable>
-                {qrAnalysis.raw}
-              </Text>
-
-              {qrAnalysis.openUrl ? (
-                <Pressable style={styles.openBtn} onPress={() => void openLink()}>
-                  <Ionicons name="open-outline" size={18} color={colors.text} />
-                  <Text style={styles.openBtnText}>Open link</Text>
-                </Pressable>
+              {qrAnalysis && !product ? (
+                <ScanResultCard
+                  title={qrAnalysis.destination}
+                  emoji="🔗"
+                  category={`QR · ${riskLabel(qrAnalysis.risk)}`}
+                  bullets={qrInfoBullets(qrAnalysis)}
+                  memoryBanner={memoryHit ? memoryBannerCopy(memoryHit) : null}
+                  footerNote={qrAnalysis.kind === 'url' ? qrAnalysis.host ?? undefined : null}
+                  actions={[
+                    {
+                      id: 'save',
+                      label: memoryHit
+                        ? savedId
+                          ? 'Updated'
+                          : 'Update memory'
+                        : savedId
+                          ? 'Saved'
+                          : 'Save',
+                      icon: 'save-outline',
+                      primary: !savedId,
+                      done: Boolean(savedId),
+                      disabled: saving || Boolean(savedId),
+                      onPress: () => void saveScan(),
+                    },
+                    ...(memoryHit
+                      ? [
+                          {
+                            id: 'compare',
+                            label: compareOpen ? 'Hide' : 'Compare',
+                            icon: 'swap-horizontal-outline' as const,
+                            onPress: () => setCompareOpen((v) => !v),
+                          },
+                        ]
+                      : []),
+                    {
+                      id: 'ask',
+                      label: 'Ask Ei',
+                      icon: 'chatbubble-ellipses-outline',
+                      onPress: askEiAboutScan,
+                    },
+                    ...(qrAnalysis.openUrl
+                      ? [
+                          {
+                            id: 'open',
+                            label: 'Open',
+                            icon: 'open-outline' as const,
+                            onPress: () => void openLink(),
+                          },
+                        ]
+                      : []),
+                  ]}
+                >
+                  {compareOpen && memoryHit ? (
+                    <View style={styles.compareBox}>
+                      <Text style={styles.compareLabel}>Previously saved</Text>
+                      <Text style={styles.compareBody} selectable>
+                        {memoryHit.scan.text.slice(0, 400)}
+                      </Text>
+                    </View>
+                  ) : null}
+                </ScanResultCard>
               ) : null}
-            </Card>
-          ) : null}
 
-          {result && !qrAnalysis && !product ? (
-            <Card style={styles.resultCard}>
-              <View style={styles.resultHeader}>
-                <Text style={styles.resultLabel}>
-                  {mode === 'ocr'
-                    ? 'OCR text'
-                    : mode === 'translate'
-                      ? 'Translation'
-                      : 'Identification'}
-                </Text>
-                {savedId ? (
-                  <Pressable onPress={() => router.push('/tools/scans')}>
-                    <Text style={styles.viewScans}>View in Tools →</Text>
-                  </Pressable>
-                ) : null}
-              </View>
-              {mode === 'ocr' ? (
-                <Text style={styles.bodyText} selectable>
-                  {result}
-                </Text>
-              ) : (
-                <MarkdownText style={styles.bodyText}>{result}</MarkdownText>
-              )}
-            </Card>
-          ) : null}
+              {result && !qrAnalysis && !product ? (
+                <ScanResultCard
+                  title={titleFromText(result)}
+                  emoji={
+                    resolvedMode === 'translate'
+                      ? '🌐'
+                      : resolvedMode === 'identify'
+                        ? '🔍'
+                        : '📝'
+                  }
+                  category={
+                    resolvedMode === 'ocr'
+                      ? 'Text'
+                      : resolvedMode === 'translate'
+                        ? 'Translation'
+                        : 'Identification'
+                  }
+                  bullets={
+                    classifyReason
+                      ? [`Ei chose this · ${classifyReason}`, ...textInfoBullets(result)]
+                      : textInfoBullets(result)
+                  }
+                  memoryBanner={memoryHit ? memoryBannerCopy(memoryHit) : null}
+                  actions={[
+                    {
+                      id: 'save',
+                      label: memoryHit
+                        ? savedId
+                          ? 'Updated'
+                          : 'Update memory'
+                        : savedId
+                          ? 'Saved'
+                          : 'Save',
+                      icon: 'save-outline',
+                      primary: !savedId,
+                      done: Boolean(savedId),
+                      disabled: saving || Boolean(savedId),
+                      onPress: () => void saveScan(),
+                    },
+                    ...(memoryHit
+                      ? [
+                          {
+                            id: 'compare',
+                            label: compareOpen ? 'Hide' : 'Compare',
+                            icon: 'swap-horizontal-outline' as const,
+                            onPress: () => setCompareOpen((v) => !v),
+                          },
+                        ]
+                      : []),
+                    {
+                      id: 'ask',
+                      label: 'Ask Ei',
+                      icon: 'chatbubble-ellipses-outline',
+                      onPress: askEiAboutScan,
+                    },
+                  ]}
+                >
+                  {resolvedMode !== 'ocr' ? (
+                    <MarkdownText style={styles.bodyText}>{result}</MarkdownText>
+                  ) : result.split(/\r?\n/).length > 5 ? (
+                    <Text style={styles.bodyText} selectable>
+                      {result}
+                    </Text>
+                  ) : null}
+                  {compareOpen && memoryHit ? (
+                    <View style={styles.compareBox}>
+                      <Text style={styles.compareLabel}>Previously saved</Text>
+                      <Text style={styles.compareBody} selectable>
+                        {memoryHit.scan.text.slice(0, 500)}
+                      </Text>
+                    </View>
+                  ) : null}
+                </ScanResultCard>
+              ) : null}
             </ScrollView>
           </Animated.View>
-        ) : (
+        ) : !modePrompt ? (
           <Text style={styles.hint}>
-            Choose a mode above. Code looks up QR, barcodes, toys, Pokémon/TCG, books, manga, food,
-            meds, and more.
+            QR and barcodes scan automatically. Everything else uses the shutter — Ei picks text,
+            identify, or translate.
           </Text>
-        )}
+        ) : null}
       </View>
     </GradientBackground>
   );
 }
 
-function ModeChip({
-  label,
-  active,
-  onPress,
-}: {
-  label: string;
-  active: boolean;
-  onPress: () => void;
-}) {
+function productSourceLabel(source: ProductLookup['source']): string {
+  switch (source) {
+    case 'openfoodfacts':
+      return 'Open Food Facts';
+    case 'openbeautyfacts':
+      return 'Open Beauty Facts';
+    case 'openproductsfacts':
+      return 'Open Products Facts';
+    case 'openpetfoodfacts':
+      return 'Open Pet Food Facts';
+    case 'upcitemdb':
+      return 'UPCitemdb';
+    case 'openfda':
+      return 'openFDA';
+    case 'openlibrary':
+      return 'Open Library';
+    case 'googlebooks':
+      return 'Google Books';
+    case 'gs1-prefix':
+      return 'Manufacturer barcode prefix';
+    default:
+      return 'lookup';
+  }
+}
+
+function relativeAgoSafe(iso: string): string {
+  return relativeAgoLong(iso);
+}
+
+function ModeChip({ label, onPress }: { label: string; onPress: () => void }) {
   return (
-    <Pressable
-      onPress={onPress}
-      style={[styles.modeChip, active && styles.modeChipActive]}
-      hitSlop={4}
-    >
-      <Text style={[styles.modeChipText, active && styles.modeChipTextActive]}>{label}</Text>
+    <Pressable onPress={onPress} style={styles.modeChip} hitSlop={4}>
+      <Text style={styles.modeChipText}>{label}</Text>
     </Pressable>
   );
 }
@@ -920,38 +1065,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     ...(Platform.OS === 'android' ? { includeFontPadding: false } : null),
   },
-  modeRow: {
-    flexDirection: 'row',
-    flexWrap: 'nowrap',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: 10,
-    height: 34,
-  },
-  modeChip: {
-    height: 32,
-    paddingHorizontal: 12,
-    borderRadius: radius.full,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surfaceElevated,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  modeChipActive: {
-    borderColor: colors.accent,
-    backgroundColor: 'rgba(139,92,246,0.22)',
-  },
-  modeChipText: {
-    color: colors.textSecondary,
-    fontSize: 12,
-    fontWeight: '600',
-    lineHeight: 14,
-    ...(Platform.OS === 'android' ? { includeFontPadding: false } : null),
-  },
-  modeChipTextActive: {
-    color: colors.accentLight,
-  },
   previewFrame: {
     borderRadius: radius.lg,
     overflow: 'hidden',
@@ -979,14 +1092,17 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   busyText: { color: colors.text, fontSize: 13, fontWeight: '500' },
-  hintOverlay: {
+  cameraControls: {
     position: 'absolute',
-    left: 10,
-    right: 10,
-    bottom: 10,
-    alignItems: 'center',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: 12,
+    paddingBottom: 12,
+    gap: 8,
   },
   hintPill: {
+    alignSelf: 'center',
     color: colors.text,
     fontSize: 11,
     fontWeight: '600',
@@ -998,18 +1114,10 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     ...(Platform.OS === 'android' ? { includeFontPadding: false } : null),
   },
-  actions: {
+  overlayActions: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: 10,
-    minHeight: 44,
-  },
-  liveHint: {
-    flex: 1,
-    textAlign: 'center',
-    color: colors.textMuted,
-    fontSize: 12,
   },
   shutter: {
     width: 64,
@@ -1019,6 +1127,7 @@ const styles = StyleSheet.create({
     borderColor: colors.text,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.25)',
   },
   shutterInner: {
     width: 50,
@@ -1035,7 +1144,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.full,
     borderWidth: 1,
     borderColor: colors.border,
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: 'rgba(18,18,26,0.88)',
     minWidth: 88,
   },
   actionBtnText: {
@@ -1063,50 +1172,97 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     ...(Platform.OS === 'android' ? { includeFontPadding: false } : null),
   },
+  promptCard: {
+    marginTop: 12,
+    padding: 14,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    gap: 10,
+  },
+  promptTitle: {
+    color: colors.text,
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  promptReason: {
+    color: colors.textMuted,
+    fontSize: 12,
+    lineHeight: 17,
+  },
+  promptRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  promptCancel: {
+    alignSelf: 'flex-start',
+    paddingVertical: 6,
+    paddingHorizontal: 4,
+  },
+  promptCancelText: {
+    color: colors.textMuted,
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  modeChip: {
+    height: 36,
+    paddingHorizontal: 14,
+    borderRadius: radius.full,
+    borderWidth: 1,
+    borderColor: colors.accent,
+    backgroundColor: 'rgba(139,92,246,0.22)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modeChipText: {
+    color: colors.accentLight,
+    fontSize: 13,
+    fontWeight: '700',
+    ...(Platform.OS === 'android' ? { includeFontPadding: false } : null),
+  },
   resultShell: {
     flex: 1,
     marginTop: 10,
     minHeight: 0,
   },
-  resultScroll: {
-    flex: 1,
-  },
+  resultScroll: { flex: 1 },
   resultScrollContent: {
-    paddingBottom: 16,
+    paddingBottom: 8,
     gap: 10,
   },
-  resultCard: {
-    gap: 4,
-    width: '100%',
+  errorBox: {
+    padding: 14,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: 'rgba(239,68,68,0.35)',
+    backgroundColor: 'rgba(239,68,68,0.1)',
   },
-  resultHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 8,
-    marginBottom: 4,
+  compareBox: {
+    marginTop: 4,
+    padding: 12,
+    borderRadius: radius.md,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 1,
+    borderColor: colors.border,
+    gap: 6,
   },
-  resultLabel: {
+  compareLabel: {
     color: colors.accentLight,
     fontSize: 11,
     fontWeight: '700',
-    letterSpacing: 0.5,
     textTransform: 'uppercase',
+    letterSpacing: 0.4,
   },
-  viewScans: { color: colors.accentLight, fontSize: 12, fontWeight: '600' },
-  productImage: {
-    width: '100%',
-    height: 120,
-    borderRadius: radius.md,
-    backgroundColor: '#111',
-    marginBottom: 6,
+  compareMeta: {
+    color: colors.textMuted,
+    fontSize: 12,
   },
-  productName: {
-    color: colors.text,
-    fontSize: 18,
-    fontWeight: '700',
-    lineHeight: 24,
-    marginBottom: 2,
+  compareBody: {
+    color: colors.textSecondary,
+    fontSize: 13,
+    lineHeight: 19,
   },
   bodyText: {
     color: colors.text,
@@ -1114,92 +1270,12 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     width: '100%',
   },
-  sectionTitle: {
-    color: colors.accentLight,
-    fontSize: 11,
-    fontWeight: '700',
-    marginTop: 10,
-    marginBottom: 3,
-    textTransform: 'uppercase',
-    letterSpacing: 0.4,
-  },
-  metaText: { color: colors.textSecondary, fontSize: 13, lineHeight: 19 },
-  bullet: { color: colors.textSecondary, fontSize: 13, lineHeight: 19 },
-  rawText: {
-    color: colors.textMuted,
-    fontSize: 12,
-    lineHeight: 17,
-    fontFamily: 'SpaceMono',
-  },
-  badgeRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-    marginTop: 8,
-  },
-  infoBadge: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.full,
-    paddingHorizontal: 10,
-    height: 26,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.surfaceElevated,
-  },
-  infoBadgeText: {
-    color: colors.accentLight,
-    fontSize: 11,
-    fontWeight: '700',
-    ...(Platform.OS === 'android' ? { includeFontPadding: false } : null),
-  },
-  nutriRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 12,
-    paddingVertical: 4,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
-  },
-  nutriLabel: { color: colors.textSecondary, fontSize: 13, flex: 1 },
-  nutriValue: { color: colors.text, fontSize: 13, fontWeight: '600' },
-  sourceNote: {
-    marginTop: 10,
-    color: colors.textMuted,
-    fontSize: 11,
-  },
-  riskBadge: {
-    alignSelf: 'flex-start',
-    borderWidth: 1,
-    borderRadius: radius.full,
-    paddingHorizontal: 10,
-    height: 26,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 4,
-  },
-  riskText: {
-    fontSize: 11,
-    fontWeight: '700',
-    ...(Platform.OS === 'android' ? { includeFontPadding: false } : null),
-  },
-  openBtn: {
-    marginTop: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    height: 44,
-    borderRadius: radius.md,
-    backgroundColor: colors.accent,
-  },
-  openBtnText: { color: colors.text, fontSize: 14, fontWeight: '700' },
   hint: {
     color: colors.textMuted,
     fontSize: 12,
     textAlign: 'center',
     lineHeight: 18,
-    marginTop: 4,
+    marginTop: 10,
   },
   errorText: { color: colors.danger, fontSize: 13, lineHeight: 18 },
   permTitle: {

@@ -65,6 +65,15 @@ export function normalizePayload(raw: unknown): LifeDashboardPayload {
     weather: obj.weather ? { ...base.weather, ...obj.weather } : base.weather,
     links: obj.links ? { ...base.links, ...obj.links } : base.links,
     habitCompletions: obj.habitCompletions ?? base.habitCompletions,
+    presence: obj.presence
+      ? {
+          ...base.presence!,
+          ...obj.presence,
+          checkIns: Array.isArray(obj.presence.checkIns)
+            ? obj.presence.checkIns
+            : base.presence!.checkIns,
+        }
+      : base.presence,
   };
 }
 

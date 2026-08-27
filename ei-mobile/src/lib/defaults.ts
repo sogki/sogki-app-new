@@ -1,4 +1,5 @@
-import type { LifeDashboardPayload, LifeDashboardState } from './types';
+import { defaultPresence } from './presence';
+import type { LifeDashboardPayload, LifeDashboardState, LifePresence } from './types';
 
 export function defaultPayload(): LifeDashboardPayload {
   return {
@@ -36,6 +37,22 @@ export function defaultPayload(): LifeDashboardPayload {
       github: 'https://github.com/sogki',
       linkedin: 'https://www.linkedin.com/in/jasonsws/',
     },
+    presence: defaultPresence(),
+  };
+}
+
+function normalizePresence(raw: unknown): LifePresence {
+  const base = defaultPresence();
+  if (!raw || typeof raw !== 'object') return base;
+  const obj = raw as Partial<LifePresence>;
+  return {
+    ...base,
+    ...obj,
+    checkIns: Array.isArray(obj.checkIns) ? obj.checkIns : base.checkIns,
+    homeRadiusKm:
+      typeof obj.homeRadiusKm === 'number' && Number.isFinite(obj.homeRadiusKm)
+        ? obj.homeRadiusKm
+        : base.homeRadiusKm,
   };
 }
 
@@ -43,7 +60,11 @@ export function normalizeDashboard(data: unknown): LifeDashboardState {
   const base = defaultPayload();
   const raw = (data && typeof data === 'object' ? data : {}) as {
     payload?: Partial<LifeDashboardPayload>;
-    layout?: { order?: string[]; spans?: Record<string, number> };
+    layout?: {
+      order?: string[];
+      spans?: Record<string, number>;
+      hidden?: string[];
+    };
   };
   const obj = raw.payload ?? {};
   return {
@@ -75,10 +96,12 @@ export function normalizeDashboard(data: unknown): LifeDashboardState {
           base.links.linkedin,
       },
       habitCompletions: obj.habitCompletions ?? base.habitCompletions,
+      presence: normalizePresence(obj.presence),
     },
     layout: {
       order: Array.isArray(raw.layout?.order) ? raw.layout!.order : [],
       spans: raw.layout?.spans ?? {},
+      hidden: Array.isArray(raw.layout?.hidden) ? raw.layout!.hidden : [],
     },
   };
 }

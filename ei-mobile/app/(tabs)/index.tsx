@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Keyboard,
   ScrollView,
@@ -26,13 +26,14 @@ import { AppRefreshControl, RefreshBanner } from '@/src/components/ui/AppRefresh
 import { GradientBackground } from '@/src/components/ui/GradientBackground';
 import { LoadingState } from '@/src/components/ui/LoadingState';
 import { SectionMenu, type SectionMenuAction } from '@/src/components/ui/SectionMenu';
-import { adminApi, fetchVuagQuote } from '@/src/lib/adminApi';
+import { useLifeDashboard } from '@/src/context/LifeDashboardContext';
+import { fetchVuagQuote } from '@/src/lib/adminApi';
 import { todayKey } from '@/src/lib/format';
+import { maybeCheckIn } from '@/src/lib/presence';
 import { fetchLiveWeather } from '@/src/lib/weather';
 import type {
   InvestmentSnapshot,
   LifeDashboardPayload,
-  LifeDashboardState,
   LifeGoal,
   LifeHabit,
   LifeJobSearch,
@@ -87,16 +88,24 @@ function normalizeOrder(raw: string[] | undefined): SectionId[] {
 
 export default function DashboardScreen() {
   const insets = useSafeAreaInsets();
-  const [dashboard, setDashboard] = useState<LifeDashboardState | null>(null);
+  const {
+    dashboard,
+    loading: dashLoading,
+    error,
+    refresh,
+    savePayload,
+    saveLayout,
+    patchPayload: patchPayloadAsync,
+  } = useLifeDashboard();
   const [investment, setInvestment] = useState<InvestmentSnapshot | null>(null);
   const [weather, setWeather] = useState<LifeWeather | null>(null);
   const [weatherLoading, setWeatherLoading] = useState(true);
   const [weatherError, setWeatherError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [extrasReady, setExtrasReady] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [investKey, setInvestKey] = useState(0);
   const [editRequests, setEditRequests] = useState<Partial<Record<SectionId, number>>>({});
+  const presenceTried = useRef(false);
 
   const requestEdit = useCallback((id: SectionId) => {
     setEditRequests((prev) => ({ ...prev, [id]: (prev[id] ?? 0) + 1 }));
@@ -115,64 +124,77 @@ export default function DashboardScreen() {
     }
   }, []);
 
-  const load = useCallback(async () => {
-    try {
-      const [dash, quote] = await Promise.all([
-        adminApi.lifeDashboard(),
-        fetchVuagQuote('1M').catch(() => null),
-      ]);
-      setDashboard(dash);
-      setInvestment(quote);
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load dashboard');
-    }
+  const loadExtras = useCallback(async () => {
+    const quote = await fetchVuagQuote('1M').catch(() => null);
+    setInvestment(quote);
   }, []);
 
   useEffect(() => {
-    void Promise.all([load(), loadWeather()]).finally(() => setLoading(false));
-  }, [load, loadWeather]);
+    void Promise.all([loadExtras(), loadWeather()]).finally(() => setExtrasReady(true));
+  }, [loadExtras, loadWeather]);
+
+  // Quiet presence check-in once per app open when tracking is enabled
+  useEffect(() => {
+    if (!dashboard?.payload || presenceTried.current) return;
+    presenceTried.current = true;
+    let cancelled = false;
+    (async () => {
+      try {
+        const current = dashboard.payload.presence;
+        if (!current?.trackingEnabled) return;
+        const next = await maybeCheckIn(current);
+        if (!next || cancelled) return;
+        await savePayload({ ...dashboard.payload, presence: next });
+      } catch {
+        /* optional */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [dashboard, savePayload]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await Promise.all([load(), loadWeather()]);
+    await Promise.all([
+      refresh().catch(() => null),
+      loadWeather(),
+      loadExtras(),
+    ]);
     setInvestKey((k) => k + 1);
     setRefreshing(false);
-  }, [load, loadWeather]);
+  }, [refresh, loadWeather, loadExtras]);
 
   const persistPayload = useCallback(
     async (nextPayload: LifeDashboardPayload) => {
-      if (!dashboard) return;
-      const updated: LifeDashboardState = {
-        ...dashboard,
-        payload: nextPayload,
-      };
-      setDashboard(updated);
       try {
-        await adminApi.saveLifeDashboard({ payload: nextPayload });
+        await savePayload(nextPayload);
       } catch {
-        await load();
+        /* context refresh already ran */
       }
     },
-    [dashboard, load]
+    [savePayload]
   );
 
   const persistLayout = useCallback(
-    async (patch: Partial<LifeDashboardState['layout']>) => {
+    async (patch: {
+      order?: string[];
+      spans?: Record<string, number>;
+      hidden?: string[];
+    }) => {
       if (!dashboard) return;
       const layout = {
         order: patch.order ?? dashboard.layout?.order ?? [...DEFAULT_SECTION_ORDER],
         spans: patch.spans ?? dashboard.layout?.spans ?? {},
         hidden: patch.hidden ?? dashboard.layout?.hidden ?? [],
       };
-      setDashboard({ ...dashboard, layout });
       try {
-        await adminApi.saveLifeDashboard({ layout });
+        await saveLayout(layout);
       } catch {
-        await load();
+        /* context refresh already ran */
       }
     },
-    [dashboard, load]
+    [dashboard, saveLayout]
   );
 
   const persistLayoutOrder = useCallback(
@@ -184,10 +206,9 @@ export default function DashboardScreen() {
 
   const patchPayload = useCallback(
     (patch: Partial<LifeDashboardPayload>) => {
-      if (!dashboard) return;
-      void persistPayload({ ...dashboard.payload, ...patch });
+      void patchPayloadAsync(patch);
     },
-    [dashboard, persistPayload]
+    [patchPayloadAsync]
   );
 
   const toggleHabit = useCallback(
@@ -232,6 +253,8 @@ export default function DashboardScreen() {
     },
     [dashboard, persistPayload]
   );
+
+  const loading = (dashLoading && !dashboard) || !extrasReady;
 
   const sectionOrder = useMemo(
     () => normalizeOrder(dashboard?.layout?.order),
@@ -308,9 +331,9 @@ export default function DashboardScreen() {
         setInvestKey((k) => k + 1);
         return;
       }
-      void load();
+      void refresh();
     },
-    [load, loadWeather]
+    [refresh, loadWeather]
   );
 
   if (loading) return <LoadingState message="Initializing Ei..." />;
@@ -338,7 +361,7 @@ export default function DashboardScreen() {
             payload={payload}
             investment={investment}
             weather={weather}
-            onMutate={() => void load()}
+            onMutate={() => void refresh()}
           />
         );
       case 'quickActions':

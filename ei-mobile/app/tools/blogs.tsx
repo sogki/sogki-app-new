@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
-  Alert,
   Image,
   Pressable,
   ScrollView,
@@ -17,6 +16,7 @@ import { GradientBackground } from '@/src/components/ui/GradientBackground';
 import { LoadingState } from '@/src/components/ui/LoadingState';
 import { ToolScreenHeader } from '@/src/components/ui/ToolScreenHeader';
 import { adminApi } from '@/src/lib/adminApi';
+import { showAppError } from '@/src/lib/appError';
 import { formatShortDate } from '@/src/lib/format';
 import type { BlogPost } from '@/src/lib/toolTypes';
 import { colors, radius } from '@/src/theme/colors';
@@ -30,10 +30,14 @@ export default function BlogsToolScreen() {
   const [busyId, setBusyId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    const data = await adminApi.blogs();
-    const list = Array.isArray(data) ? (data as BlogPost[]) : [];
-    list.sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
-    setBlogs(list);
+    try {
+      const data = await adminApi.blogs();
+      const list = Array.isArray(data) ? (data as BlogPost[]) : [];
+      list.sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+      setBlogs(list);
+    } catch (e) {
+      showAppError('Could not load blogs', e);
+    }
   }, []);
 
   useEffect(() => {
@@ -54,7 +58,7 @@ export default function BlogsToolScreen() {
       });
       await load();
     } catch (e) {
-      Alert.alert('Update failed', e instanceof Error ? e.message : 'Unknown error');
+      showAppError('Update failed', e);
     } finally {
       setBusyId(null);
     }

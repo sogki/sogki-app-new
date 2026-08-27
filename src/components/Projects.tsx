@@ -5,13 +5,14 @@ import { useSiteData } from '../context/SiteDataContext';
 import { getString } from '../lib/siteContent';
 import MainProjectSpotlight from './MainProjectSpotlight';
 import WorkGrid from './WorkGrid';
+import { sortWorkProjects } from '../lib/siteData';
 import { sectionRevealTransition, sectionViewport } from '../lib/motionPresets';
 
 export const Projects: React.FC = () => {
   const { projects: rawProjects, isLoading, siteContent } = useSiteData();
 
   const mainProject = rawProjects.find((p) => p.tier === 'main');
-  const otherProjects = rawProjects.filter((p) => p.tier !== 'main');
+  const otherProjects = sortWorkProjects(rawProjects.filter((p) => p.tier !== 'main'));
 
   if (isLoading) {
     return (

@@ -16,7 +16,9 @@ import { AppRefreshControl, RefreshBanner } from '@/src/components/ui/AppRefresh
 import { GradientBackground } from '@/src/components/ui/GradientBackground';
 import { LoadingState } from '@/src/components/ui/LoadingState';
 import { SectionHeader } from '@/src/components/ui/SectionHeader';
+import { useLifeDashboard } from '@/src/context/LifeDashboardContext';
 import { adminApi } from '@/src/lib/adminApi';
+import { showAppError } from '@/src/lib/appError';
 import { relativeDate } from '@/src/lib/format';
 import {
   LIFE_PROJECT_STATUS_LABELS,
@@ -40,32 +42,36 @@ const STATUS_COLORS: Record<string, string> = {
 
 export default function ProjectsScreen() {
   const insets = useSafeAreaInsets();
-  const [lifeProjects, setLifeProjects] = useState<LifeProject[]>([]);
+  const { dashboard, loading: dashLoading, refresh } = useLifeDashboard();
   const [portfolioProjects, setPortfolioProjects] = useState<Project[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loadingPortfolio, setLoadingPortfolio] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [tab, setTab] = useState<'personal' | 'portfolio'>('personal');
 
-  const load = useCallback(async () => {
-    const [dash, projects] = await Promise.all([
-      adminApi.lifeDashboard(),
-      adminApi.projects(),
-    ]);
-    setLifeProjects(dash.payload.projects);
-    setPortfolioProjects(projects);
+  const lifeProjects: LifeProject[] = dashboard?.payload.projects ?? [];
+
+  const loadPortfolio = useCallback(async () => {
+    try {
+      const projects = await adminApi.projects();
+      setPortfolioProjects(projects);
+    } catch (e) {
+      showAppError('Could not load portfolio projects', e);
+    }
   }, []);
 
   useEffect(() => {
-    load().finally(() => setLoading(false));
-  }, [load]);
+    loadPortfolio().finally(() => setLoadingPortfolio(false));
+  }, [loadPortfolio]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await load();
+    await Promise.all([refresh().catch(() => null), loadPortfolio()]);
     setRefreshing(false);
-  }, [load]);
+  }, [refresh, loadPortfolio]);
 
-  if (loading) return <LoadingState message="Loading projects..." />;
+  if ((dashLoading && !dashboard) || loadingPortfolio) {
+    return <LoadingState message="Loading projects..." />;
+  }
 
   const sorted = [...lifeProjects].sort(
     (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()

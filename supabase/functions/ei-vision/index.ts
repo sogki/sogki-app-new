@@ -75,7 +75,13 @@ async function handleVision(req: Request) {
 
   const body = await req.json().catch(() => ({} as Record<string, unknown>));
   const mode =
-    body.mode === 'translate' ? 'translate' : body.mode === 'ocr' ? 'ocr' : 'identify';
+    body.mode === 'translate'
+      ? 'translate'
+      : body.mode === 'ocr'
+        ? 'ocr'
+        : body.mode === 'classify'
+          ? 'classify'
+          : 'identify';
   let imageBase64 = typeof body.imageBase64 === 'string' ? body.imageBase64.trim() : '';
   if (!imageBase64) return json({ error: 'imageBase64 is required' }, 400);
 
@@ -90,7 +96,21 @@ async function handleVision(req: Request) {
   }
 
   const prompt =
-    mode === 'ocr'
+    mode === 'classify'
+      ? [
+          'You route camera shots for a private app called Ei.',
+          'Choose the single best processing mode for this image.',
+          'Reply with ONLY compact JSON (no markdown fences, no extra text):',
+          '{"mode":"ocr"|"identify"|"translate","confidence":0.0-1.0,"reason":"short"}',
+          'Rules:',
+          '- ocr — documents, labels, packaging, signs, menus, or any shot where extracting readable text is the main job',
+          '- translate — foreign-language text is clearly the focus (not English-dominant packaging)',
+          '- identify — objects, scenes, products, animals, places where naming/describing matters more than full transcription',
+          '- Prefer ocr when substantial English (or mixed) text is readable on packaging/docs',
+          '- confidence under 0.55 means you are unsure',
+          'Never mention Google, Gemini, or that you are an AI.',
+        ].join('\n')
+      : mode === 'ocr'
       ? [
           'You are a pure OCR engine. Transcribe ALL readable text from the image.',
           'Rules:',
@@ -143,7 +163,44 @@ async function handleVision(req: Request) {
   if (error) return json({ error }, 502);
   if (!reply) return json({ error: 'Empty vision reply' }, 502);
 
+  if (mode === 'classify') {
+    const decision = parseClassifyDecision(reply);
+    return json({ reply: decision.reason, mode: 'classify', decision, provider: 'ei-vision' });
+  }
+
   return json({ reply, mode, provider: 'ei-vision' });
+}
+
+function parseClassifyDecision(raw: string): {
+  mode: 'ocr' | 'identify' | 'translate';
+  confidence: number;
+  reason: string;
+} {
+  const fallback = {
+    mode: 'identify' as const,
+    confidence: 0.4,
+    reason: 'Could not classify confidently',
+  };
+  try {
+    const start = raw.indexOf('{');
+    const end = raw.lastIndexOf('}');
+    if (start < 0 || end <= start) return fallback;
+    const parsed = JSON.parse(raw.slice(start, end + 1)) as Record<string, unknown>;
+    const m = parsed.mode === 'ocr' || parsed.mode === 'translate' || parsed.mode === 'identify'
+      ? parsed.mode
+      : 'identify';
+    const confidence =
+      typeof parsed.confidence === 'number'
+        ? Math.max(0, Math.min(1, parsed.confidence))
+        : 0.45;
+    const reason =
+      typeof parsed.reason === 'string' && parsed.reason.trim()
+        ? parsed.reason.trim().slice(0, 120)
+        : 'Auto-classified';
+    return { mode: m, confidence, reason };
+  } catch {
+    return fallback;
+  }
 }
 
 async function callGeminiVision(opts: {

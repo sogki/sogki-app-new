@@ -13,9 +13,18 @@ const focusAreas = [
     icon: <Sparkles size={22} />,
     title: 'Building Binderly',
     titleJp: 'Binderlyを構築中',
-    body: 'My main project — a Pokémon TCG home for binders, pricing, and collection care. Closed beta.',
+    body: 'My passion project — a Pokémon TCG home for binders, pricing, and collection care. Closed beta.',
     accent: 'from-amber-500/20 to-orange-600/10 border-amber-400/25',
     glow: 'group-hover:shadow-amber-500/10',
+  },
+  {
+    id: 'arcpedia',
+    icon: <Layers size={22} />,
+    title: 'Shipping ARCPedia',
+    titleJp: 'ARCPediaを運用中',
+    body: 'Live companion tooling for Arc Raiders — maps, items, events, and the workflows players actually need.',
+    accent: 'from-indigo-500/20 to-blue-500/10 border-indigo-400/25',
+    glow: 'group-hover:shadow-indigo-500/10',
   },
   {
     id: 'craft',
@@ -25,15 +34,6 @@ const focusAreas = [
     body: 'Interfaces with personality — branded UI, motion, and graphic design work alongside code.',
     accent: 'from-purple-500/20 to-indigo-500/10 border-purple-400/25',
     glow: 'group-hover:shadow-purple-500/10',
-  },
-  {
-    id: 'stack',
-    icon: <Layers size={22} />,
-    title: 'Full-Stack Products',
-    titleJp: 'フルスタックプロダクト',
-    body: 'From schema design to deployed UI — companion apps, APIs, and creator tools end to end.',
-    accent: 'from-cyan-500/20 to-blue-500/10 border-cyan-400/25',
-    glow: 'group-hover:shadow-cyan-500/10',
   },
 ];
 
@@ -69,25 +69,18 @@ export const About: React.FC = () => {
             viewport={sectionViewport}
           >
             <p>
-              {getString(
-                siteContent,
-                'about.bio_1',
-                "I'm Sogki (Jay) — a software engineer and designer who builds products people actually use."
-              )}
+              I'm Sogki — or just Jay. I'm a software engineer and designer who gets restless
+              unless I'm building something I actually care about.
             </p>
             <p>
-              {getString(
-                siteContent,
-                'about.bio_2',
-                'Most of my work sits at the intersection of games, collectors, and communities: companion tools, collection platforms, and APIs that solve real friction.'
-              )}
+              I grew up between games, collecting, and online communities, so that's where my work
+              naturally lands. I like products with taste — sharp UI, clear purpose, and enough
+              depth that people come back.
             </p>
             <p>
-              {getString(
-                siteContent,
-                'about.bio_3',
-                'Right now my energy is on Binderly TCG in closed beta, while keeping ArcRaiders Companion and other live projects sharp.'
-              )}
+              The through-line is ARCPedia, Binderly, and RankTheGlobe: different chapters, same
+              instinct to ship tools for players, collectors, and crowds that need something better
+              than a spreadsheet.
             </p>
             <Link
               to="/about"

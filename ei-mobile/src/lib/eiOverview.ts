@@ -189,5 +189,16 @@ export function buildEiContext(
   const w = weatherOverride ?? payload.weather;
   const weather =
     w?.location ? `${w.condition}, ${w.temperatureC}C in ${w.location}` : 'unknown';
-  return `Weather: ${weather}. Habits: ${done}/${habits.length} done. Reminders: ${openReminders || 'none'}. Active projects: ${projects || 'none'}.`;
+  const scans = (payload.scans ?? [])
+    .slice(0, 6)
+    .map((s) => {
+      const when = s.lastSeenAt || s.createdAt;
+      const ageMs = Date.now() - new Date(when).getTime();
+      const days = Math.max(0, Math.floor(ageMs / 86_400_000));
+      const age =
+        days === 0 ? 'today' : days === 1 ? '1d' : days < 30 ? `${days}d` : `${Math.floor(days / 30)}mo`;
+      return `${s.title} (${age})`;
+    })
+    .join('; ');
+  return `Weather: ${weather}. Habits: ${done}/${habits.length} done. Reminders: ${openReminders || 'none'}. Active projects: ${projects || 'none'}. Recent scans: ${scans || 'none'}.`;
 }

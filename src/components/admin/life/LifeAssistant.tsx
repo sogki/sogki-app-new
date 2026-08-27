@@ -549,9 +549,7 @@ export default function LifeAssistant({ payload, expanded, onDashboardMutate }: 
     <AdminCard
       id="widget-assistant"
       title={EI_NAME}
-      className={`relative flex flex-col overflow-hidden ${
-        expanded ? 'h-full min-h-0' : 'h-[560px] max-h-[560px]'
-      }`}
+      className="relative flex h-full min-h-[360px] flex-col overflow-hidden"
     >
       <div className="relative flex h-full min-h-0 flex-1 flex-col gap-3">
         <div className="flex shrink-0 items-center justify-between gap-3">
@@ -643,7 +641,9 @@ export default function LifeAssistant({ payload, expanded, onDashboardMutate }: 
 
         <div
           ref={threadRef}
-          className="ei-chat-scroll min-h-0 flex-1 space-y-2.5 overflow-y-auto overscroll-contain rounded-2xl border border-white/10 bg-black/25 p-3 pr-2"
+          className={`ei-chat-scroll min-h-0 space-y-2.5 overflow-y-auto overscroll-contain rounded-2xl border border-white/10 bg-black/25 p-3 pr-2 ${
+            expanded ? 'flex-1' : 'h-44 flex-none sm:h-52'
+          }`}
         >
           {messages.map((msg) => (
             <div

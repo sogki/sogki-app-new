@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
-  Alert,
   Linking,
   Pressable,
   ScrollView,
@@ -18,6 +17,7 @@ import { GradientBackground } from '@/src/components/ui/GradientBackground';
 import { LoadingState } from '@/src/components/ui/LoadingState';
 import { ToolScreenHeader } from '@/src/components/ui/ToolScreenHeader';
 import { adminApi } from '@/src/lib/adminApi';
+import { showAppError } from '@/src/lib/appError';
 import { formatShortDate } from '@/src/lib/format';
 import { formatBytes, type ResourcePack } from '@/src/lib/toolTypes';
 import { colors, radius } from '@/src/theme/colors';
@@ -31,9 +31,13 @@ export default function PacksToolScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
   const load = useCallback(async () => {
-    const data = await adminApi.resourcePacks();
-    const list = Array.isArray(data) ? (data as ResourcePack[]) : [];
-    setPacks(list);
+    try {
+      const data = await adminApi.resourcePacks();
+      const list = Array.isArray(data) ? (data as ResourcePack[]) : [];
+      setPacks(list);
+    } catch (e) {
+      showAppError('Could not load packs', e);
+    }
   }, []);
 
   useEffect(() => {
@@ -51,7 +55,7 @@ export default function PacksToolScreen() {
       await adminApi.updateResourcePack(pack.id, { is_active: !pack.is_active });
       await load();
     } catch (e) {
-      Alert.alert('Update failed', e instanceof Error ? e.message : 'Unknown error');
+      showAppError('Update failed', e);
     }
   };
 

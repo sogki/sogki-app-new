@@ -66,7 +66,7 @@ export default function DashboardWidgetShell({
     <div
       ref={setNodeRef}
       style={style}
-      className={`col-span-1 ${SPAN_CLASS[span]} ${isDragging ? 'cursor-grabbing' : ''}`}
+      className={`col-span-1 h-full ${SPAN_CLASS[span]} ${isDragging ? 'cursor-grabbing' : ''}`}
       data-widget={id}
     >
       {bare ? (
@@ -83,7 +83,7 @@ export default function DashboardWidgetShell({
           {children}
         </div>
       ) : (
-        <div className="relative h-full min-h-0">
+        <div className="relative flex h-full min-h-0 flex-col">
           <div className="pointer-events-none absolute right-3 top-3 z-10 flex gap-1">
             <button
               type="button"
@@ -103,7 +103,7 @@ export default function DashboardWidgetShell({
               <GripVertical size={14} />
             </button>
           </div>
-          {children}
+          <div className="flex min-h-0 flex-1 flex-col">{children}</div>
         </div>
       )}
     </div>

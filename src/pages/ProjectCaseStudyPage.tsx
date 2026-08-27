@@ -7,6 +7,7 @@ import { ArrowLeft, ExternalLink, Github } from 'lucide-react';
 import { fetchProjectBySlug, fetchProjects } from '../lib/siteData';
 import type { Project } from '../lib/siteData';
 import { projectAccent } from '../lib/siteData';
+import { toSogkiImageProxyUrl } from '../utils/imageLinks';
 import ProjectStatusBadge from '../components/ProjectStatusBadge';
 
 export function ProjectCaseStudyPage() {
@@ -69,9 +70,17 @@ export function ProjectCaseStudyPage() {
         {project.hero_image_url && (
           <div className="mb-8 overflow-hidden rounded-xl border border-white/10">
             <img
-              src={project.hero_image_url}
+              src={toSogkiImageProxyUrl(project.hero_image_url)}
               alt={project.title}
               className="aspect-video w-full object-cover object-top"
+              data-raw-src={project.hero_image_url}
+              onError={(e) => {
+                const img = e.target as HTMLImageElement;
+                const raw = img.dataset.rawSrc;
+                if (raw && img.src !== raw) {
+                  img.src = raw;
+                }
+              }}
             />
           </div>
         )}

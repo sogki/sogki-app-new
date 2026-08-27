@@ -6,6 +6,8 @@ import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 
 import { AuthProvider, useAuth } from '@/src/context/AuthContext';
+import { LifeDashboardProvider } from '@/src/context/LifeDashboardContext';
+import { PendingEiAskProvider } from '@/src/context/PendingEiAskContext';
 import { LoadingState } from '@/src/components/ui/LoadingState';
 
 export { ErrorBoundary } from 'expo-router';
@@ -49,19 +51,30 @@ export default function RootLayout() {
 
   return (
     <AuthProvider>
-      <StatusBar style="light" />
-      <AuthGate>
-        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: '#050508' } }}>
-          <Stack.Screen name="login" />
-          <Stack.Screen name="(tabs)" />
-          <Stack.Screen name="tools/cvs" options={{ animation: 'slide_from_right' }} />
-          <Stack.Screen name="tools/scans" options={{ animation: 'slide_from_right' }} />
-          <Stack.Screen name="tools/blogs" options={{ animation: 'slide_from_right' }} />
-          <Stack.Screen name="tools/packs" options={{ animation: 'slide_from_right' }} />
-          <Stack.Screen name="tools/binders" options={{ animation: 'slide_from_right' }} />
-          <Stack.Screen name="tools/settings" options={{ animation: 'slide_from_right' }} />
-        </Stack>
-      </AuthGate>
+      <LifeDashboardProvider>
+        <PendingEiAskProvider>
+          <StatusBar style="light" />
+          <AuthGate>
+            <Stack
+              screenOptions={{
+                headerShown: false,
+                contentStyle: { backgroundColor: '#050508' },
+              }}
+            >
+              <Stack.Screen name="login" />
+              <Stack.Screen name="(tabs)" />
+              <Stack.Screen name="tools/cvs" options={{ animation: 'slide_from_right' }} />
+              <Stack.Screen name="tools/scans" options={{ animation: 'slide_from_right' }} />
+              <Stack.Screen name="tools/blogs" options={{ animation: 'slide_from_right' }} />
+              <Stack.Screen name="tools/packs" options={{ animation: 'slide_from_right' }} />
+              <Stack.Screen name="tools/binders" options={{ animation: 'slide_from_right' }} />
+              <Stack.Screen name="tools/settings" options={{ animation: 'slide_from_right' }} />
+              <Stack.Screen name="tools/feature-flags" options={{ animation: 'slide_from_right' }} />
+              <Stack.Screen name="tools/presence" options={{ animation: 'slide_from_right' }} />
+            </Stack>
+          </AuthGate>
+        </PendingEiAskProvider>
+      </LifeDashboardProvider>
     </AuthProvider>
   );
 }

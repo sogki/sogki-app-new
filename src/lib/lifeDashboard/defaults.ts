@@ -136,5 +136,13 @@ export function defaultLifeDashboardPayload(): LifeDashboardPayload {
       linkedin: 'https://www.linkedin.com/in/sogki',
     },
     habitCompletions: { date: '', completedIds: [] },
+    presence: {
+      trackingEnabled: false,
+      homeLabel: null,
+      homeLat: null,
+      homeLng: null,
+      homeRadiusKm: 3,
+      checkIns: [],
+    },
   };
 }

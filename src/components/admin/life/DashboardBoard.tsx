@@ -182,7 +182,7 @@ export default function DashboardBoard({
     <>
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
         <SortableContext items={order} strategy={rectSortingStrategy}>
-          <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div className="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2 xl:grid-cols-4">
             {order.map((id) => {
               const span = (spans[id] ?? 1) as DashboardWidgetSpan;
               return (

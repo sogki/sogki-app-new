@@ -99,8 +99,9 @@ async function handleChat(req: Request) {
     'For overviews and multi-part answers, always use # / ## headings so the UI shows clear hierarchy.',
     'Do not address the user by name. Prefer you / your.',
     'Say Vanguard instead of VUAG when talking about that investment.',
-    'You have tools to read and update the Life Dashboard and CVs.',
+    'You have tools to read and update the Life Dashboard, CVs, and scan memory (things the user photographed or barcode/QR scanned).',
     'Use tools when you need live data or when the user asks you to change something (notes, habits, goals, reminders, job search, CV notes/title/active).',
+    'For questions about past scans / “what did I look at” / products seen before: prefer list_scans or get_scan — never invent scan history.',
     'For questions about applying / CVs / resume content: list_cvs then get_cv for the relevant document(s) — never invent CV contents.',
     'When you change data, briefly confirm what you updated.',
     'If you lack live data you cannot fetch with tools, say so briefly.',
@@ -144,6 +145,14 @@ async function buildSeedContext(supabase: ReturnType<typeof createClient>): Prom
       .filter(Boolean)
       .slice(0, 6)
       .join('; ');
+    const scans = Array.isArray(payload.scans) ? payload.scans : [];
+    const scanBits = scans
+      .slice(0, 5)
+      .map((s: { title?: string; mode?: string; lastSeenAt?: string; createdAt?: string }) => {
+        const when = s.lastSeenAt || s.createdAt || '';
+        return `${s.title ?? 'scan'}${s.mode ? ` (${s.mode})` : ''}${when ? ` @${when.slice(0, 10)}` : ''}`;
+      })
+      .join('; ');
     const cvBits = (cvs ?? [])
       .map(
         (c: { title?: string; is_active?: boolean; extracted_at?: string | null }) =>
@@ -156,6 +165,7 @@ async function buildSeedContext(supabase: ReturnType<typeof createClient>): Prom
     return [
       `jobSearch applications=${job.applicationsSent ?? '?'} interviews=${job.interviews ?? '?'} offers=${job.offers ?? '?'}`,
       openReminders ? `openReminders: ${openReminders}` : '',
+      scanBits ? `recentScans: ${scanBits}` : 'recentScans: none',
       cvBits ? `CVs: ${cvBits}` : 'CVs: none',
       invBits ? `holdings: ${invBits}` : '',
     ]
@@ -171,13 +181,14 @@ async function buildSeedContext(supabase: ReturnType<typeof createClient>): Prom
 const TOOL_DECLARATIONS = [
   {
     name: 'get_dashboard',
-    description: 'Load the full Life Dashboard payload (habits, goals, notes, reminders, reading, job search, life projects, weather, links).',
+    description:
+      'Load the Life Dashboard payload (habits, goals, notes, reminders, reading, job search, projects, weather, links, scans metadata). Large images are stripped — use list_scans/get_scan for scan details.',
     parameters: { type: 'OBJECT', properties: {} },
   },
   {
     name: 'update_dashboard',
     description:
-      'Deep-merge a patch into the Life Dashboard payload. Use for notes/habits/goals/reminders/jobSearch/reading/projects/links/weather. Arrays replace entirely when provided.',
+      'Deep-merge a patch into the Life Dashboard payload. Use for notes/habits/goals/reminders/jobSearch/reading/projects/links/weather/scans. Arrays replace entirely when provided.',
     parameters: {
       type: 'OBJECT',
       properties: {
@@ -187,6 +198,35 @@ const TOOL_DECLARATIONS = [
         },
       },
       required: ['patch'],
+    },
+  },
+  {
+    name: 'list_scans',
+    description:
+      'List saved camera/QR/barcode scans (Ei memory) with title, mode, dates, fingerprint, location, and a short text preview. Use for “what did I scan / look at”.',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        query: {
+          type: 'STRING',
+          description: 'Optional search words (e.g. mouse, manga, coca-cola)',
+        },
+        limit: {
+          type: 'NUMBER',
+          description: 'Max results (default 20, max 40)',
+        },
+      },
+    },
+  },
+  {
+    name: 'get_scan',
+    description: 'Load one saved scan by id including full text (no image payloads).',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        id: { type: 'STRING', description: 'Scan id (e.g. scan_…)' },
+      },
+      required: ['id'],
     },
   },
   {
@@ -416,6 +456,10 @@ async function executeTool(
         return await toolGetDashboard(ctx);
       case 'update_dashboard':
         return await toolUpdateDashboard(ctx, args.patch);
+      case 'list_scans':
+        return await toolListScans(ctx, args);
+      case 'get_scan':
+        return await toolGetScan(ctx, String(args.id ?? ''));
       case 'list_cvs':
         return await toolListCvs(ctx);
       case 'get_cv':
@@ -437,10 +481,118 @@ async function toolGetDashboard(ctx: ToolCtx) {
     ctx.supabase.from('life_investments').select('symbol, name, holdings, invested, exchange').limit(10),
   ]);
   if (error) return { error: error.message };
+  const payload = stripScanImages(dash?.payload ?? {});
   return {
-    payload: dash?.payload ?? {},
+    payload,
     updated_at: dash?.updated_at ?? null,
     investments: inv ?? [],
+  };
+}
+
+function stripScanImages(payloadUnknown: unknown): Record<string, unknown> {
+  if (!payloadUnknown || typeof payloadUnknown !== 'object' || Array.isArray(payloadUnknown)) {
+    return {};
+  }
+  const payload = { ...(payloadUnknown as Record<string, unknown>) };
+  if (Array.isArray(payload.scans)) {
+    payload.scans = payload.scans.map((raw) => {
+      if (!raw || typeof raw !== 'object') return raw;
+      const s = { ...(raw as Record<string, unknown>) };
+      delete s.imageDataUrl;
+      return s;
+    });
+  }
+  return payload;
+}
+
+type ScanRow = {
+  id?: string;
+  title?: string;
+  text?: string;
+  mode?: string;
+  createdAt?: string;
+  lastSeenAt?: string;
+  scanCount?: number;
+  fingerprint?: string;
+  locationLabel?: string | null;
+  productImageUrl?: string | null;
+};
+
+async function toolListScans(ctx: ToolCtx, args: Record<string, unknown>) {
+  const { data: dash, error } = await ctx.supabase
+    .from('life_dashboard_state')
+    .select('payload')
+    .eq('key', 'default')
+    .maybeSingle();
+  if (error) return { error: error.message };
+  const payload = (dash?.payload ?? {}) as Record<string, unknown>;
+  let scans = (Array.isArray(payload.scans) ? payload.scans : []) as ScanRow[];
+  const query = typeof args.query === 'string' ? args.query.trim().toLowerCase() : '';
+  const limitRaw = typeof args.limit === 'number' ? args.limit : 20;
+  const limit = Math.max(1, Math.min(40, Math.floor(limitRaw)));
+
+  if (query) {
+    const tokens = query.split(/\s+/).filter((t) => t.length > 1);
+    scans = scans
+      .map((s) => {
+        const hay = `${s.title ?? ''}\n${s.text ?? ''}`.toLowerCase();
+        let score = 0;
+        for (const t of tokens) if (hay.includes(t)) score += 1;
+        return { s, score };
+      })
+      .filter((x) => x.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .map((x) => x.s);
+  } else {
+    scans = [...scans].sort((a, b) => {
+      const ta = new Date(b.lastSeenAt || b.createdAt || 0).getTime();
+      const tb = new Date(a.lastSeenAt || a.createdAt || 0).getTime();
+      return ta - tb;
+    });
+  }
+
+  return {
+    count: scans.length,
+    scans: scans.slice(0, limit).map((s) => ({
+      id: s.id,
+      title: s.title,
+      mode: s.mode ?? null,
+      createdAt: s.createdAt ?? null,
+      lastSeenAt: s.lastSeenAt ?? s.createdAt ?? null,
+      scanCount: s.scanCount ?? 1,
+      fingerprint: s.fingerprint ?? null,
+      locationLabel: s.locationLabel ?? null,
+      productImageUrl: s.productImageUrl ?? null,
+      textPreview: String(s.text ?? '').slice(0, 400),
+    })),
+  };
+}
+
+async function toolGetScan(ctx: ToolCtx, id: string) {
+  if (!id) return { error: 'id is required' };
+  const { data: dash, error } = await ctx.supabase
+    .from('life_dashboard_state')
+    .select('payload')
+    .eq('key', 'default')
+    .maybeSingle();
+  if (error) return { error: error.message };
+  const payload = (dash?.payload ?? {}) as Record<string, unknown>;
+  const scans = (Array.isArray(payload.scans) ? payload.scans : []) as ScanRow[];
+  const scan = scans.find((s) => s.id === id);
+  if (!scan) return { error: 'Scan not found' };
+  return {
+    scan: {
+      id: scan.id,
+      title: scan.title,
+      mode: scan.mode ?? null,
+      createdAt: scan.createdAt ?? null,
+      lastSeenAt: scan.lastSeenAt ?? scan.createdAt ?? null,
+      scanCount: scan.scanCount ?? 1,
+      fingerprint: scan.fingerprint ?? null,
+      locationLabel: scan.locationLabel ?? null,
+      productImageUrl: scan.productImageUrl ?? null,
+      text: String(scan.text ?? '').slice(0, 8000),
+    },
   };
 }
 

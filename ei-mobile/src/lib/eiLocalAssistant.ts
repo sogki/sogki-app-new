@@ -9,6 +9,7 @@ import {
   formatBriefMoney,
 } from './eiOverview';
 import { formatTime, greetingForHour } from './format';
+import { relativeAgoLong, searchScansByQuery } from './scanMemory';
 import type { InvestmentSnapshot, LifeDashboardPayload, LifeWeather } from './types';
 
 export type LocalAskContext = {
@@ -41,6 +42,7 @@ export async function tryLocalEiReply(
       'I can help without the cloud for a lot of everyday stuff:',
       '',
       '• Dashboard — overview, habits, goals, reminders, job search, reading, weather',
+      '• Scans — what you’ve looked at / barcode memory',
       '• Vanguard — portfolio snapshot',
       '• Where you are — city, coordinates, public IP',
       '• Time & date',
@@ -117,6 +119,64 @@ export async function tryLocalEiReply(
   }
   if (/\bhow much.*(portfolio|vanguard|worth)\b/.test(q) && ctx.investment) {
     return `Your Vanguard portfolio is about ${formatBriefMoney(ctx.investment.portfolioValue)}.`;
+  }
+
+  // Scan memory recall
+  const recallingScans =
+    /\b(what was that|looked at|scanned|from (my )?scans|scan memory|have i scanned)\b/.test(q) ||
+    (/\bscans?\b/.test(q) && /\b(recent|lately|last|remember|what)\b/.test(q));
+  if (recallingScans && (ctx.payload.scans?.length ?? 0) > 0) {
+    const recent = [...(ctx.payload.scans ?? [])]
+      .sort(
+        (a, b) =>
+          new Date(b.lastSeenAt || b.createdAt).getTime() -
+          new Date(a.lastSeenAt || a.createdAt).getTime()
+      )
+      .slice(0, 8);
+
+    if (/\b(recent|lately|last (few|couple)|what have i scanned)\b/.test(q)) {
+      return [
+        'Recent scans',
+        ...recent.slice(0, 5).map((s) => {
+          const when = relativeAgoLong(s.lastSeenAt || s.createdAt);
+          return `• ${s.title} — ${when}${s.scanCount && s.scanCount > 1 ? ` · seen ${s.scanCount}×` : ''}`;
+        }),
+      ].join('\n');
+    }
+
+    // Strip filler words then search
+    const cleaned = q
+      .replace(
+        /\b(what|was|that|the|a|an|i|me|my|looked|at|scanned|scan|remember|about|last|month|week|ago|ei|please|tell|did)\b/g,
+        ' '
+      )
+      .replace(/\s+/g, ' ')
+      .trim();
+    const hits = searchScansByQuery(ctx.payload.scans, cleaned || q);
+    if (hits.length) {
+      const top = hits[0];
+      const when = relativeAgoLong(top.lastSeenAt || top.createdAt);
+      const lines = [
+        `That sounds like **${top.title}**.`,
+        `You looked at it ${when}${top.scanCount && top.scanCount > 1 ? ` (seen ${top.scanCount} times)` : ''}.`,
+      ];
+      if (top.locationLabel) lines.push(`Place: ${top.locationLabel}`);
+      const preview = top.text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean).slice(0, 4);
+      if (preview.length) {
+        lines.push('', ...preview.map((l) => `• ${l}`));
+      }
+      if (hits.length > 1) {
+        lines.push('', 'Also close:', ...hits.slice(1, 3).map((h) => `• ${h.title}`));
+      }
+      return lines.join('\n');
+    }
+
+    if (/\b(scan|scanned|looked at|what was that)\b/.test(q)) {
+      return [
+        "I couldn't match that exactly. Here are your latest scans:",
+        ...recent.slice(0, 5).map((s) => `• ${s.title} — ${relativeAgoLong(s.lastSeenAt || s.createdAt)}`),
+      ].join('\n');
+    }
   }
 
   // Network / location

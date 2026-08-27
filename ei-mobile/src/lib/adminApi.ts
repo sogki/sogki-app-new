@@ -221,8 +221,12 @@ export const adminApi = {
 
   eiVision: async (payload: {
     imageBase64: string;
-    mode: 'identify' | 'translate' | 'ocr';
-  }): Promise<{ reply: string; mode: string }> => {
+    mode: 'identify' | 'translate' | 'ocr' | 'classify';
+  }): Promise<{
+    reply: string;
+    mode: string;
+    decision?: { mode: 'ocr' | 'identify' | 'translate'; confidence: number; reason: string };
+  }> => {
     const token = await getAdminToken();
     if (!token) throw new Error('Not authenticated');
     const res = await fetch(`${FUNCTIONS_URL}/ei-vision`, {
@@ -239,10 +243,28 @@ export const adminApi = {
       typeof (data as { reply?: string }).reply === 'string'
         ? (data as { reply: string }).reply.trim()
         : '';
-    if (!reply) throw new Error('Empty vision reply');
+    const decisionRaw = (data as { decision?: Record<string, unknown> }).decision;
+    const decision =
+      decisionRaw &&
+      (decisionRaw.mode === 'ocr' ||
+        decisionRaw.mode === 'identify' ||
+        decisionRaw.mode === 'translate')
+        ? {
+            mode: decisionRaw.mode as 'ocr' | 'identify' | 'translate',
+            confidence:
+              typeof decisionRaw.confidence === 'number' ? decisionRaw.confidence : 0.4,
+            reason:
+              typeof decisionRaw.reason === 'string' ? decisionRaw.reason : 'Auto-classified',
+          }
+        : undefined;
+    if (payload.mode !== 'classify' && !reply) throw new Error('Empty vision reply');
     return {
       reply,
-      mode: typeof (data as { mode?: string }).mode === 'string' ? (data as { mode: string }).mode : payload.mode,
+      mode:
+        typeof (data as { mode?: string }).mode === 'string'
+          ? (data as { mode: string }).mode
+          : payload.mode,
+      ...(decision ? { decision } : {}),
     };
   },
 };

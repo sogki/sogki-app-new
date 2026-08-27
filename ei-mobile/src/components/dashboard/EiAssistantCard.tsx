@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Card } from '@/src/components/ui/Card';
 import { MarkdownText } from '@/src/components/ui/MarkdownText';
 import { SectionHeader } from '@/src/components/ui/SectionHeader';
+import { usePendingEiAsk } from '@/src/context/PendingEiAskContext';
 import { adminApi } from '@/src/lib/adminApi';
 import {
   buildEiContext,
@@ -51,7 +52,7 @@ type ChipDef =
   | { id: string; label: string; kind: 'ask'; prompt: string };
 
 function prefersCloudTools(message: string): boolean {
-  return /\b(cv|cvs|curriculum|resume|apply|appl(y|ying|ication)|job search|where should i|update my|add a note|remind me|mark .* habit)\b/i.test(
+  return /\b(cv|cvs|curriculum|resume|apply|appl(y|ying|ication)|job search|where should i|update my|add a note|remind me|mark .* habit|scan(ned|s)?|looked at|what was that)\b/i.test(
     message
   );
 }
@@ -62,6 +63,7 @@ export function EiAssistantCard({
   weather,
   onMutate,
 }: EiAssistantCardProps) {
+  const { consumePendingEiAsk } = usePendingEiAsk();
   const ctx = { payload, investment, weather };
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -70,8 +72,8 @@ export function EiAssistantCard({
       text: [
         "Hello — I'm Ei.",
         '',
-        'Ask about CVs, jobs, habits, Vanguard, or store hours.',
-        'I can update your life dashboard when you ask.',
+        'Ask about scans you’ve looked at, CVs, jobs, habits, or Vanguard.',
+        'I remember what you save — try “what was that mouse I looked at?”',
       ].join('\n'),
     },
   ]);
@@ -142,6 +144,16 @@ export function EiAssistantCard({
     }
   };
 
+  useEffect(() => {
+    const pending = consumePendingEiAsk();
+    if (!pending) return;
+    const t = setTimeout(() => {
+      void ask(pending);
+    }, 250);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- handoff from Camera Ask Ei
+  }, []);
+
   const briefing = (label: string, text: string) => {
     push('you', label);
     push('ei', text);
@@ -184,6 +196,12 @@ export function EiAssistantCard({
       build: () => buildWeatherOverview(payload, weather),
     },
     {
+      id: 'scans',
+      label: 'Scans',
+      kind: 'ask',
+      prompt: 'What have I scanned recently?',
+    },
+    {
       id: 'cvs',
       label: 'CV advice',
       kind: 'ask',
@@ -212,7 +230,7 @@ export function EiAssistantCard({
 
   return (
     <View>
-      <SectionHeader title="Ei" subtitle="Chat · dashboard & CVs" />
+      <SectionHeader title="Ei" subtitle="Chat · memory, dashboard & CVs" />
       <Card style={styles.card}>
         <ScrollView
           ref={scrollRef}

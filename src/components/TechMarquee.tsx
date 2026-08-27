@@ -10,11 +10,9 @@ const TECH_ITEMS = [
   'Supabase',
   'Tailwind CSS',
   'Framer Motion',
-  'Rust',
   'REST APIs',
   'Vercel',
   'Git',
-  'Figma',
   'Python',
   'MySQL',
 ];

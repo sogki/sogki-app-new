@@ -29,8 +29,8 @@ const features: Feature[] = [
     icon: <Zap size={32} />,
     title: 'Live Data Experiences',
     titleJp: 'リアルタイムデータ体験',
-    description: 'ArcRaiders Companion demonstrates event tracking, map/data exploration, and practical utility workflows in production.',
-    descriptionJp: 'ArcRaiders Companionで、イベント追跡・地図探索・実用的なワークフローを本番運用。'
+    description: 'ARCPedia demonstrates event tracking, map/data exploration, and practical utility workflows in production.',
+    descriptionJp: 'ARCPediaで、イベント追跡・地図探索・実用的なワークフローを本番運用。'
   },
   {
     id: 'collector-products',

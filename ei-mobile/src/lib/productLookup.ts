@@ -387,8 +387,7 @@ function inferKind(
       ? hint
       : 'food';
   }
-  if (hint !== 'food') return hint;
-  return 'general';
+  return hint;
 }
 
 /** Extra labels for TCG / toy hits so the UI isn’t just a bare retail title. */

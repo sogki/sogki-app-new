@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import {
   Alert,
   Image,
@@ -22,46 +22,42 @@ import { AppRefreshControl, RefreshBanner } from '@/src/components/ui/AppRefresh
 import { GradientBackground } from '@/src/components/ui/GradientBackground';
 import { LoadingState } from '@/src/components/ui/LoadingState';
 import { ToolScreenHeader } from '@/src/components/ui/ToolScreenHeader';
-import { adminApi } from '@/src/lib/adminApi';
+import { useLifeDashboard } from '@/src/context/LifeDashboardContext';
+import { errorMessage } from '@/src/lib/appError';
 import { relativeDate } from '@/src/lib/format';
 import { normalizeOcrText } from '@/src/lib/ocrText';
-import type { LifeDashboardPayload, LifeScan } from '@/src/lib/types';
+import type { LifeScan } from '@/src/lib/types';
 import { colors, radius } from '@/src/theme/colors';
 
 export default function ScansToolScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const [payload, setPayload] = useState<LifeDashboardPayload | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const {
+    dashboard,
+    loading: dashLoading,
+    refresh,
+    savePayload,
+  } = useLifeDashboard();
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [menuScan, setMenuScan] = useState<LifeScan | null>(null);
   const [editing, setEditing] = useState<LifeScan | null>(null);
   const [editTitle, setEditTitle] = useState('');
   const [editText, setEditText] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const load = useCallback(async () => {
-    const dash = await adminApi.lifeDashboard();
-    setPayload(dash.payload);
-  }, []);
-
-  useEffect(() => {
-    load()
-      .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load scans'))
-      .finally(() => setLoading(false));
-  }, [load]);
+  const payload = dashboard?.payload ?? null;
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      await load();
+      await refresh();
       setError(null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Refresh failed');
+      setError(errorMessage(e, 'Refresh failed'));
     }
     setRefreshing(false);
-  }, [load]);
+  }, [refresh]);
 
   const scans = Array.isArray(payload?.scans) ? payload!.scans : [];
   const sorted = [...scans].sort(
@@ -71,12 +67,10 @@ export default function ScansToolScreen() {
   const persist = async (next: LifeScan[]) => {
     if (!payload) return;
     const updated = { ...payload, scans: next };
-    setPayload(updated);
     try {
-      await adminApi.saveLifeDashboard({ payload: updated });
+      await savePayload(updated);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Could not save');
-      await load();
+      setError(errorMessage(e, 'Could not save'));
     }
   };
 
@@ -136,7 +130,7 @@ export default function ScansToolScreen() {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
-  if (loading) return <LoadingState message="Loading scans..." />;
+  if (dashLoading && !dashboard) return <LoadingState message="Loading scans..." />;
 
   return (
     <GradientBackground>

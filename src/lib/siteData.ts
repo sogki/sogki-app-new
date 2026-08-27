@@ -8,29 +8,60 @@ export type { Project, ProjectMetric, ProjectStatus, ProjectTier } from './proje
 export { PROJECT_STATUS_LABELS, projectAccent, projectHref } from './projectTypes';
 
 function mapProjectRow(row: Record<string, unknown>): Project {
+  const title = row.title as string;
+  const slug = (row.slug as string | null) ?? null;
+  const isArcpedia =
+    title === 'ArcRaiders Companion' || slug === 'arc-raiders-companion' || slug === 'arcpedia';
+  const isBinderly = title === 'Binderly TCG' || slug === 'binderly-tcg';
+
   return {
     id: row.id as string,
-    title: row.title as string,
-    title_jp: (row.title_jp as string | null) ?? null,
-    description: row.description as string,
+    title: isArcpedia ? 'ARCPedia' : title,
+    title_jp: isArcpedia ? 'ARCPedia' : ((row.title_jp as string | null) ?? null),
+    description: (row.description as string) ?? '',
     technologies: (row.technologies as string[]) ?? [],
     github: (row.github as string | null) ?? null,
     demo: (row.demo as string | null) ?? null,
     featured: Boolean(row.featured),
     color: (row.color as string | null) ?? null,
     sort_order: (row.sort_order as number) ?? 0,
-    slug: (row.slug as string | null) ?? null,
+    slug,
     status: (row.status as Project['status']) ?? 'live',
     tier: (row.tier as Project['tier']) ?? 'supporting',
-    tagline: (row.tagline as string | null) ?? null,
+    tagline: isArcpedia
+      ? ((row.tagline as string | null) ??
+        'Live companion for Arc Raiders — events, maps, item intel, and raid planning.')
+      : ((row.tagline as string | null) ?? null),
     status_note: (row.status_note as string | null) ?? null,
     long_description: (row.long_description as string | null) ?? null,
-    hero_image_url: (row.hero_image_url as string | null) ?? null,
+    hero_image_url: isBinderly
+      ? 'https://vwdrdqkzjkfdmycomfvf.supabase.co/storage/v1/object/public/assets/binderly-preview.png'
+      : ((row.hero_image_url as string | null) ?? null),
     screenshots: (row.screenshots as string[]) ?? [],
     metrics: parseProjectMetrics(row.metrics),
     accent_color: (row.accent_color as string | null) ?? null,
     show_demo_link: row.show_demo_link !== false,
   };
+}
+
+/** Preferred All Work order (main project excluded). Lower = earlier. */
+const WORK_SORT_RANK: Record<string, number> = {
+  arcpedia: 0,
+  'arc-raiders-companion': 0,
+  '50andbad-platform': 1,
+  blxr: 2,
+  'profiles-after-dark': 3,
+  ranktheglobe: 4,
+  'tiktok-live-api': 5,
+  'marlow-marketing': 6,
+};
+
+export function sortWorkProjects(projects: Project[]): Project[] {
+  return [...projects].sort((a, b) => {
+    const rankA = WORK_SORT_RANK[a.slug ?? ''] ?? 1000 + a.sort_order;
+    const rankB = WORK_SORT_RANK[b.slug ?? ''] ?? 1000 + b.sort_order;
+    return rankA - rankB;
+  });
 }
 
 export type SocialLink = {

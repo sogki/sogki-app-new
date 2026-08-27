@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
-  Alert,
   Dimensions,
   Image,
   Pressable,
@@ -19,6 +18,7 @@ import { LoadingState } from '@/src/components/ui/LoadingState';
 import { SectionHeader } from '@/src/components/ui/SectionHeader';
 import { ToolScreenHeader } from '@/src/components/ui/ToolScreenHeader';
 import { adminApi } from '@/src/lib/adminApi';
+import { showAppError } from '@/src/lib/appError';
 import { clampPct } from '@/src/lib/format';
 import type { BinderShowcase, MasterSetEntry } from '@/src/lib/toolTypes';
 import { colors, radius } from '@/src/theme/colors';
@@ -35,16 +35,20 @@ export default function BindersToolScreen() {
   const [pctDraft, setPctDraft] = useState('');
 
   const load = useCallback(async () => {
-    const [binders, masters] = await Promise.all([
-      adminApi.binderShowcases(),
-      adminApi.collectionMasterSets().catch(() => []),
-    ]);
-    const showcaseList = Array.isArray(binders) ? (binders as BinderShowcase[]) : [];
-    showcaseList.sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
-    const masterList = Array.isArray(masters) ? (masters as MasterSetEntry[]) : [];
-    masterList.sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
-    setShowcases(showcaseList);
-    setMasterSets(masterList);
+    try {
+      const [binders, masters] = await Promise.all([
+        adminApi.binderShowcases(),
+        adminApi.collectionMasterSets().catch(() => []),
+      ]);
+      const showcaseList = Array.isArray(binders) ? (binders as BinderShowcase[]) : [];
+      showcaseList.sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+      const masterList = Array.isArray(masters) ? (masters as MasterSetEntry[]) : [];
+      masterList.sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+      setShowcases(showcaseList);
+      setMasterSets(masterList);
+    } catch (e) {
+      showAppError('Could not load collection', e);
+    }
   }, []);
 
   useEffect(() => {
@@ -65,7 +69,7 @@ export default function BindersToolScreen() {
   const saveProgress = async (id: string) => {
     const pct = Math.min(100, Math.max(0, Number(pctDraft)));
     if (!Number.isFinite(pct)) {
-      Alert.alert('Invalid value', 'Enter a percentage between 0 and 100.');
+      showAppError('Invalid value', 'Enter a percentage between 0 and 100.');
       return;
     }
     try {
@@ -73,7 +77,7 @@ export default function BindersToolScreen() {
       setEditingId(null);
       await load();
     } catch (e) {
-      Alert.alert('Save failed', e instanceof Error ? e.message : 'Unknown error');
+      showAppError('Save failed', e);
     }
   };
 

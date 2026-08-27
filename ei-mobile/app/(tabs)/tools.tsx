@@ -17,13 +17,23 @@ import { GradientBackground } from '@/src/components/ui/GradientBackground';
 import { LoadingState } from '@/src/components/ui/LoadingState';
 import { SectionHeader } from '@/src/components/ui/SectionHeader';
 import { useAuth } from '@/src/context/AuthContext';
+import { useLifeDashboard } from '@/src/context/LifeDashboardContext';
 import { adminApi } from '@/src/lib/adminApi';
-import type { LifeDashboardPayload } from '@/src/lib/types';
+import { showAppError } from '@/src/lib/appError';
 import { colors } from '@/src/theme/colors';
+
+type ToolHref =
+  | '/tools/cvs'
+  | '/tools/scans'
+  | '/tools/blogs'
+  | '/tools/packs'
+  | '/tools/binders'
+  | '/tools/feature-flags'
+  | '/tools/presence';
 
 type ToolItem = {
   id: string;
-  href: '/tools/cvs' | '/tools/scans' | '/tools/blogs' | '/tools/packs' | '/tools/binders';
+  href: ToolHref;
   icon: keyof typeof Ionicons.glyphMap;
   title: string;
   subtitle: string;
@@ -34,7 +44,7 @@ export default function ToolsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { logout } = useAuth();
-  const [payload, setPayload] = useState<LifeDashboardPayload | null>(null);
+  const { dashboard, refresh: refreshDashboard } = useLifeDashboard();
   const [counts, setCounts] = useState({
     blogs: 0,
     cvs: 0,
@@ -47,24 +57,28 @@ export default function ToolsScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
   const load = useCallback(async () => {
-    const [dash, blogs, cvs, packs, binders, masters] = await Promise.all([
-      adminApi.lifeDashboard(),
-      adminApi.blogs().catch(() => []),
-      adminApi.cvs().catch(() => []),
-      adminApi.resourcePacks().catch(() => []),
-      adminApi.binderShowcases().catch(() => []),
-      adminApi.collectionMasterSets().catch(() => []),
-    ]);
-    setPayload(dash.payload);
-    setCounts({
-      blogs: Array.isArray(blogs) ? blogs.length : 0,
-      cvs: Array.isArray(cvs) ? cvs.length : 0,
-      scans: Array.isArray(dash.payload?.scans) ? dash.payload.scans.length : 0,
-      packs: Array.isArray(packs) ? packs.length : 0,
-      binders: Array.isArray(binders) ? binders.length : 0,
-      masters: Array.isArray(masters) ? masters.length : 0,
-    });
-  }, []);
+    try {
+      const [dash, blogs, cvs, packs, binders, masters] = await Promise.all([
+        refreshDashboard().catch(() => null),
+        adminApi.blogs().catch(() => []),
+        adminApi.cvs().catch(() => []),
+        adminApi.resourcePacks().catch(() => []),
+        adminApi.binderShowcases().catch(() => []),
+        adminApi.collectionMasterSets().catch(() => []),
+      ]);
+      const payload = dash?.payload;
+      setCounts({
+        blogs: Array.isArray(blogs) ? blogs.length : 0,
+        cvs: Array.isArray(cvs) ? cvs.length : 0,
+        scans: Array.isArray(payload?.scans) ? payload!.scans.length : 0,
+        packs: Array.isArray(packs) ? packs.length : 0,
+        binders: Array.isArray(binders) ? binders.length : 0,
+        masters: Array.isArray(masters) ? masters.length : 0,
+      });
+    } catch (e) {
+      showAppError('Could not load tools', e);
+    }
+  }, [refreshDashboard]);
 
   useEffect(() => {
     load().finally(() => setLoading(false));
@@ -76,7 +90,9 @@ export default function ToolsScreen() {
     setRefreshing(false);
   }, [load]);
 
-  if (loading) return <LoadingState message="Loading tools..." />;
+  if (loading && !dashboard) return <LoadingState message="Loading tools..." />;
+
+  const payload = dashboard?.payload ?? null;
 
   const tools: ToolItem[] = [
     {
@@ -118,6 +134,20 @@ export default function ToolsScreen() {
       title: 'Collection',
       subtitle: 'Binders & master sets',
       count: counts.binders + counts.masters,
+    },
+    {
+      id: 'flags',
+      href: '/tools/feature-flags',
+      icon: 'flag-outline',
+      title: 'Feature flags',
+      subtitle: 'Toggle sogki.dev sections',
+    },
+    {
+      id: 'presence',
+      href: '/tools/presence',
+      icon: 'navigate-outline',
+      title: 'Presence',
+      subtitle: 'Home base & travel memory',
     },
   ];
 

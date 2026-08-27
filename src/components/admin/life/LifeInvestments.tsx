@@ -223,9 +223,9 @@ export default function LifeInvestments({ fallback, expanded }: LifeInvestmentsP
         </div>
       }
     >
-      <div className={`space-y-4 ${expanded ? 'max-w-4xl' : ''}`}>
+      <div className={`flex h-full min-h-0 flex-col gap-4 ${expanded ? 'max-w-4xl' : ''}`}>
         {(editing || needsSetup) && (
-          <div className="rounded-xl border border-white/10 bg-black/25 p-3 space-y-3">
+          <div className="shrink-0 rounded-xl border border-white/10 bg-black/25 p-3 space-y-3">
             <p className="text-xs text-gray-300">
               Enter your <span className="text-white">ISA / Trading 212</span> numbers. We convert
               account value → units using the live VUAG.L price; the feed then calculates value,
@@ -289,7 +289,7 @@ export default function LifeInvestments({ fallback, expanded }: LifeInvestmentsP
           </div>
         )}
 
-        <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex shrink-0 flex-wrap items-start justify-between gap-3">
           <div>
             <div className="flex items-center gap-2">
               <p className="text-xs uppercase tracking-wide text-gray-500">VUAG · LSE</p>
@@ -345,9 +345,11 @@ export default function LifeInvestments({ fallback, expanded }: LifeInvestmentsP
           </div>
         </div>
 
-        <LifeLineChart points={points} positive={rangePositive} />
+        <div className="min-h-[140px] flex-1">
+          <LifeLineChart points={points} positive={rangePositive} className="h-full" />
+        </div>
 
-        <div className="grid grid-cols-2 gap-3 border-t border-white/5 pt-4 sm:grid-cols-4">
+        <div className="grid shrink-0 grid-cols-2 gap-3 border-t border-white/5 pt-4 sm:grid-cols-4">
           <Stat label="Value" value={formatMoney(data.portfolioValue, '£', 2)} />
           <Stat
             label="Unrealised"

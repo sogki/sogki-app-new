@@ -87,6 +87,12 @@ export type LifeScan = {
   createdAt: string;
   source?: 'camera' | 'library' | 'qr';
   mode?: 'ocr' | 'qr' | 'barcode' | 'identify' | 'translate';
+  /** Stable id for memory / duplicate detection (barcode, QR, or text hash). */
+  fingerprint?: string | null;
+  /** Last time this fingerprint was scanned (may differ from createdAt). */
+  lastSeenAt?: string | null;
+  /** How many times this item has been remembered. */
+  scanCount?: number;
   /** Compressed JPEG data URL for the captured camera/library frame (optional). */
   imageDataUrl?: string | null;
   /** Catalog / product lookup image URL (barcode scans). */
@@ -113,6 +119,27 @@ export type LifeWeather = {
   forecast: Array<{ day: string; highC: number; lowC: number; condition: string }>;
 };
 
+/** Presence / travel memory — where you've been relative to home. */
+export type LifePresenceCheckIn = {
+  id: string;
+  at: string;
+  lat: number;
+  lng: number;
+  label: string;
+  awayFromHome: boolean;
+  distanceKm?: number;
+};
+
+export type LifePresence = {
+  trackingEnabled: boolean;
+  homeLabel?: string | null;
+  homeLat?: number | null;
+  homeLng?: number | null;
+  /** Distance from home before a visit counts as "away" (default 3). */
+  homeRadiusKm?: number;
+  checkIns: LifePresenceCheckIn[];
+};
+
 export type LifeDashboardData = {
   displayName: string;
   investment: InvestmentSnapshot;
@@ -135,6 +162,7 @@ export type LifeDashboardData = {
     date: string;
     completedIds: string[];
   };
+  presence?: LifePresence;
 };
 
 export type DashboardWidgetId =

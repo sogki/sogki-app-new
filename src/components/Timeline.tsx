@@ -64,8 +64,8 @@ const STATUS_META: Record<
 const events: TimelineEvent[] = [
   {
     year: '2026',
-    title: 'ArcRaiders Companion',
-    titleJp: 'アークレイダーズコンパニオン',
+    title: 'ARCPedia',
+    titleJp: 'ARCPedia',
     description:
       'Production Arc Raiders companion — events, maps, 480+ item database, raid planning.',
     hoverDetail: 'Actively maintained in production with live game data.',

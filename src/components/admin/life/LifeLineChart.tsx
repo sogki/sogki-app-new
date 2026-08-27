@@ -37,11 +37,11 @@ export default function LifeLineChart({ points, positive = true, className = '' 
   const fill = positive ? 'rgba(52, 211, 153, 0.16)' : 'rgba(248, 113, 113, 0.14)';
 
   return (
-    <div className={`w-full overflow-hidden ${className}`}>
+    <div className={`flex h-full w-full min-h-[140px] overflow-hidden ${className}`}>
       <svg
         viewBox={`0 0 ${width} ${height}`}
         preserveAspectRatio="none"
-        className="h-40 w-full sm:h-48"
+        className="h-full min-h-[140px] w-full"
         role="img"
         aria-label="Price chart"
       >

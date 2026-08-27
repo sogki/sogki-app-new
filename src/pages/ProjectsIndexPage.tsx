@@ -1,11 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useSiteData } from '../context/SiteDataContext';
-import { projectHref } from '../lib/siteData';
+import { projectHref, sortWorkProjects, projectAccent } from '../lib/siteData';
 import ShinyText from '../components/ShinyText';
 import ProjectStatusBadge from '../components/ProjectStatusBadge';
-import { projectAccent } from '../lib/siteData';
 import type { ProjectStatus } from '../lib/projectTypes';
 
 const FILTERS: { id: 'all' | ProjectStatus; label: string }[] = [
@@ -21,8 +20,9 @@ export function ProjectsIndexPage() {
   const [filter, setFilter] = useState<'all' | ProjectStatus>('all');
 
   const filtered = useMemo(() => {
-    if (filter === 'all') return projects;
-    return projects.filter((p) => p.status === filter);
+    const ordered = sortWorkProjects(projects);
+    if (filter === 'all') return ordered;
+    return ordered.filter((p) => p.status === filter);
   }, [projects, filter]);
 
   if (isLoading) {

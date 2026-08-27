@@ -21,7 +21,8 @@ export const fromBase64Url = (value: string) => {
 };
 
 export const toSogkiImageProxyUrl = (rawImageUrl: string) => {
-  return `https://sogki.dev/api/image/${toBase64Url(rawImageUrl)}`;
+  // Relative path so it works on sogki.dev, preview deploys, and local vite proxy.
+  return `/api/image/${toBase64Url(rawImageUrl)}`;
 };
 
 const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.avif', '.svg'];

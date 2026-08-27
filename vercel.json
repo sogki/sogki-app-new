@@ -8,6 +8,9 @@
       "source": "/api/resourcepacks/:id",
       "destination": "https://vwdrdqkzjkfdmycomfvf.supabase.co/functions/v1/resourcepacks-api/:id"
     },
-    { "source": "/(.*)", "destination": "/index.html" }
+    {
+      "source": "/((?!api/).*)",
+      "destination": "/index.html"
+    }
   ]
 }

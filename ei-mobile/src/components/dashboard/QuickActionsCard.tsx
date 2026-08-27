@@ -62,7 +62,7 @@ export function QuickActionsCard({ links }: QuickActionsCardProps) {
       id: 'settings',
       label: 'Settings',
       icon: 'settings-outline' as const,
-      onPress: () => router.push('/tools/settings'),
+      onPress: () => router.push('/(tabs)/settings'),
     },
   ];
 

@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { ExternalLink, Github, Sparkles } from 'lucide-react';
 import type { Project } from '../lib/siteData';
 import { projectAccent, projectHref } from '../lib/siteData';
+import { toSogkiImageProxyUrl } from '../utils/imageLinks';
 import ProjectStatusBadge from './ProjectStatusBadge';
 import { sectionRevealTransition, sectionViewport } from '../lib/motionPresets';
 
@@ -105,12 +106,19 @@ export default function MainProjectSpotlight({ project }: MainProjectSpotlightPr
             <div className="overflow-hidden rounded-xl border border-white/20 bg-black/30 shadow-2xl">
               {project.hero_image_url ? (
                 <img
-                  src={project.hero_image_url}
+                  src={toSogkiImageProxyUrl(project.hero_image_url)}
                   alt={`${project.title} preview`}
                   className="aspect-video w-full object-cover object-top"
                   loading="lazy"
+                  data-raw-src={project.hero_image_url}
                   onError={(e) => {
-                    (e.target as HTMLImageElement).style.display = 'none';
+                    const img = e.target as HTMLImageElement;
+                    const raw = img.dataset.rawSrc;
+                    if (raw && img.src !== raw) {
+                      img.src = raw;
+                      return;
+                    }
+                    img.style.display = 'none';
                   }}
                 />
               ) : (

@@ -14,9 +14,28 @@ const ICON_MAP: Record<string, React.ReactNode> = {
 export const Footer: React.FC = () => {
   const { socialLinks, footerConfig, projects, isLoading } = useSiteData();
 
-  const featuredProjects = projects
-    .filter((p) => p.tier === 'main' || p.tier === 'featured')
-    .slice(0, 6);
+  const preferredWork = [
+    { name: 'Binderly TCG', slugHints: ['binderly-tcg'], titleHints: ['binderly tcg', 'binderly'] },
+    { name: '50andBad', slugHints: ['50andbad-platform'], titleHints: ['50andbad'] },
+    { name: 'ARCPedia', slugHints: ['arcpedia', 'arc-raiders-companion'], titleHints: ['arcpedia', 'arcraiders'] },
+  ];
+
+  const workLinks = preferredWork.map((item) => {
+    const match = projects.find((p) => {
+      const titleKey = p.title.toLowerCase();
+      const slug = p.slug ?? '';
+      return (
+        item.slugHints.includes(slug) ||
+        item.titleHints.some((hint) => titleKey === hint || titleKey.startsWith(hint))
+      );
+    });
+    const href = match ? projectHref(match) : null;
+    return {
+      name: item.name,
+      href: href ?? (match?.demo || '#'),
+      internal: Boolean(href),
+    };
+  });
 
   const quickLinks = footerConfig?.quick_links ?? [];
   const tagline = footerConfig?.tagline ?? 'Engineer, designer, builder.';
@@ -66,21 +85,33 @@ export const Footer: React.FC = () => {
           <div className="md:col-span-4">
             <p className="mb-3 font-mono text-xs uppercase tracking-wider text-gray-500">Work</p>
             <ul className="space-y-2">
-              {featuredProjects.map((p) => {
-                const href = projectHref(p);
+              {workLinks.map((item) => {
                 const label = (
-                  <span className="text-sm text-gray-300 transition hover:text-white">{p.title}</span>
+                  <span className="text-sm text-gray-300 transition hover:text-white">{item.name}</span>
                 );
                 return (
-                  <li key={p.id}>
-                    {href ? (
-                      <Link to={href} className="group inline-flex items-center gap-1">
+                  <li key={item.name}>
+                    {item.internal && item.href !== '#' ? (
+                      <Link to={item.href} className="group inline-flex items-center gap-1">
                         {label}
                         <ArrowUpRight
                           size={12}
                           className="text-gray-600 opacity-0 transition group-hover:text-purple-400 group-hover:opacity-100"
                         />
                       </Link>
+                    ) : item.href !== '#' ? (
+                      <a
+                        href={item.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="group inline-flex items-center gap-1"
+                      >
+                        {label}
+                        <ArrowUpRight
+                          size={12}
+                          className="text-gray-600 opacity-0 transition group-hover:text-purple-400 group-hover:opacity-100"
+                        />
+                      </a>
                     ) : (
                       label
                     )}
