@@ -48,6 +48,9 @@ export default function AdminResourcePacks() {
   const [file, setFile] = useState<File | null>(null);
   const [isActive, setIsActive] = useState(true);
   const [autoDeactivatePrevious, setAutoDeactivatePrevious] = useState(true);
+  const [apiEnabled, setApiEnabled] = useState(false);
+  const [apiBusy, setApiBusy] = useState(false);
+  const [apiError, setApiError] = useState<string | null>(null);
 
   const activeCount = useMemo(() => packs.filter((p) => p.is_active).length, [packs]);
 
@@ -57,6 +60,13 @@ export default function AdminResourcePacks() {
     try {
       const data = await adminApi.resourcePacks();
       setPacks((data as ResourcePack[]) ?? []);
+      try {
+        const access = await adminApi.resourcePackApiAccess();
+        setApiEnabled(access?.enabled === true);
+        setApiError(null);
+      } catch (e) {
+        setApiError(e instanceof Error ? e.message : 'Failed to load public API switch');
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load resource packs');
     } finally {
@@ -106,6 +116,20 @@ export default function AdminResourcePacks() {
       toast.error(e instanceof Error ? e.message : 'Upload failed');
     } finally {
       setUploading(false);
+    }
+  };
+
+  const handleApiAccess = async (enabled: boolean) => {
+    setApiBusy(true);
+    try {
+      const saved = await adminApi.setResourcePackApiAccess(enabled);
+      setApiEnabled(saved?.enabled === true);
+      setApiError(null);
+      toast.success(saved?.enabled ? 'Public API is on.' : 'Public API is off.');
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Failed to update public API');
+    } finally {
+      setApiBusy(false);
     }
   };
 
@@ -183,12 +207,29 @@ export default function AdminResourcePacks() {
     <AdminPageLayout
       title="Resource Packs"
       titleJp="リソース"
-      description="Upload and manage Minecraft resource pack ZIP files. Active packs are exposed at /api/resourcepacks/active."
+      description="Upload and manage Minecraft resource pack ZIP files. The public API stays off until you allow connections."
       loading={loading}
       error={error}
       onRetry={load}
     >
       <div className="space-y-5">
+      <AdminCard title="Public API">
+        <div className="space-y-3">
+          <p className="text-sm text-gray-400">
+            {apiEnabled
+              ? 'Connections are allowed. /api/resourcepacks/active serves active packs, and download links redirect to storage.'
+              : 'Connections are closed. List and download URLs refuse the request before any pack or storage read. Uploads on this page still work.'}
+          </p>
+          <AdminCheckbox
+            label="Allow public connections"
+            checked={apiEnabled}
+            disabled={apiBusy}
+            onChange={(e) => void handleApiAccess(e.target.checked)}
+          />
+          {apiError && <p className="text-sm text-red-300">{apiError}</p>}
+        </div>
+      </AdminCard>
+
       <AdminCard title="Upload pack">
         <form onSubmit={handleUpload} className="space-y-4">
           <div className="grid gap-4 md:grid-cols-3">

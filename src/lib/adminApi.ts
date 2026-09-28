@@ -131,6 +131,9 @@ export const adminApi = {
   },
 
   resourcePacks: () => adminApi.get('resourcepacks'),
+  resourcePackApiAccess: () => adminApi.get('resourcepacks/api-access') as Promise<{ enabled?: boolean }>,
+  setResourcePackApiAccess: (enabled: boolean) =>
+    adminApi.put('resourcepacks/api-access', { enabled }) as Promise<{ enabled: boolean }>,
   updateResourcePack: (id: string, data: unknown) => adminApi.patch(`resourcepacks/${id}`, data),
   deleteResourcePack: (id: string) => adminApi.delete(`resourcepacks/${id}`),
   binderShowcases: () => adminApi.get('binder_showcases'),

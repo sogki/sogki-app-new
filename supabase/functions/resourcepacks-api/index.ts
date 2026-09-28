@@ -18,6 +18,10 @@ Deno.serve(async (req) => {
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
   );
 
+  if (!(await resourcePacksApiEnabled(supabase))) {
+    return json({ error: 'Resource pack API is disabled' }, 404);
+  }
+
   const url = new URL(req.url);
   const match = url.pathname.match(/\/resourcepacks-api(?:\/(.*))?$/);
   const path = (match?.[1] ?? '').replace(/^\/+/, '');
@@ -76,6 +80,16 @@ Deno.serve(async (req) => {
     return json({ error: String(err) }, 500);
   }
 });
+
+async function resourcePacksApiEnabled(supabase: any): Promise<boolean> {
+  const { data, error } = await supabase
+    .from('keys')
+    .select('value')
+    .eq('key', 'resourcepacks_api_enabled')
+    .maybeSingle();
+  if (error || !data) return false;
+  return data.value === 'true';
+}
 
 function json(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {

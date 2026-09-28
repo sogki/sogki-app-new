@@ -146,12 +146,16 @@ async function handleGet(supabase: any, parts: string[], url: URL) {
       if (section) scQ = scQ.eq('section', section);
       const { data: siteContent } = await scQ;
       return json(siteContent ?? []);
-    case 'resourcepacks':
+    case 'resourcepacks': {
+      if (id === 'api-access') {
+        return json({ enabled: await resourcePacksApiEnabled(supabase) });
+      }
       const { data: packs } = await supabase
         .from('resource_packs')
         .select('*')
         .order('created_at', { ascending: false });
       return json(packs ?? []);
+    }
     case 'binder_showcases': {
       const { data: binders, error: bindersErr } = await supabase
         .from('binder_showcases')
@@ -604,10 +608,37 @@ function nullableText(value: FormDataEntryValue | null) {
   return text ? text : null;
 }
 
+async function resourcePacksApiEnabled(supabase: any): Promise<boolean> {
+  const { data, error } = await supabase
+    .from('keys')
+    .select('value')
+    .eq('key', 'resourcepacks_api_enabled')
+    .maybeSingle();
+  if (error) throw error;
+  return data?.value === 'true';
+}
+
 async function handleMutate(supabase: any, method: string, parts: string[], body: any) {
   const [resource, id] = parts;
 
   if (resource === 'resourcepacks') {
+    if (id === 'api-access') {
+      if (method !== 'PUT' && method !== 'PATCH') return json({ error: 'Method not allowed' }, 405);
+      const enabled = body?.enabled === true;
+      const { error } = await supabase.from('keys').upsert(
+        {
+          key: 'resourcepacks_api_enabled',
+          value: enabled ? 'true' : 'false',
+          is_public: true,
+          description:
+            'When true, the public resource pack API accepts connections. When false, list and download routes refuse before reading packs or storage.',
+        },
+        { onConflict: 'key' }
+      );
+      if (error) throw error;
+      return json({ enabled });
+    }
+
     if (method === 'PATCH' || method === 'PUT') {
       if (!id) return json({ error: 'ID required' }, 400);
       const payload: Record<string, unknown> = {};
