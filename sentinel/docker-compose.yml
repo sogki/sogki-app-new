@@ -1,0 +1,41 @@
+services:
+  # Local Citadel (Sentinel API) — loopback only. Hosted deploy uses Railway service "citadel".
+  sentinel-api:
+    build: .
+    container_name: citadel-api
+    ports:
+      - "127.0.0.1:8790:8790"
+    env_file:
+      - .env
+    environment:
+      SENTINEL_HOST: 0.0.0.0
+      PORT: 8790
+      DEPLOY_CODENAME: citadel
+    volumes:
+      - sentinel-data:/app/data
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  labfixtures:
+    image: python:3.12-slim
+    container_name: sentinel-labfixtures
+    working_dir: /app
+    command: ["python", "labfixtures/server.py"]
+    volumes:
+      - ./labfixtures:/app/labfixtures:ro
+    ports:
+      - "127.0.0.1:8791:8791"
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+volumes:
+  sentinel-data:

@@ -1,0 +1,12 @@
+# Citadel — Railway deploy config for the Sentinel API.
+# In Railway: create service "citadel", set Root Directory to `sentinel`.
+
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+healthcheckPath = "/health"
+healthcheckTimeout = 30
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 5

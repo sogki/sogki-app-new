@@ -2,8 +2,79 @@ import { SUPABASE_URL } from '../config/bootstrap';
 
 const FUNCTIONS_URL = `${SUPABASE_URL}/functions/v1`;
 
+export type MailIdentity = {
+  id: string;
+  local_part: string;
+  display_name: string;
+  signature_html: string;
+  signature_text: string;
+  is_active: boolean;
+  email: string;
+  domain: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type MailIdentityInput = {
+  local_part: string;
+  display_name?: string;
+  signature_html?: string;
+  signature_text?: string;
+  is_active?: boolean;
+};
+
+export type MailMessageSummary = {
+  id: string;
+  direction: 'inbound' | 'outbound';
+  identity_id: string | null;
+  resend_email_id: string | null;
+  from_address: string;
+  to_addresses: string[];
+  cc_addresses: string[];
+  subject: string;
+  message_id: string | null;
+  in_reply_to: string | null;
+  thread_key: string | null;
+  is_read: boolean;
+  created_at: string;
+};
+
+export type MailMessage = MailMessageSummary & {
+  html_body: string | null;
+  text_body: string | null;
+};
+
 export function getAdminToken(): string | null {
   return localStorage.getItem('admin_token');
+}
+
+async function mailFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const token = getAdminToken();
+  if (!token) throw new Error('Not authenticated');
+
+  const url = `${FUNCTIONS_URL}/admin-mail/${path.replace(/^\//, '')}`;
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+        ...options.headers,
+      },
+    });
+  } catch {
+    throw new Error(
+      'Cannot reach admin-mail. Deploy with: npx supabase functions deploy admin-mail'
+    );
+  }
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    if (res.status === 401) throw new Error('Session expired. Please log in again.');
+    throw new Error(resolveApiError(data, res.status));
+  }
+  return data as T;
 }
 
 export function setAdminToken(token: string): void {
@@ -273,6 +344,31 @@ export const adminApi = {
     }
     return data;
   },
+
+  mailMeta: () => mailFetch<{ domain: string }>('meta'),
+  mailIdentities: () => mailFetch<MailIdentity[]>('identities'),
+  mailCreateIdentity: (body: MailIdentityInput) =>
+    mailFetch<MailIdentity>('identities', { method: 'POST', body: JSON.stringify(body) }),
+  mailUpdateIdentity: (id: string, body: Partial<MailIdentityInput>) =>
+    mailFetch<MailIdentity>(`identities/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
+  mailDeleteIdentity: (id: string) =>
+    mailFetch<{ ok: boolean }>(`identities/${id}`, { method: 'DELETE' }),
+  mailMessages: (box: 'inbox' | 'sent' = 'inbox') =>
+    mailFetch<MailMessageSummary[]>(`messages?box=${box}`),
+  mailMessage: (id: string) => mailFetch<MailMessage>(`messages/${id}`),
+  mailMarkRead: (id: string, is_read: boolean) =>
+    mailFetch<MailMessage>(`messages/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ is_read }),
+    }),
+  mailSend: (body: {
+    identity_id: string;
+    to: string | string[];
+    subject: string;
+    html?: string;
+    text?: string;
+    reply_to_message_id?: string;
+  }) => mailFetch<{ ok: boolean; message: MailMessage }>('send', { method: 'POST', body: JSON.stringify(body) }),
 
   /** Neural TTS for Ei — returns mp3 + provider + voice id. */
   eiSpeakAudio: async (

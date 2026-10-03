@@ -22,6 +22,7 @@ import {
   Layers,
   Percent,
   Briefcase,
+  Mail,
   ExternalLink,
   Menu,
   X,
@@ -40,6 +41,38 @@ import AdminResourcePacks from './AdminResourcePacks';
 import AdminBinderShowcase from './AdminBinderShowcase';
 import AdminMasterSetCompletion from './AdminMasterSetCompletion';
 import AdminCvs from './AdminCvs';
+import AdminMail from './AdminMail';
+import SentinelLayout from './sentinel/SentinelLayout';
+import SentinelDashboard from './sentinel/SentinelDashboard';
+import SentinelScanner from './sentinel/SentinelScanner';
+import SentinelTargets from './sentinel/SentinelTargets';
+import SentinelFindings from './sentinel/SentinelFindings';
+import SentinelHistory from './sentinel/SentinelHistory';
+import SentinelReports from './sentinel/SentinelReports';
+import SentinelSettings from './sentinel/SentinelSettings';
+import HeaderLab from './sentinel/tools/HeaderLab';
+import TlsInspector from './sentinel/tools/TlsInspector';
+import RedirectMapper from './sentinel/tools/RedirectMapper';
+import DisclosureAnalyzer from './sentinel/tools/DisclosureAnalyzer';
+import HashEncodingLab from './sentinel/tools/HashEncodingLab';
+import JwtDecoder from './sentinel/tools/JwtDecoder';
+import PasswordStrength from './sentinel/tools/PasswordStrength';
+import DnsMapper from './sentinel/tools/DnsMapper';
+import EmailAuth from './sentinel/tools/EmailAuth';
+import CspEvaluator from './sentinel/tools/CspEvaluator';
+import CookieLab from './sentinel/tools/CookieLab';
+import MethodProbe from './sentinel/tools/MethodProbe';
+import AssetInventory from './sentinel/tools/AssetInventory';
+import HstsPreload from './sentinel/tools/HstsPreload';
+import ScanDiff from './sentinel/tools/ScanDiff';
+import RegexLab from './sentinel/tools/RegexLab';
+import HexUnicode from './sentinel/tools/HexUnicode';
+import PemDecoder from './sentinel/tools/PemDecoder';
+import SecretScanner from './sentinel/tools/SecretScanner';
+import TimestampLab from './sentinel/tools/TimestampLab';
+import Playbooks from './sentinel/tools/Playbooks';
+import AttackChecklist from './sentinel/tools/AttackChecklist';
+import LabFixtures from './sentinel/tools/LabFixtures';
 
 type NavItem = {
   to: string;
@@ -77,9 +110,14 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: 'Tools',
     items: [
+      { to: '/admin/mail', label: 'Mail', icon: Mail },
       { to: '/admin/cvs', label: 'CV Manager', icon: Briefcase },
       { to: '/admin/resourcepacks', label: 'Resource Packs', icon: Package },
     ],
+  },
+  {
+    label: 'Security',
+    items: [{ to: '/admin/sentinel', label: 'Sentinel', icon: Shield }],
   },
   {
     label: 'Site',
@@ -235,7 +273,40 @@ function AdminRoutes() {
               <Route path="resourcepacks" element={<AdminResourcePacks />} />
               <Route path="binder-showcase" element={<AdminBinderShowcase />} />
               <Route path="master-set-completion" element={<AdminMasterSetCompletion />} />
+              <Route path="mail" element={<AdminMail />} />
               <Route path="cvs" element={<AdminCvs />} />
+              <Route path="sentinel" element={<SentinelLayout />}>
+                <Route index element={<SentinelDashboard />} />
+                <Route path="scanner" element={<SentinelScanner />} />
+                <Route path="targets" element={<SentinelTargets />} />
+                <Route path="findings" element={<SentinelFindings />} />
+                <Route path="history" element={<SentinelHistory />} />
+                <Route path="reports" element={<SentinelReports />} />
+                <Route path="settings" element={<SentinelSettings />} />
+                <Route path="tools/headers" element={<HeaderLab />} />
+                <Route path="tools/tls" element={<TlsInspector />} />
+                <Route path="tools/redirects" element={<RedirectMapper />} />
+                <Route path="tools/disclosure" element={<DisclosureAnalyzer />} />
+                <Route path="tools/dns" element={<DnsMapper />} />
+                <Route path="tools/email-auth" element={<EmailAuth />} />
+                <Route path="tools/csp" element={<CspEvaluator />} />
+                <Route path="tools/cookies" element={<CookieLab />} />
+                <Route path="tools/methods" element={<MethodProbe />} />
+                <Route path="tools/assets" element={<AssetInventory />} />
+                <Route path="tools/hsts" element={<HstsPreload />} />
+                <Route path="tools/diff" element={<ScanDiff />} />
+                <Route path="tools/hash" element={<HashEncodingLab />} />
+                <Route path="tools/jwt" element={<JwtDecoder />} />
+                <Route path="tools/password" element={<PasswordStrength />} />
+                <Route path="tools/regex" element={<RegexLab />} />
+                <Route path="tools/hex" element={<HexUnicode />} />
+                <Route path="tools/pem" element={<PemDecoder />} />
+                <Route path="tools/secrets" element={<SecretScanner />} />
+                <Route path="tools/timestamp" element={<TimestampLab />} />
+                <Route path="tools/playbooks" element={<Playbooks />} />
+                <Route path="tools/checklist" element={<AttackChecklist />} />
+                <Route path="tools/labfixtures" element={<LabFixtures />} />
+              </Route>
               <Route path="social" element={<AdminSocial />} />
               <Route path="footer" element={<AdminFooter />} />
               <Route path="settings" element={<AdminSettings />} />

@@ -1,0 +1,1 @@
+"""Sentinel FastAPI service package."""

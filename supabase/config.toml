@@ -40,3 +40,11 @@ verify_jwt = false
 # Public portfolio contact form
 [functions.site-contact]
 verify_jwt = false
+
+# Admin mail centre — custom admin JWT
+[functions.admin-mail]
+verify_jwt = false
+
+# Resend inbound webhook (email.received)
+[functions.mail-inbound]
+verify_jwt = false

@@ -13,6 +13,7 @@ import {
   Percent,
   Package,
   Briefcase,
+  Mail,
 } from 'lucide-react';
 import AdminCard from '../AdminCard';
 
@@ -24,6 +25,7 @@ const ADMIN_SECTIONS = [
   { to: '/admin/graphics', icon: Palette, label: 'Graphics', desc: 'Design assets', group: 'Portfolio' },
   { to: '/admin/binder-showcase', icon: Layers, label: 'Binder', desc: 'TCG showcases', group: 'Portfolio' },
   { to: '/admin/master-set-completion', icon: Percent, label: 'Master set', desc: 'Completion', group: 'Portfolio' },
+  { to: '/admin/mail', icon: Mail, label: 'Mail', desc: 'Identities, inbox & send via Resend', group: 'Tools' },
   { to: '/admin/cvs', icon: Briefcase, label: 'CV Manager', desc: 'Store & email CVs', group: 'Tools' },
   { to: '/admin/resourcepacks', icon: Package, label: 'Packs', desc: 'Resource packs', group: 'Tools' },
   { to: '/admin/social', icon: Share2, label: 'Social', desc: 'Social links', group: 'Site' },
